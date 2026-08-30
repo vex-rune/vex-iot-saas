@@ -14,12 +14,6 @@ import {
   Select,
   SelectItem,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
   Textarea,
   Tooltip,
   addToast,
@@ -37,19 +31,15 @@ import {
   listDeviceSchedules,
   saveSchedule,
   deleteSchedule,
-  setScheduleEnabled,
 } from '@/api/schedules';
 import { getDevicePoints } from '@/api/devices';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { chainToPromise } from '@/hooks/useQueryList';
-import { formatDateTime } from '@/lib/format';
 import { BatchProgressModal, type BatchTask } from '@/components/common/BatchProgressModal';
 import type {
   DataType,
   DeviceSchedule,
   DeviceScheduleAction,
-  DeviceScheduleDetail,
-  DeviceScheduleRequest,
   PointDefinition,
 } from '@/types/api';
 
@@ -130,7 +120,7 @@ export interface PointScheduleSectionProps {
 export default function PointScheduleSection({ deviceId, sectionRef }: PointScheduleSectionProps) {
   const queryClient = useQueryClient();
 
-  const { data: schedules = [] } = useQuery<DeviceScheduleDetail[]>({
+  const { data: schedules = [] } = useQuery<DeviceSchedule[]>({
     queryKey: ['schedules.list.byDevice', deviceId],
     queryFn: () => chainToPromise(listDeviceSchedules(deviceId)),
     enabled: !!deviceId,
@@ -145,8 +135,6 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
   const [pendingChanges, setPendingChanges] = useState<Map<string, Partial<ScheduleDraft>>>(new Map());
   const [drafts, setDrafts] = useState<ScheduleDraft[]>([]);
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
-  // 展开行：存储被展开的 schedule id（用于查看/编辑 actions）
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // 进度弹窗
   const [progressOpen, setProgressOpen] = useState(false);
   const [batchTasks, setBatchTasks] = useState<BatchTask[]>([]);
@@ -255,9 +243,6 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
   });
   const deleteMutation = useApiMutation({
     mutationFn: (id: string) => deleteSchedule(id),
-  });
-  const toggleMutation = useApiMutation({
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => setScheduleEnabled(id, enabled),
   });
 
   /** 构造全部保存任务 */
@@ -431,7 +416,7 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
             <PopoverContent className="w-64 p-2">
               <div className="flex flex-col gap-1">
                 {CRON_PRESETS.map((p) => (
-                  <Button key={p.key} size="sm" variant="flat" justify="start"
+                  <Button key={p.key} size="sm" variant="flat" className="justify-start"
                     onPress={() => addDraft(p.cron)}>
                     <div className="flex flex-col items-start">
                       <span>{p.label}</span>
@@ -440,7 +425,7 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
                   </Button>
                 ))}
                 <div className="my-1 border-t border-divider" />
-                <Button size="sm" variant="flat" justify="start" onPress={() => addDraft()}>
+                <Button size="sm" variant="flat" className="justify-start" onPress={() => addDraft()}>
                   自定义
                 </Button>
               </div>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Vex 云物联">
+  <defs>
+    <linearGradient id="vex-bg" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <radialGradient id="vex-shine" cx="30%" cy="20%" r="65%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="192" height="192" rx="40" fill="url(#vex-bg)"/>
+  <rect width="192" height="192" rx="40" fill="url(#vex-shine)"/>
+  <path d="M45 62 L96 138 L147 62"
+        stroke="white" stroke-width="22"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="96" cy="38" r="10" fill="white"/>
+  <path d="M96 52 L96 70" stroke="white" stroke-width="9" stroke-linecap="round"/>
+</svg>

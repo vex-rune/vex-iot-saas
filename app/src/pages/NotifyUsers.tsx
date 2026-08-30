@@ -30,9 +30,7 @@ import { useApiMutation } from '@/hooks/useApiMutation';
 import { useQueryList } from '@/hooks/useQueryList';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
-import { MagnifyingGlassIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import ChevronDownIcon from '@heroicons/react/24/outline/ChevronDownIcon';
-import ChevronUpIcon from '@heroicons/react/24/outline/ChevronUpIcon';
+import { MagnifyingGlassIcon, PencilIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import {
   queryNotifyUsers,
   countNotifyUsers,
@@ -83,12 +81,6 @@ const PLATFORM_OPTIONS: { key: NotifyTemplatePlatform; label: string }[] = [
   { key: 'HUAWEI', label: '华为云' },
   { key: 'OTHER', label: '其他' },
 ];
-
-const TYPE_COLORS: Record<NotifyTemplateType, 'primary' | 'success' | 'warning'> = {
-  SMS: 'primary',
-  WECHAT: 'success',
-  EMAIL: 'warning',
-};
 
 const CHANNEL_LABELS: Record<string, string> = {
   SMS: '短信', WECHAT: '微信', EMAIL: '邮件',
@@ -271,28 +263,6 @@ export default function NotifyUsers() {
     return () => clearTimeout(t);
   }, [recordSearch]);
 
-  const {
-    data: records,
-    total: recordsTotal,
-    page: recordsPage,
-    size: recordsSize,
-    setPage: setRecordsPage,
-    setSize: setRecordsSize,
-    setPredicate: setRecordsPredicate,
-    setOrder: setRecordsOrder,
-    isLoading: recordsLoading,
-  } = useQueryList<NotifyRecord>({
-    queryKey: 'notifyRecords',
-    queryFn: queryNotifyRecords,
-    countFn: countNotifyRecords,
-    defaultSize: RECORDS_PAGE_SIZE,
-  });
-
-  // 通知记录默认按时间倒序(最新在上)
-  useEffect(() => {
-    setRecordsOrder([{ field: 'time', order: 'DESC' }]);
-  }, [setRecordsOrder]);
-
   const recordPredicate = useMemo<Predicate | undefined>(() => {
     const items: PredicateItem[] = [];
     const trimmed = debouncedRecordSearch.trim();
@@ -305,10 +275,27 @@ export default function NotifyUsers() {
     return items.length > 0 ? { and: items } : undefined;
   }, [debouncedRecordSearch, recordChannel]);
 
+  const {
+    data: records,
+    total: recordsTotal,
+    page: recordsPage,
+    size: recordsSize,
+    setPage: setRecordsPage,
+    setSize: setRecordsSize,
+    setOrder: setRecordsOrder,
+    isLoading: recordsLoading,
+  } = useQueryList<NotifyRecord>({
+    queryKey: 'notifyRecords',
+    queryFn: queryNotifyRecords,
+    countFn: countNotifyRecords,
+    defaultSize: RECORDS_PAGE_SIZE,
+    defaultPredicate: recordPredicate,
+  });
+
+  // 通知记录默认按时间倒序(最新在上,只初始化一次)
   useEffect(() => {
-    setRecordsPredicate(recordPredicate);
-    setRecordsPage(0);
-  }, [recordPredicate, setRecordsPredicate, setRecordsPage]);
+    setRecordsOrder([{ field: 'time', order: 'DESC' }]);
+  }, [setRecordsOrder]);
 
   const userNameById = useMemo(() => {
     const m = new Map<string, string>();

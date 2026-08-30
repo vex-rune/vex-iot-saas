@@ -39,7 +39,7 @@ import {
   controlPoint,
   getDeviceHistory,
 } from '@/api/devices';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, historyKey, toEpochMs } from '@/lib/format';
 import type { RealtimePointValue, Device, PointHistory } from '@/types/api';
 
 export default function DeviceDetail() {
@@ -321,18 +321,19 @@ function HistoryTab({ deviceId }: { deviceId: string }) {
       <div className="flex flex-wrap items-end gap-2">
         <Input
           size="sm"
-          label="点位编码"
           placeholder="请输入点位编码"
           value={pointCode}
           onValueChange={setPointCode}
           variant="bordered"
           isRequired
+          aria-label="点位编码"
           className="w-40"
         />
         <Select
           size="sm"
-          label="条数"
+          placeholder="条数"
           variant="bordered"
+          aria-label="查询条数"
           className="w-24"
           selectedKeys={[limit]}
           onSelectionChange={(keys) => setLimit(Array.from(keys)[0] as string)}
@@ -364,13 +365,10 @@ function HistoryTab({ deviceId }: { deviceId: string }) {
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {data.map((item: PointHistory) => {
-              const epochMs =
-                (item.timestamp?.epochSecond ?? item.timestamp?.seconds ?? 0) > 0
-                  ? (item.timestamp?.epochSecond ?? item.timestamp?.seconds ?? 0) * 1000
-                  : undefined;
+              const epochMs = toEpochMs(item.timestamp);
               return (
                 <EntityCard
-                  key={`${item.timestamp?.epochSecond ?? item.timestamp?.seconds}-${item.timestamp?.nano ?? item.timestamp?.nanos}`}
+                  key={historyKey(item.timestamp)}
                   title={<span className="font-mono">{item.value ?? '-'}</span>}
                   subtitle={formatDateTime(epochMs)}
                 />
@@ -389,12 +387,9 @@ function HistoryTab({ deviceId }: { deviceId: string }) {
             items={data as PointHistory[]}
           >
             {(item: PointHistory) => {
-              const epochMs =
-                (item.timestamp?.epochSecond ?? item.timestamp?.seconds ?? 0) > 0
-                  ? (item.timestamp?.epochSecond ?? item.timestamp?.seconds ?? 0) * 1000
-                  : undefined;
+              const epochMs = toEpochMs(item.timestamp);
               return (
-                <TableRow key={`${item.timestamp?.epochSecond ?? item.timestamp?.seconds}-${item.timestamp?.nano ?? item.timestamp?.nanos}`}>
+                <TableRow key={historyKey(item.timestamp)}>
                   <TableCell className="text-foreground-600">{formatDateTime(epochMs)}</TableCell>
                   <TableCell>
                     <span className="font-mono text-foreground">{item.value ?? '-'}</span>

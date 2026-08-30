@@ -26,19 +26,11 @@ import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
 import { useQueryList } from '@/hooks/useQueryList';
 import { formatDateTime } from '@/lib/format';
+import { POINT_LEVEL_COLORS, POINT_LEVEL_LABELS } from '@/lib/levelMeta';
 import type { PointAlarmEvent, PointAlarmEventStatus, Predicate, PredicateItem } from '@/types/api';
 
-const LEVEL_COLORS: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
-  INFO: 'default',
-  WARN: 'warning',
-  ERROR: 'danger',
-};
-
-const LEVEL_LABELS: Record<string, string> = {
-  INFO: '提示',
-  WARN: '警告',
-  ERROR: '严重',
-};
+const LEVEL_COLORS = POINT_LEVEL_COLORS;
+const LEVEL_LABELS = POINT_LEVEL_LABELS;
 
 const STATUS_OPTIONS = [
   { key: 'ALL', label: '全部' },
@@ -87,11 +79,11 @@ export default function PointAlarmEvents() {
   const {
     data: events,
     total,
+    totalPages,
     page,
     size,
     setPage,
     setSize,
-    setPredicate,
     setOrder,
     isLoading,
     refetch,
@@ -100,14 +92,11 @@ export default function PointAlarmEvents() {
     queryFn: (body) => queryPointAlarmEvents(body),
     countFn: (body) => countPointAlarmEvents(body),
     defaultSize: 15,
+    // 筛选/搜索条件直接作 defaultPredicate 注入,变化时 react-query 自动 refetch
+    defaultPredicate,
   });
 
-  useEffect(() => {
-    setPredicate(defaultPredicate);
-    setPage(0);
-  }, [defaultPredicate, setPredicate, setPage]);
-
-  // 默认按发生时间倒序
+  // 默认按发生时间倒序(只初始化一次)
   useEffect(() => {
     setOrder([{ field: 'occurTime', order: 'DESC' }]);
   }, [setOrder]);
@@ -125,7 +114,6 @@ export default function PointAlarmEvents() {
   };
 
   const isMobile = useIsMobile();
-  const totalPages = Math.max(1, Math.ceil(total / size));
 
   return (
     <div className="flex min-h-full flex-col gap-4">

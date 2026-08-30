@@ -33,12 +33,14 @@ import {
   PowerIcon,
   SunIcon,
   UsersIcon,
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 import { useViewModeStore, type ViewMode } from '@/stores/viewMode';
-import { APP_TITLE } from '@/lib/env';
+import { APP_TITLE, OFFICIAL_URL } from '@/lib/env';
 import { isAdmin } from '@/lib/perm';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface NavItem {
   to: string;
@@ -52,8 +54,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/devices', label: '设备管理', icon: CpuChipIcon },
   { to: '/alarms/events', label: '警告信息', icon: BellIcon },
   { to: '/notify-users', label: '通知', icon: UsersIcon },
-  { to: '/system/audit', label: '审计日志', icon: Cog6ToothIcon, adminOnly: true },
-  { to: '/system/config', label: '系统参数', icon: Cog6ToothIcon, adminOnly: true },
 ];
 
 export default function AppShell() {
@@ -84,12 +84,27 @@ export default function AppShell() {
       <Navbar maxWidth="full" isBordered className="px-3 sm:px-6">
         <NavbarBrand>
           <Link href="/dashboard" className="flex items-center gap-2 text-foreground">
-            <ComputerDesktopIcon className="h-6 w-6 text-primary" />
+            <BrandLogo size={28} className="rounded-md" />
             <span className="font-semibold tracking-wide">{APP_TITLE}</span>
           </Link>
         </NavbarBrand>
 
         <NavbarContent justify="end" className="gap-2">
+          {/* 官网外链:打开 Vex 云物联 官方站点 */}
+          <NavbarItem>
+            <Tooltip content={`访问官网 ${OFFICIAL_URL}`}>
+              <a
+                href={OFFICIAL_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md p-2 text-foreground hover:bg-content2"
+                aria-label="访问官网"
+              >
+                <GlobeAltIcon className="h-5 w-5" />
+              </a>
+            </Tooltip>
+          </NavbarItem>
+
           <NavbarItem>
             <Tooltip content={theme === 'light' ? '切换为暗色' : '切换为浅色'}>
               <button
@@ -230,8 +245,8 @@ export default function AppShell() {
 
       {/* 移动端底部 Tab Bar */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-divider bg-content1 md:hidden">
-        <ul className="grid grid-cols-5">
-          {NAV_ITEMS.filter((it) => !it.adminOnly).slice(0, 5).map((it) => {
+        <ul className="grid grid-cols-4">
+          {NAV_ITEMS.filter((it) => !it.adminOnly).map((it) => {
             const Icon = it.icon;
             return (
               <li key={it.to}>

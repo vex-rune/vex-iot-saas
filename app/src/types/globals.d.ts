@@ -47,6 +47,11 @@ declare module '@heroicons/react/24/outline' {
   export const CheckBadgeIcon: IconComponent;
   export const CpuIcon: IconComponent;
   export const WifiIcon: IconComponent;
+  export const GlobeAltIcon: IconComponent;
+  export const ChevronUpIcon: IconComponent;
+  export const PencilSquareIcon: IconComponent;
+  export const DocumentDuplicateIcon: IconComponent;
+  export const Bars3Icon: IconComponent;
 }
 
 declare module '@heroicons/react/24/solid' {
@@ -68,6 +73,8 @@ interface ImportMetaEnv {
   readonly VITE_APP_TITLE?: string;
   readonly VITE_API_BASE?: string;
   readonly VITE_SSE_BASE?: string;
+  readonly VITE_OFFICIAL_SITE?: string;
+  readonly VITE_OFFICIAL_URL?: string;
   readonly MODE: string;
   readonly DEV: boolean;
   readonly PROD: boolean;

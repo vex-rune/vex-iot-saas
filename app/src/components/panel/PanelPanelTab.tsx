@@ -1,6 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, addToast } from '@heroui/react';
+import {
+  Button,
+  Chip,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  addToast,
+} from '@heroui/react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { getDevicePoints } from '@/api/devices';
 import { chainToPromise } from '@/hooks/useQueryList';
@@ -10,8 +19,13 @@ import PanelEditor from './PanelEditor';
 import { parsePanelConfig, panelConfigSchema } from './types';
 import type { PanelConfig } from './types';
 
-// 持久化接入点：当前以 localStorage 暂存草稿。
-// 后端面板字段就绪后，将 readDraft/saveDraft 替换为设备字段读写即可（序列化格式不变）。
+// ─── 持久化层 ──────────────────────────────────────────────────────
+//   当前状态:面板草稿走 localStorage,仅作为本地编辑恢复使用。
+//   说明:
+//     - 数据存当前浏览器;换浏览器/清缓存会丢失
+//     - 后端"面板"字段就绪后,只需将 readDraft/saveDraft 替换为设备字段读写
+//       (序列化格式不变,parsePanelConfig 无需调整)
+//   视图层在编辑面板时显式打"演示" Chip,让用户清楚数据存储位置。
 const draftKey = (deviceId: string) => `panel.draft.${deviceId}`;
 
 function readDraft(deviceId: string): string | null {
@@ -31,6 +45,15 @@ function saveDraft(deviceId: string, config: PanelConfig): boolean {
   }
 }
 
+/** 安全 JSON.stringify:序列化失败时返回固定哨兵字符串,避免脏值绕过 dirty 比较 */
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '__err__';
+  }
+}
+
 export default function PanelPanelTab({
   deviceId,
   editing,
@@ -40,6 +63,14 @@ export default function PanelPanelTab({
   editing: boolean;
   onEditingChange: (editing: boolean) => void;
 }) {
+  // 启动时读取 localStorage 中的"上次保存"作为初始值,并记下它的字符串快照
+  // 用于后续"本次会话是否相对上次保存有未保存修改"的判断 — 避免每次 cancel 都重读 + stringify 一次
+  // save 后即时更新 snapshot,使后续 cancel 行为正确
+  const savedSnapshotRef = useRef<string>(safeStringify(readDraft(deviceId)));
+  // deviceId 变化时重置 snapshot
+  useEffect(() => {
+    savedSnapshotRef.current = safeStringify(readDraft(deviceId));
+  }, [deviceId]);
   const [config, setConfig] = useState<PanelConfig>(() => parsePanelConfig(readDraft(deviceId)));
   const [cancelConfirm, setCancelConfirm] = useState(false);
 
@@ -50,14 +81,8 @@ export default function PanelPanelTab({
   });
   const points: PointDefinition[] = pointsQuery.data ?? [];
 
-  // config 与草稿的结构比较（两者都经 zod 清洗，结构一致即可比）
-  const isSessionDirty = () => {
-    try {
-      return JSON.stringify(config) !== JSON.stringify(parsePanelConfig(readDraft(deviceId)));
-    } catch {
-      return true;
-    }
-  };
+  // 仅比较当前会话 config 与"上次保存"的快照;O(1) 字符串比对,不再走 localStorage / JSON.parse
+  const isSessionDirty = () => safeStringify(config) !== savedSnapshotRef.current;
 
   const handleSave = () => {
     // 保存前整体校验：未完成配置的组件 + schema 校验，读写对称
@@ -76,6 +101,8 @@ export default function PanelPanelTab({
       addToast({ title: '保存失败，请检查浏览器存储权限', color: 'danger' });
       return;
     }
+    // 保存成功:刷新 snapshot,后续 cancel 直接走"未修改"路径
+    savedSnapshotRef.current = safeStringify(config);
     addToast({ title: '面板已保存', color: 'success' });
     onEditingChange(false);
   };
@@ -142,7 +169,10 @@ export default function PanelPanelTab({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <Chip size="sm" variant="flat" color="warning">
+          演示:面板数据存本地浏览器,清缓存会丢失
+        </Chip>
         <Button
           size="sm"
           color="primary"

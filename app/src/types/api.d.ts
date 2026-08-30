@@ -277,6 +277,7 @@ export interface NotifyUser {
 }
 
 // ─── Notify Record 模块(通知发送历史) ────────────────────────────────
+// 渠道枚举:模版类型(type)与记录/发送渠道(channel)是同一语义,统一一个源
 export type NotifyChannel = 'SMS' | 'WECHAT' | 'EMAIL';
 export type NotifyRecordStatus = 'SUCCESS' | 'FAILED' | 'PENDING';
 
@@ -299,7 +300,8 @@ export interface NotifyRecord {
 }
 
 // ─── Notify Template 模块(通知模版) ────────────────────────────────
-export type NotifyTemplateType = 'SMS' | 'WECHAT' | 'EMAIL';
+// 模版类型复用通知渠道枚举,避免重复定义导致的扩展不一致
+export type NotifyTemplateType = NotifyChannel;
 export type NotifyTemplatePlatform = 'ALIYUN' | 'TENCENT' | 'HUAWEI' | 'OTHER';
 
 export interface NotifyTemplate {

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Vex 云物联 — 全栈工业物联网平台">
+  <defs>
+    <linearGradient id="og-bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E40AF"/>
+      <stop offset="55%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+    <radialGradient id="og-glow" cx="15%" cy="25%" r="60%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="og-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-opacity="0.06" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1200" height="630" fill="url(#og-bg)"/>
+  <rect width="1200" height="630" fill="url(#og-grid)"/>
+  <rect width="1200" height="630" fill="url(#og-glow)"/>
+
+  <!-- 左侧品牌标识 -->
+  <g transform="translate(96, 110)">
+    <!-- 圆角品牌底 -->
+    <rect width="120" height="120" rx="26" fill="white" fill-opacity="0.12"/>
+    <rect width="120" height="120" rx="26" fill="none" stroke="white" stroke-opacity="0.3" stroke-width="1"/>
+    <!-- V 字 -->
+    <path d="M30 38 L60 88 L90 38"
+          stroke="white" stroke-width="9"
+          stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- 顶端节点 -->
+    <circle cx="60" cy="22" r="5" fill="white"/>
+    <path d="M60 28 L60 36" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- 文案 -->
+  <g fill="white" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+    <text x="96" y="350" font-size="78" font-weight="700" letter-spacing="-1">Vex 云物联</text>
+    <text x="96" y="420" font-size="34" font-weight="500" fill-opacity="0.92">全栈工业物联网平台</text>
+    <text x="96" y="475" font-size="26" fill-opacity="0.78">连接设备 · 守护稳定</text>
+    <text x="96" y="565" font-size="22" fill-opacity="0.7">vex-iot.example.com</text>
+  </g>
+</svg>

@@ -325,13 +325,18 @@ function WidgetConfigDrawer({
   if (!widget || !draft) {
     return (
       <Drawer isOpen={false} placement="right" size="sm" onClose={onDiscard}>
-        <DrawerContent />
+        <DrawerContent>{() => null}</DrawerContent>
       </Drawer>
     );
   }
 
-  const selectedPoint = points.find((p) => p.pointCode === draft.binding.pointCode);
-  const isPointBinding = draft.binding.kind === 'point';
+  const draftBinding = draft.binding;
+  const isPointBinding = draftBinding.kind === 'point';
+  let selectedPoint: PointDefinition | undefined = undefined;
+  if (draftBinding.kind === 'point') {
+    const pc: string = draftBinding.pointCode;
+    if (pc) selectedPoint = points.find((p) => p.pointCode === pc);
+  }
   const availablePlugins: PluginKind[] = isPointBinding
     ? selectedPoint
       ? pluginsForDataType(selectedPoint.dataType)
@@ -341,7 +346,7 @@ function WidgetConfigDrawer({
   const props = draft.props;
 
   const apply = () => {
-    if (isPointBinding && !draft.binding.pointCode) {
+    if (isPointBinding && (draft.binding.kind !== 'point' || !draft.binding.pointCode)) {
       addToast({ title: '请选择要绑定的点位', color: 'warning' });
       return;
     }

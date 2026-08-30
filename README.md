@@ -1,5 +1,9 @@
 # Vex云物联
 
+> 🌐 官方网站: **<https://vexrune.top/>** (产品门户、文档、介绍页)
+>
+> 📊 当前仓库 = 控制台 + 后端 + 运维; 官方网站为独立的营销/产品页,通过 vexrune.top 对外访问。
+
 ## 仓库目录
 
 | 目录 | 用途 |
@@ -8,6 +12,7 @@
 | [`app/`](./app/) | 前端代码(React + TS + Vite,当前仅占位) |
 | [`ops/`](./ops/) | 部署与运维(Nginx、Docker Compose、脚本) |
 | [`docs/`](./docs/) | 设计文档(PRD、概要、业务架构等) |
+| [`.clinerules/`](./.clinerules/) | 项目规则(Cline 自动加载的编码准则) |
 
 ## 基础建设
 

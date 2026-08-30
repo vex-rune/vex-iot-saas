@@ -32,14 +32,6 @@ export default function App() {
         <Route path="/devices/:id" element={<DeviceDetail />} />
         <Route path="/alarms/events" element={<PointAlarmEvents />} />
         <Route path="/notify-users" element={<NotifyUsers />} />
-        <Route
-          path="/system/audit"
-          element={<Placeholder title="审计日志" desc="后端暂无查询接口,待补齐" />}
-        />
-        <Route
-          path="/system/config"
-          element={<Placeholder title="系统参数" desc="后端暂无接口,待补齐" />}
-        />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

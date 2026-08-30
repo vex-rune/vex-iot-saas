@@ -10,7 +10,7 @@ import {
   RadialBar,
   PolarAngleAxis,
 } from 'recharts';
-import { Chip } from '@heroui/react';
+import { Chip, Switch } from '@heroui/react';
 import type { BadgeColor, BadgeColorRule } from '../types';
 import type { SeriesPoint } from '../useWidgetData';
 

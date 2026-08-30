@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Chip,
@@ -49,7 +49,6 @@ type DeviceView = 'active' | 'deleted';
 
 export default function Devices() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [view, setView] = useState<DeviceView>('active');
   const [searchName, setSearchName] = useState('');
@@ -92,36 +91,26 @@ export default function Devices() {
   );
 
   const {
-    data: devices, total, page, size, setPage, setSize, setPredicate, isLoading, refetch,
+    data: devices, total, totalPages, page, size, setPage, setSize, isLoading, refetch,
   } = useQueryList<Device>({
     queryKey: `devices.${view}`,
     queryFn,
     countFn,
     defaultSize: 15,
+    // 筛选/搜索条件直接作 defaultPredicate 注入;变化时通过 queryKey 自带 predicate
+    // 触发 react-query 重新拉取,无需 effect 推 setPredicate
+    defaultPredicate,
   });
 
-  // 把 searchName/searchCode/筛选条件 同步进 query hook 的 predicate
-  useEffect(() => {
-    setPredicate(defaultPredicate);
-    setPage(0);
-  }, [defaultPredicate, setPredicate, setPage]);
-
-  // 切换 设备管理 / 回收站：清筛选 + 跳回第 1 页 + 立即重拉
+  // 切换 设备管理 / 回收站:清筛选 + 跳回第 1 页。queryKey 自带 view,
+    // react-query 自动因 key 变化而 refetch,无需手动 refetch
   const switchView = useCallback((next: DeviceView) => {
     if (next === view) return;
     setView(next);
     setSearchName(''); setSearchCode(''); setFilterStatus('ALL'); setFilterEnabled('ALL');
     setDebouncedName(''); setDebouncedCode('');
     setPage(0);
-    setTimeout(() => refetch(), 0);
-  }, [view, setPage, refetch]);
-
-  // 每次进入/回到设备管理页（含新建/编辑保存后 navigate 回来）都强制重拉，
-  // 解决"操作后页面不刷新"的问题
-  useEffect(() => {
-    refetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
+  }, [view, setPage]);
 
   const deleteMutation = useApiMutation<{ id: string }, void>({
     mutationFn: ({ id }) => deleteDevice(id),
@@ -374,7 +363,7 @@ export default function Devices() {
             ))}
           </Select>
         </div>
-        <Pagination total={Math.max(1, Math.ceil(total / size))} page={page + 1}
+        <Pagination total={totalPages} page={page + 1}
           onChange={(p) => setPage(p - 1)} showControls isCompact />
       </div>
     </div>

@@ -12,9 +12,7 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
-  addToast,
 } from '@heroui/react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
@@ -22,6 +20,7 @@ import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import { queryAlarmEvents, countAlarmEvents, ackAlarmEvent } from '@/api/alarms';
 import { useQueryList } from '@/hooks/useQueryList';
 import { formatDateTime } from '@/lib/format';
+import { ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS } from '@/lib/levelMeta';
 import type { AlarmEvent, Predicate, PredicateItem } from '@/types/api';
 
 const LEVEL_OPTIONS = [
@@ -38,22 +37,10 @@ const ACK_OPTIONS = [
   { key: 'ACK', label: '已确认' },
 ];
 
-const LEVEL_COLORS: Record<string, 'success' | 'warning' | 'danger' | 'primary'> = {
-  INFO: 'success',
-  WARNING: 'warning',
-  CRITICAL: 'danger',
-  FATAL: 'danger',
-};
-
-const LEVEL_LABELS: Record<string, string> = {
-  INFO: '提示',
-  WARNING: '警告',
-  CRITICAL: '紧急',
-  FATAL: '严重',
-};
+const LEVEL_COLORS = ALARM_LEVEL_COLORS;
+const LEVEL_LABELS = ALARM_LEVEL_LABELS;
 
 export default function AlarmEvents() {
-  const queryClient = useQueryClient();
   const [filterLevel, setFilterLevel] = useState('ALL');
   const [filterAck, setFilterAck] = useState('ALL');
 
@@ -67,10 +54,13 @@ export default function AlarmEvents() {
   const {
     data: events,
     total,
+    totalPages,
     page,
     size,
+    setSize,
     setPage,
     isLoading,
+    refetch,
   } = useQueryList<AlarmEvent>({
     queryKey: 'alarmEvents',
     queryFn: queryAlarmEvents,
@@ -78,15 +68,10 @@ export default function AlarmEvents() {
     defaultPredicate,
   });
 
+  // useApiMutation 已内置业务异常 toast 与默认成功 toast;
+  // 列表刷新通过 mutate 的 onSuccess 注入,不走 queryClient.invalidateQueries 避免与 hook 内部 setPage 形成死循环
   const ackMutation = useApiMutation({
     mutationFn: ackAlarmEvent,
-  });
-  const ackUI = useMutation({
-    mutationFn: async (id: string) => { await ackMutation.mutateAsync(id); return id; },
-    onSuccess: () => {
-      addToast({ title: '已确认', color: 'success' });
-      queryClient.invalidateQueries({ queryKey: ['alarmEvents'] });
-    },
   });
 
   const isMobile = useIsMobile();
@@ -98,14 +83,18 @@ export default function AlarmEvents() {
       </header>
 
       {/* 筛选栏 */}
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Select
           size="sm"
-          label="级别"
+          aria-label="按级别筛选"
+          placeholder="全部级别"
           variant="bordered"
           className="w-28"
           selectedKeys={[filterLevel]}
-          onSelectionChange={(keys) => setFilterLevel(Array.from(keys)[0] as string)}
+          onSelectionChange={(keys) => {
+            setFilterLevel(Array.from(keys)[0] as string);
+            setPage(0);
+          }}
         >
           {LEVEL_OPTIONS.map((o) => (
             <SelectItem key={o.key}>{o.label}</SelectItem>
@@ -113,19 +102,20 @@ export default function AlarmEvents() {
         </Select>
         <Select
           size="sm"
-          label="确认状态"
+          aria-label="按确认状态筛选"
+          placeholder="全部状态"
           variant="bordered"
           className="w-28"
           selectedKeys={[filterAck]}
-          onSelectionChange={(keys) => setFilterAck(Array.from(keys)[0] as string)}
+          onSelectionChange={(keys) => {
+            setFilterAck(Array.from(keys)[0] as string);
+            setPage(0);
+          }}
         >
           {ACK_OPTIONS.map((o) => (
             <SelectItem key={o.key}>{o.label}</SelectItem>
           ))}
         </Select>
-        <Button size="sm" color="primary" variant="flat" onPress={() => setPage(0)}>
-          搜索
-        </Button>
       </div>
 
       {/* 列表(桌面端表格 / 移动端卡片) */}
@@ -159,8 +149,8 @@ export default function AlarmEvents() {
                   event.acknowledged === 'UNACK' ? (
                     <Button size="sm" variant="flat" color="success"
                       startContent={<CheckCircleIcon className="h-4 w-4" />}
-                      isLoading={ackUI.isPending}
-                      onPress={() => ackUI.mutate(event.id)}>确认</Button>
+                      isLoading={ackMutation.isPending}
+                      onPress={() => ackMutation.mutate(event.id, { onSuccess: () => refetch() })}>确认</Button>
                   ) : undefined
                 }
               >
@@ -216,8 +206,8 @@ export default function AlarmEvents() {
                       variant="flat"
                       color="success"
                       startContent={<CheckCircleIcon className="h-4 w-4" />}
-                      isLoading={ackUI.isPending}
-                      onPress={() => ackUI.mutate(event.id)}
+                      isLoading={ackMutation.isPending}
+                      onPress={() => ackMutation.mutate(event.id, { onSuccess: () => refetch() })}
                     >
                       确认
                     </Button>
@@ -230,9 +220,19 @@ export default function AlarmEvents() {
       )}
 
       <div className="flex items-center justify-between">
-        <span className="text-sm text-foreground-500">共 {total} 条</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-foreground-500">共 {total} 条</span>
+          <Select size="sm" variant="bordered" className="w-24"
+            aria-label="每页条数"
+            selectedKeys={[String(size)]}
+            onSelectionChange={(keys) => setSize(Number(Array.from(keys)[0]))}>
+            {['15', '30', '60', '100'].map((s) => (
+              <SelectItem key={s}>{s}</SelectItem>
+            ))}
+          </Select>
+        </div>
         <Pagination
-          total={Math.max(1, Math.ceil(total / size))}
+          total={totalPages}
           page={page + 1}
           onChange={(p) => setPage(p - 1)}
           showControls

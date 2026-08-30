@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Vex IoT SaaS 管理后台",
+  "homepage": "https://vexrune.top/",
+  "bugs": {
+    "url": "https://vexrune.top/"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

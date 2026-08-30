@@ -28,6 +28,7 @@ import axios, {
 import { addToast } from '@heroui/react';
 import { API_BASE } from '@/lib/env';
 import { useAuthStore } from '@/stores/auth';
+import type { ApiResponse, TokenPairResp } from '@/types/api';
 
 // ─── 业务响应 envelope ───────────────────────────────────────────────────────
 
@@ -180,14 +181,70 @@ service.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
+// ── 响应拦截: 401 自动刷新(单飞防并发) ──
+//   仅拦截 /auth/refresh 自身的 401,避免无限循环
+service.interceptors.response.use(
+  (resp) => resp,
+  async (error: AxiosError) => {
+    const original = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined;
+    const status = error.response?.status;
+    const url = original?.url ?? '';
+    const isRefreshCall = url.includes('/auth/refresh');
+
+    if (status === 401 && original && !original._retry && !isRefreshCall) {
+      original._retry = true;
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        // 兼容 AxiosHeaders(容器)与 Record<string,string>两种 headers 形态
+        const h = original.headers as { set?: (k: string, v: string) => void } & Record<string, string>;
+        if (h && typeof h.set === 'function') h.set('Authorization', `Bearer ${refreshed}`);
+        else if (h) h.Authorization = `Bearer ${refreshed}`;
+        return service(original);
+      }
+      // refresh 失败: 静默清理 + 跳登录页
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.replace('/login');
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
+// ── Token 刷新(单飞) ──
+let refreshing: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshing) return refreshing;
+  refreshing = (async () => {
+    const { refreshToken, setTokens, clear } = useAuthStore.getState();
+    if (!refreshToken) {
+      clear();
+      return null;
+    }
+    try {
+      const resp = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken });
+      const envelope = resp.data as ApiResponse<TokenPairResp>;
+      const data = envelope?.data;
+      if (data?.accessToken && data?.refreshToken) {
+        setTokens(data.accessToken, data.refreshToken);
+        return data.accessToken;
+      }
+      clear();
+      return null;
+    } catch {
+      clear();
+      return null;
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
+
 // ─── envelope 拆包 → RequestChain ────────────────────────────────────────────
 
 /**
- * 兼容两种可能:
- *   - 运行时: axios 真实返回 AxiosResponse<{data, status, ...}>
- *   - TS 期望: 已被 '@/lib/http.ts' 的 declare module 'axios' 覆写为 Promise<T> (T = envelope)
- *
- * 抽取 envelope 时兼容这两种 shape:
+ * 抽取 envelope 时兼容两种 shape:
  *   ① resp.data 是 envelope  →  resp.data.code / .message / .data
  *   ② resp 本身就是 envelope → resp.code / .message / .data
  *

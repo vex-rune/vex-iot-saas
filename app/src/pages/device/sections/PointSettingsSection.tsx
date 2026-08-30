@@ -1,25 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Accordion,
-  AccordionItem,
   Button,
   Chip,
-  Divider,
   Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   Progress,
-  Radio,
-  RadioGroup,
   Select,
   SelectItem,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -32,13 +23,14 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChartBarIcon,
-  PlusIcon,
   TrashIcon,
   CheckCircleIcon,
   XMarkIcon,
   Bars3Icon,
   DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline';
+import { ValueMappingsCell } from '@/components/ValueMappingsCell';
+import { PresetAddButtons } from '@/components/PresetAddButtons';
 import {
   getDevicePoints,
   savePoint,
@@ -48,165 +40,20 @@ import {
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { chainToPromise } from '@/hooks/useQueryList';
 import type { AccessType, DataType, PointDefinition } from '@/types/api';
-
-const DATA_TYPES: DataType[] = ['BOOL', 'LONG', 'STRING', 'DOUBLE'];
-const ACCESS_TYPES: AccessType[] = ['RO', 'RW'];
-const ACCESS_LABELS: Record<AccessType, string> = { RO: '只读', RW: '读写' };
-
-interface PointPreset {
-  key: string;
-  label: string;
-  defaults: Omit<PointRow, '_key'>;
-}
-
-/** 默认字典：BOOL 的 0/1 键值对 */
-const DEFAULT_BOOL_MAPPINGS: Array<{ key: string; label: string }> = [
-  { key: '0', label: '关' },
-  { key: '1', label: '开' },
-];
-
-const BOOL_PRESETS: PointPreset[] = [
-  { key: 'switch', label: '开关', defaults: {
-    pointName: '开关', pointCode: 'switch', description: '', unit: '',
-    dataType: 'BOOL', access: 'RO',
-    groupLabel: '开关',
-    valueMappings: [...DEFAULT_BOOL_MAPPINGS],
-  }},
-  { key: 'startstop', label: '启停', defaults: {
-    pointName: '启停', pointCode: 'start_stop', description: '', unit: '',
-    dataType: 'BOOL', access: 'RW',
-    groupLabel: '控制',
-    valueMappings: [...DEFAULT_BOOL_MAPPINGS],
-  }},
-  { key: 'alarmflag', label: '告警', defaults: {
-    pointName: '告警', pointCode: 'alarm', description: '', unit: '',
-    dataType: 'BOOL', access: 'RO',
-    groupLabel: '告警',
-    valueMappings: [...DEFAULT_BOOL_MAPPINGS],
-  }},
-  { key: 'fault', label: '故障', defaults: {
-    pointName: '故障', pointCode: 'fault', description: '', unit: '',
-    dataType: 'BOOL', access: 'RO',
-    groupLabel: '故障',
-    valueMappings: [...DEFAULT_BOOL_MAPPINGS],
-  }},
-];
-const PROCESS_PRESETS: PointPreset[] = [
-  { key: 'temperature', label: '温度', defaults: {
-    pointName: '温度', pointCode: 'temperature', description: '', unit: '℃',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '温度',
-    valueMappings: [],
-  }},
-  { key: 'pressure', label: '压力', defaults: {
-    pointName: '压力', pointCode: 'pressure', description: '', unit: 'MPa',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '压力',
-    valueMappings: [],
-  }},
-  { key: 'flow', label: '流量', defaults: {
-    pointName: '流量', pointCode: 'flow', description: '', unit: 'm³/h',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '流量',
-    valueMappings: [],
-  }},
-  { key: 'totalflow', label: '累计流量', defaults: {
-    pointName: '累计流量', pointCode: 'total_flow', description: '', unit: 'm³',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '流量',
-    valueMappings: [],
-  }},
-  { key: 'level', label: '液位', defaults: {
-    pointName: '液位', pointCode: 'level', description: '', unit: 'm',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '液位',
-    valueMappings: [],
-  }},
-  { key: 'ph', label: 'pH', defaults: {
-    pointName: 'pH', pointCode: 'ph', description: '', unit: '',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '水质',
-    valueMappings: [],
-  }},
-  { key: 'concentration', label: '浓度', defaults: {
-    pointName: '浓度', pointCode: 'concentration', description: '', unit: 'ppm',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '水质',
-    valueMappings: [],
-  }},
-  { key: 'humidity', label: '湿度', defaults: {
-    pointName: '湿度', pointCode: 'humidity', description: '', unit: '%RH',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '环境',
-    valueMappings: [],
-  }},
-];
-const ELECTRIC_PRESETS: PointPreset[] = [
-  { key: 'current', label: '电流', defaults: {
-    pointName: '电流', pointCode: 'current', description: '', unit: 'A',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '电气',
-    valueMappings: [],
-  }},
-  { key: 'voltage', label: '电压', defaults: {
-    pointName: '电压', pointCode: 'voltage', description: '', unit: 'V',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '电气',
-    valueMappings: [],
-  }},
-  { key: 'frequency', label: '频率', defaults: {
-    pointName: '频率', pointCode: 'frequency', description: '', unit: 'Hz',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '电气',
-    valueMappings: [],
-  }},
-  { key: 'power', label: '功率', defaults: {
-    pointName: '功率', pointCode: 'power', description: '', unit: 'kW',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '电气',
-    valueMappings: [],
-  }},
-];
-const MECHANICAL_PRESETS: PointPreset[] = [
-  { key: 'speed', label: '转速', defaults: {
-    pointName: '转速', pointCode: 'speed', description: '', unit: 'rpm',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '机械',
-    valueMappings: [],
-  }},
-  { key: 'opening', label: '开度', defaults: {
-    pointName: '开度', pointCode: 'opening', description: '', unit: '%',
-    dataType: 'DOUBLE', access: 'RW',
-    groupLabel: '阀门',
-    valueMappings: [],
-  }},
-  { key: 'vibration', label: '振动', defaults: {
-    pointName: '振动', pointCode: 'vibration', description: '', unit: 'mm/s',
-    dataType: 'DOUBLE', access: 'RO',
-    groupLabel: '机械',
-    valueMappings: [],
-  }},
-];
-const POINT_PRESET_GROUPS: Array<{ label: string; presets: PointPreset[] }> = [
-  { label: '数字', presets: BOOL_PRESETS },
-  { label: '过程', presets: PROCESS_PRESETS },
-  { label: '电气', presets: ELECTRIC_PRESETS },
-  { label: '机械', presets: MECHANICAL_PRESETS },
-];
-const ALL_PRESETS: PointPreset[] = POINT_PRESET_GROUPS.flatMap((g) => g.presets);
-
-interface PointRow {
-  _key: string;
-  pointName: string;
-  pointCode: string;
-  description: string;
-  unit: string;
-  dataType: DataType;
-  access: AccessType;
-  groupLabel: string;
-  /// 值→展示文本字典
-  valueMappings: Array<{ key: string; label: string }>;
-}
+import {
+  ACCESS_LABELS,
+  ACCESS_TYPES,
+  ALL_PRESETS,
+  DATA_TYPES,
+  POINT_PRESET_GROUPS,
+  generateUniquePointCode,
+  generateUniquePointName,
+  isPointCodeConflict,
+  parseValueMappings,
+  pickRowFields,
+  serializeValueMappings,
+} from './pointUtils';
+import type { PointRow } from './pointUtils';
 
 const toRow = (p: PointDefinition): PointRow => ({
   _key: p.id,
@@ -220,334 +67,10 @@ const toRow = (p: PointDefinition): PointRow => ({
   valueMappings: parseValueMappings(p.valueMappings),
 });
 
-function parseValueMappings(raw: string | null | undefined): Array<{ key: string; label: string }> {
-  if (!raw) return [];
-  try {
-    const obj = JSON.parse(raw) as Record<string, unknown>;
-    if (!obj || typeof obj !== 'object') return [];
-    return Object.entries(obj).map(([k, v]) => ({
-      key: k,
-      label: typeof v === 'string' ? v : String(v ?? ''),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-/** 把 [{key,label}] 序列化为 JSON 字符串；空数组或全部空白视为未配置，输出 undefined */
-function serializeValueMappings(arr: Array<{ key: string; label: string }> | undefined): string | undefined {
-  if (!arr) return undefined;
-  const filtered = arr.filter((m) => m.key.trim() !== '' || m.label.trim() !== '');
-  if (filtered.length === 0) return undefined;
-  const out: Record<string, string> = {};
-  for (const m of filtered) {
-    out[m.key] = m.label;
-  }
-  return JSON.stringify(out);
-}
-
-/**
- * 序号化命名（支持复制场景）：
- * 1. 先把 baseCode 拆成 prefix 与序号 N（如 "switch_2" → prefix="switch", N=2）
- *    拆不开（无 _N）则 prefix=原值, N=0
- * 2. 起步 = N+1（如有 N）或 1
- * 3. 取起步 vs 已存在的同 prefix_N 最大值，较大者再 +1，确保不撞码
- * 4. 撞了就线性 +N 找空位
- * 5. baseCode 空时退化为 point
- */
-function generateUniquePointCode(
-  rawCode: string,
-  existingPoints: PointDefinition[],
-  newRows: PointRow[],
-): string {
-  // 拆 prefix / 序号；空值退化
-  const trimmed = (rawCode || 'point').trim();
-  const baseMatch = trimmed.match(/^(.+)_(\d+)$/);
-  const prefix = baseMatch ? baseMatch[1] : trimmed;
-  const startN = baseMatch ? Number(baseMatch[2]) + 1 : 1;
-
-  // 收集已存在的同 prefix_N
-  const usedNums = new Set<number>();
-  const usedCodes = new Set<string>();
-  for (const p of existingPoints) {
-    if (!p.pointCode) continue;
-    usedCodes.add(p.pointCode.toLowerCase());
-    const m = p.pointCode.match(/^(.+)_(\d+)$/);
-    if (m && m[1].toLowerCase() === prefix.toLowerCase()) {
-      usedNums.add(Number(m[2]));
-    }
-  }
-  for (const r of newRows) {
-    if (!r.pointCode) continue;
-    usedCodes.add(r.pointCode.toLowerCase());
-    const m = r.pointCode.match(/^(.+)_(\d+)$/);
-    if (m && m[1].toLowerCase() === prefix.toLowerCase()) {
-      usedNums.add(Number(m[2]));
-    }
-  }
-  const base = (prefix || 'point').toLowerCase();
-  // 兼容旧数据：base 自身被占用也算
-  if (usedNums.size === 0 && usedCodes.has(base)) usedNums.add(0);
-
-  const maxN = usedNums.size === 0 ? 0 : Math.max(...usedNums);
-  let n = Math.max(startN, maxN + 1);
-  while (usedCodes.has(`${base}_${n}`)) n += 1;
-  return `${base}_${n}`;
-}
-
-/**
- * 与 generateUniquePointCode 同步：支持复制场景
- * 先看 baseName 自身是否带空格 + N：是则 N+1 起步，否则 1 起步
- * 撞了就 +1 找空位；baseName 空时退化为"点位"
- */
-function generateUniquePointName(
-  baseName: string,
-  existingPoints: PointDefinition[],
-  newRows: PointRow[],
-): string {
-  // 把 baseName 拆成"前缀"和"序号"两部分：base = "开关 2" → prefix="开关", startN=3
-  const trimmed = (baseName || '点位').trim();
-  const baseMatch = trimmed.match(/^(.*?)\s+(\d+)$/);
-  const prefix = baseMatch ? baseMatch[1] : trimmed;
-  const startN = baseMatch ? Number(baseMatch[2]) + 1 : 1;
-  // 兼容 baseName 为空时退化
-  const base = (prefix || '点位').trim();
-
-  const used = new Set<number>();
-  const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`^${escaped}\\s+(\\d+)$`);
-  for (const p of existingPoints) {
-    const m = p.pointName?.match(re);
-    if (m) used.add(Number(m[1]));
-  }
-  for (const r of newRows) {
-    const m = r.pointName.match(re);
-    if (m) used.add(Number(m[1]));
-  }
-  const maxN = used.size === 0 ? 0 : Math.max(...used);
-  let n = Math.max(startN, maxN + 1);
-  while (used.has(n)) n += 1;
-  return `${base} ${n}`;
-}
-
-/**
- * 检查一行新增点位是否与已有/草稿编码冲突（同设备下 pointCode 唯一）
- * @param excludeId 现有点位里要排除的 id（编辑自己的行不算重复）
- */
-function isPointCodeConflict(
-  row: PointRow,
-  existingPoints: PointDefinition[],
-  newRows: PointRow[],
-  excludeId?: string,
-): boolean {
-  const code = row.pointCode.trim().toLowerCase();
-  if (!code) return false;
-  for (const p of existingPoints) {
-    if (excludeId && p.id === excludeId) continue;
-    if (p.pointCode && p.pointCode.toLowerCase() === code) return true;
-  }
-  for (const r of newRows) {
-    if (r._key === row._key) continue;
-    if (r.pointCode && r.pointCode.trim().toLowerCase() === code) return true;
-  }
-  return false;
-}
-
-function pickRowFields(src: Partial<PointDefinition>): Partial<PointRow> {
-  const out: Record<string, unknown> = {};
-  if (src.pointName !== undefined) out.pointName = src.pointName;
-  if (src.pointCode !== undefined) out.pointCode = src.pointCode;
-  if (src.description !== undefined) out.description = src.description;
-  if (src.unit !== undefined) out.unit = src.unit;
-  if (src.dataType !== undefined) out.dataType = src.dataType;
-  if (src.access !== undefined) out.access = src.access;
-  if (src.groupLabel !== undefined) out.groupLabel = src.groupLabel;
-  if (src.valueMappings !== undefined) {
-    // 接受 string（已序列化的 JSON）或 object（来自 setQueryData 合并回来的真实后端数据）
-    if (typeof src.valueMappings === 'string') {
-      out.valueMappings = parseValueMappings(src.valueMappings);
-    } else {
-      // 容错：意外透传
-      out.valueMappings = [];
-    }
-  }
-  return out as Partial<PointRow>;
-}
-
-// 预设添加入口（Popover + Accordion 按分类折叠）
-interface PresetAddButtonsProps {
-  onAddPreset: (key: string) => void;
-  onAddBlank: () => void;
-}
-function PresetAddButtons({ onAddPreset, onAddBlank }: PresetAddButtonsProps) {
-  return (
-    <Popover placement="bottom-end" offset={8} classNames={{ content: 'w-72 p-0' }}>
-      <PopoverTrigger>
-        <Button size="sm" color="primary"
-          startContent={<PlusIcon className="h-4 w-4" />}>
-          添加点位
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <div className="px-3 pt-3">
-          <div className="text-sm font-medium text-foreground">快捷添加点位</div>
-          <div className="text-xs text-foreground-500">按分类展开，点击预设即追加一行</div>
-        </div>
-        <Divider className="my-2" />
-        <Accordion
-          selectionMode="multiple"
-          defaultExpandedKeys={[]}
-          itemClasses={{ base: 'px-3 py-0', trigger: 'py-2', content: 'pb-2 pt-0' }}
-        >
-          {POINT_PRESET_GROUPS.map((g) => (
-            <AccordionItem
-              key={g.label}
-              aria-label={g.label}
-              title={(
-                <div className="flex items-center gap-2">
-                  <Chip size="sm" variant="flat">{g.label}</Chip>
-                  <span className="text-xs text-foreground-400">{g.presets.length} 个预设</span>
-                </div>
-              )}
-            >
-              <div className="flex flex-wrap gap-1.5">
-                {g.presets.map((p) => (
-                  <Button key={p.key} size="sm" variant="flat" color="primary"
-                    onPress={() => onAddPreset(p.key)}>
-                    {p.label}
-                  </Button>
-                ))}
-              </div>
-            </AccordionItem>
-          ))}
-        </Accordion>
-        <Divider className="my-2" />
-        <div className="px-3 pb-3">
-          <Button size="sm" variant="light" fullWidth
-            startContent={<PlusIcon className="h-4 w-4" />}
-            onPress={onAddBlank}>
-            空行
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 // 主组件
 export interface PointSettingsSectionProps {
   deviceId: string;
   sectionRef: (el: HTMLElement | null) => void;
-}
-
-/** 行内的"值字典"编辑单元格：点 cell 弹出 Modal 编辑 key/label 对 */
-function ValueMappingsCell({
-  value,
-  onChange,
-}: {
-  value: Array<{ key: string; label: string }>;
-  onChange: (next: Array<{ key: string; label: string }>) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<Array<{ key: string; label: string }>>(value);
-  // 打开时快照当前值；保存前不会动外部状态
-  const handleOpen = () => {
-    setDraft(value);
-    setOpen(true);
-  };
-  const handleApply = () => {
-    // 过滤空 key（label 允许空占位）
-    const valid = draft.filter((m) => m.key.trim() !== '');
-    onChange(valid);
-    setOpen(false);
-  };
-  const handleCancel = () => setOpen(false);
-  const summary = value.length === 0
-    ? '—'
-    : value.map((m) => `${m.key}=${m.label || '?'}`).join('，');
-  return (
-    <>
-      <button
-        type="button"
-        className="w-full truncate rounded px-2 py-1 text-left text-xs text-foreground-600 hover:bg-default-100"
-        title={summary}
-        onClick={handleOpen}
-      >
-        {value.length === 0 ? (
-          <span className="text-foreground-400">未配置</span>
-        ) : (
-          <span className="flex flex-wrap gap-1">
-            {value.slice(0, 3).map((m, i) => (
-              <Chip key={i} size="sm" variant="flat">
-                {m.key}={m.label || '?'}
-              </Chip>
-            ))}
-            {value.length > 3 && <span className="text-foreground-400">+{value.length - 3}</span>}
-          </span>
-        )}
-      </button>
-      <Modal isOpen={open} size="md" onClose={handleCancel} placement="center">
-        <ModalContent>
-          {(onModalClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">值字典（值→展示）</ModalHeader>
-              <ModalBody>
-                <p className="text-xs text-foreground-500">
-                  实时值会先按 key 回查 label 再展示。主要用于 BOOL/STRING。
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  {draft.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-foreground-400">暂无映射，点下方"新增映射"添加</p>
-                  ) : (
-                    draft.map((m, i) => (
-                      <div key={i} className="flex items-center gap-1.5">
-                        <Input
-                          size="sm" variant="flat" placeholder="key（0/1/online）" value={m.key}
-                          onValueChange={(v) => {
-                            const next = draft.slice();
-                            next[i] = { ...m, key: v };
-                            setDraft(next);
-                          }}
-                          classNames={{ inputWrapper: 'bg-default-100' }}
-                          className="w-28"
-                        />
-                        <span className="text-foreground-400">→</span>
-                        <Input
-                          size="sm" variant="flat" placeholder="展示文本（开/关/运行）" value={m.label}
-                          onValueChange={(v) => {
-                            const next = draft.slice();
-                            next[i] = { ...m, label: v };
-                            setDraft(next);
-                          }}
-                          classNames={{ inputWrapper: 'bg-default-100' }}
-                          className="flex-1"
-                        />
-                        <Button
-                          isIconOnly size="sm" variant="light" color="danger"
-                          onPress={() => setDraft(draft.filter((_, idx) => idx !== i))}
-                        >
-                          <TrashIcon className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ModalBody>
-              <ModalFooter>
-                <Button variant="flat" onPress={handleCancel}>取消</Button>
-                <Button variant="flat" color="primary"
-                  startContent={<PlusIcon className="h-3 w-3" />}
-                  onPress={() => setDraft([...draft, { key: '', label: '' }])}>
-                  新增映射
-                </Button>
-                <Button color="primary" onPress={handleApply}>确定</Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-    </>
-  );
 }
 
 export default function PointSettingsSection({ deviceId, sectionRef }: PointSettingsSectionProps) {
@@ -663,7 +186,6 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
         payload: { id: pointId, deviceId, ...changes } as Partial<PointDefinition>,
       });
     }
-    const newCount = newRows.length;
     newRows.forEach((row, i) => {
       if (!row.pointName.trim() || !row.pointCode.trim()) {
         // 必填失败：跳过（在进度里追加失败项）
@@ -945,7 +467,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
   const handleSaveSort = useCallback(async () => {
     if (!manualOrder) return;
     try {
-      await sortDevicePoints(deviceId, manualOrder).await;
+      await chainToPromise(sortDevicePoints(deviceId, manualOrder));
       // 同步本地缓存的 sortOrder（按 manualOrder 下标赋 0..n-1）
       queryClient.setQueryData<PointDefinition[]>(['points', deviceId], (prev) => {
         if (!prev) return prev;
@@ -1066,7 +588,11 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
               </Button>
             </>
           )}
-          <PresetAddButtons onAddPreset={addPresetRow} onAddBlank={addNewRow} />
+          <PresetAddButtons
+            groups={POINT_PRESET_GROUPS}
+            onAddPreset={addPresetRow}
+            onAddBlank={addNewRow}
+          />
         </div>
       </div>
 

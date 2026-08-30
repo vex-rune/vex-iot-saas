@@ -27,6 +27,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { getAlarmRulesByDevice, saveAlarmRule, deleteAlarmRule } from '@/api/alarms';
+import { ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS, ALARM_LEVEL_OPTIONS } from '@/lib/levelMeta';
 import { getDevicePoints } from '@/api/devices';
 import { queryNotifyUsers } from '@/api/notifyUsers';
 import { useApiMutation } from '@/hooks/useApiMutation';
@@ -44,17 +45,9 @@ const CONDITION_SYMBOLS: Record<ConditionType, string> = {
   GT: '>', GE: '>=', LT: '<', LE: '<=',
   EQ: '=', NE: '!=', BETWEEN: '[]',
 };
-/** 显示名：用户自定义 conditionName 优先，否则默认名 */
-function conditionDisplayName(c: ConditionType, custom?: string): string {
-  return custom?.trim() || CONDITION_DEFAULT_LABELS[c];
-}
-const LEVEL_OPTIONS: AlarmLevel[] = ['INFO', 'WARNING', 'CRITICAL', 'FATAL'];
-const LEVEL_LABELS: Record<string, string> = {
-  INFO: '提示', WARNING: '警告', CRITICAL: '紧急', FATAL: '严重',
-};
-const LEVEL_COLORS: Record<string, 'success' | 'warning' | 'danger' | 'primary'> = {
-  INFO: 'success', WARNING: 'warning', CRITICAL: 'danger', FATAL: 'danger',
-};
+const LEVEL_OPTIONS = ALARM_LEVEL_OPTIONS;
+const LEVEL_LABELS = ALARM_LEVEL_LABELS;
+const LEVEL_COLORS = ALARM_LEVEL_COLORS;
 
 /** 表内编辑草稿行（无 id，新增/复制产生） */
 type DraftRow = {
@@ -281,7 +274,7 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
       });
     }
     // 更新现有
-    for (const [id, changes] of pendingChanges.entries()) {
+    for (const [id] of pendingChanges.entries()) {
       const r = alarmRules.find((x) => x.id === id);
       if (!r) continue;
       const eff = getEffective(r);
@@ -425,24 +418,24 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
             </PopoverTrigger>
             <PopoverContent className="w-64 p-2">
               <div className="flex flex-col gap-1">
-                <Button size="sm" variant="flat" justify="start"
+                <Button size="sm" variant="flat" className="justify-start"
                   onPress={() => { addDraft({ conditionType: 'GT', level: 'WARNING' }); }}>
                   超过阈值告警
                 </Button>
-                <Button size="sm" variant="flat" justify="start"
+                <Button size="sm" variant="flat" className="justify-start"
                   onPress={() => { addDraft({ conditionType: 'LT', level: 'CRITICAL' }); }}>
                   低于阈值告警
                 </Button>
-                <Button size="sm" variant="flat" justify="start"
+                <Button size="sm" variant="flat" className="justify-start"
                   onPress={() => { addDraft({ conditionType: 'BETWEEN', level: 'INFO' }); }}>
                   区间告警
                 </Button>
-                <Button size="sm" variant="flat" justify="start"
+                <Button size="sm" variant="flat" className="justify-start"
                   onPress={() => { addDraft({ conditionType: 'EQ', level: 'FATAL' }); }}>
                   等值触发
                 </Button>
                 <div className="my-1 border-t border-divider" />
-                <Button size="sm" variant="flat" justify="start"
+                <Button size="sm" variant="flat" className="justify-start"
                   onPress={() => addDraft()}>
                   空规则
                 </Button>

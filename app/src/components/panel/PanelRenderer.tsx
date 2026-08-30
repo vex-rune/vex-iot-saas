@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, Component } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, Component } from 'react';
 import type { ReactNode } from 'react';
 import {
   Modal,

@@ -25,8 +25,9 @@ import {
   SunIcon,
   MoonIcon,
 } from '@heroicons/react/24/outline';
-import { APP_TITLE } from '@/lib/env';
+import { APP_TITLE, OFFICIAL_URL, OFFICIAL_SITE } from '@/lib/env';
 import { useThemeStore } from '@/stores/theme';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface LocationState {
   from?: { pathname?: string };
@@ -78,19 +79,24 @@ export default function Login() {
     }
     setLoading(true);
 
-    const req = isAdminMode
-      ? {
-          username: username.trim(),
-          loginType: 'ADMIN' as const,
-          challenge: credential.trim(),
-          signature: credential.trim(),
-        }
-      : {
-          username: username.trim(),
-          loginType: 'USER' as const,
-          challenge: credential,
-          signature: credential,
-        };
+    // 与后端 auth 契约对齐(LoginType 决定 challenge/signature 哪个带值,另一个占位):
+//   USER  : challenge = 密码明文,    signature = 与 username 同占位字符串(同值)
+//   ADMIN : challenge = 与 username 同占位, signature = 6 位 TOTP 动态码
+// 两个字段在同一 loginType 下值是相同的(因为另一侧是占位),但语义不同;
+// 后续若后端拆分校验逻辑需要分别处理,这里要重新审视
+const req = isAdminMode
+  ? {
+      username: username.trim(),
+      loginType: 'ADMIN' as const,
+      challenge: credential.trim(),
+      signature: credential.trim(),
+    }
+  : {
+      username: username.trim(),
+      loginType: 'USER' as const,
+      challenge: credential,
+      signature: credential,
+    };
 
     const onSuccess = (data: TokenPair) => {
         if (!data || typeof data !== 'object' || !data.accessToken || !data.refreshToken) {
@@ -105,7 +111,7 @@ export default function Login() {
         const { setTokens } = useAuthStore.getState();
         setTokens(data.accessToken, data.refreshToken);
 
-        // 异步拉取当前用户, 失败静默 (不影响主流程)
+        // 异步拉取当前用户, 失败时主流程放行但显式提示(后续页面权限判断依赖 user.roles)
         fetchCurrentUser({
           onSuccess: (data) => {
             if (data && typeof data === 'object') {
@@ -118,8 +124,20 @@ export default function Login() {
               });
             }
           },
-          onBizError: () => {/* 静默: 缺少 /auth/me 不应阻塞 */},
-          onHttpError:() => {/* 静默 */},
+          onBizError: () => {
+            addToast({
+              title: '用户信息加载失败',
+              description: '部分页面可能受限,请刷新或重新登录',
+              color: 'warning',
+            });
+          },
+          onHttpError: () => {
+            addToast({
+              title: '用户信息加载失败',
+              description: '请检查网络后刷新页面',
+              color: 'warning',
+            });
+          },
         });
 
         const to = (location.state as LocationState | null)?.from?.pathname ?? '/dashboard';
@@ -195,9 +213,7 @@ export default function Login() {
         {/* 左侧品牌介绍 — 仅 lg+ 显示 */}
         <aside className="hidden flex-1 flex-col gap-8 lg:flex animate-fadeInUp">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <SignalIcon className="h-6 w-6" />
-            </div>
+            <BrandLogo size={48} className="rounded-xl shadow-md" />
             <span className="text-lg font-semibold tracking-wide text-foreground">{APP_TITLE}</span>
           </div>
 
@@ -251,9 +267,7 @@ export default function Login() {
           <div className="rounded-3xl border border-divider bg-content1/70 p-7 shadow-2xl backdrop-blur-xl sm:p-9 lg:p-11">
             {/* 移动端顶部 Logo (大屏隐藏) */}
             <div className="mb-7 flex items-center gap-3 lg:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <SignalIcon className="h-6 w-6" />
-              </div>
+              <BrandLogo size={44} className="rounded-xl shadow-md" />
               <div>
                 <p className="text-base font-semibold text-foreground">{APP_TITLE}</p>
                 <p className="text-xs text-foreground-500">
@@ -374,7 +388,15 @@ export default function Login() {
             </div>
 
             <p className="mt-5 text-center text-[11px] text-foreground-400">
-              v0.1.0 · Vex IoT © {new Date().getFullYear()}
+              v0.1.0 · Vex IoT © {new Date().getFullYear()} ·{' '}
+              <a
+                href={OFFICIAL_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary hover:underline"
+              >
+                {OFFICIAL_SITE}
+              </a>
             </p>
           </div>
         </section>

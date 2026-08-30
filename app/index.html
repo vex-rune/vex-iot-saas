@@ -1,11 +1,63 @@
 <!doctype html>
+<!--
+  官方域名等"集中改一处"的字面量用 {{ ... }} 占位,构建期由 vite.config.ts 中的
+  replaceHtmlTokens 插件替换为同名 VITE_* 环境变量;失败时留空 + 警告。
+  切勿在 <script> 等会被 Vite 解析的位置直接使用占位。
+-->
 <html lang="zh-CN" class="light">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#1677ff" />
-    <title>Vex 云物联</title>
+    <meta name="theme-color" content="#1677ff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b3a8c" media="(prefers-color-scheme: dark)" />
+
+    <!-- 浏览器标签页图标: 现代浏览器优先 SVG, 自动适配深浅色 -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Safari 固定标签: 纯黑剪影, Safari 自动按工具栏颜色着色 -->
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#1677ff" />
+
+    <!-- iOS 主屏图标 -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.svg" />
+
+    <!-- PWA: 安装为桌面应用 -->
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="{{ vite_app_title }}" />
+    <meta name="application-name" content="{{ vite_app_title }}" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- 站点 / SEO 基础 -->
+    <meta name="description" content="{{ vite_app_title }} — 全栈工业物联网平台。设备接入、点位采集、规则告警、运维协作一站式控制台。" />
+    <meta name="keywords" content="IoT,工业物联网,设备管理,点位采集,告警,SCADA,Vex,VexRune,{{ vite_official_site }}" />
+    <meta name="author" content="{{ vite_app_title }}" />
+    <meta name="robots" content="index,follow" />
+
+    <!-- 官方站点归属 (官网域名由环境变量 VITE_OFFICIAL_URL 控制) -->
+    <link rel="canonical" href="{{ vite_official_url }}" />
+    <link rel="alternate" type="text/html" hreflang="zh-CN" href="{{ vite_official_url }}" />
+
+    <!-- Open Graph: 站内/外链卡片预览 -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="{{ vite_app_title }}" />
+    <meta property="og:title" content="{{ vite_app_title }} · 工业物联网平台" />
+    <meta property="og:description" content="连接设备 · 守护稳定。一套控制台覆盖工业 SaaS 运维全链路。" />
+    <meta property="og:url" content="{{ vite_official_url }}" />
+    <meta property="og:image" content="/og-image.svg" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- Twitter / X 卡片 -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ vite_app_title }} · 工业物联网平台" />
+    <meta name="twitter:description" content="连接设备 · 守护稳定。一套控制台覆盖工业 SaaS 运维全链路。" />
+    <meta name="twitter:image" content="/og-image.svg" />
+
+    <title>{{ vite_app_title }}</title>
   </head>
   <body class="bg-background text-foreground">
     <div id="root"></div>

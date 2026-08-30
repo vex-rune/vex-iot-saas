@@ -1,9 +1,15 @@
 import { get, post, del, type RequestChain } from '@/lib/api-client';
-import type { DeviceScheduleDetail, DeviceScheduleRequest } from '@/types/api';
+import type { DeviceSchedule, DeviceScheduleDetail, DeviceScheduleRequest } from '@/types/api';
 
-/** 按设备查询定时控制规则列表（含动作） */
-export function listDeviceSchedules(deviceId: string): RequestChain<DeviceScheduleDetail[]> {
-  return get<DeviceScheduleDetail[]>(`/devices/${deviceId}/schedules`);
+/**
+ * 按设备查询定时控制规则列表。
+ *
+ * 当前 list 接口返回的详情里没有 actions(后端 listByDevice 在本期前端未展示动作)，
+ * 列表页只需要 schedule 本体即可，因此解包为 `DeviceSchedule[]`。
+ * 保留 `DeviceScheduleDetail` 类型供详情接口 `getSchedule` 使用。
+ */
+export function listDeviceSchedules(deviceId: string): RequestChain<DeviceSchedule[]> {
+  return get<DeviceSchedule[]>(`/devices/${deviceId}/schedules`);
 }
 
 /** 单条定时规则详情 */

@@ -12,38 +12,22 @@ import {
   TableHeader,
   TableRow,
 } from '@heroui/react';
-import { countDevices } from '@/api/devices';
-import { queryAlarmEvents, countAlarmEvents } from '@/api/alarms';
+import { queryAlarmEvents } from '@/api/alarms';
 import { useEventStream } from '@/hooks/useEventStream';
 import { formatDateTime } from '@/lib/format';
 import type { AlarmEvent, RealtimePointValue } from '@/types/api';
 import { useState, useCallback } from 'react';
+import { useDashboardKpis } from '@/hooks/useDashboardKpis';
+import { ALARM_LEVEL_COLORS } from '@/lib/levelMeta';
 import { chainToPromise } from '@/hooks/useQueryList';
 
-const LEVEL_COLORS: Record<string, 'success' | 'warning' | 'danger' | 'primary'> = {
-  INFO: 'success', WARNING: 'warning', CRITICAL: 'danger', FATAL: 'danger',
-};
+const LEVEL_COLORS = ALARM_LEVEL_COLORS;
 
 export default function Dashboard() {
-  // KPI
-  const deviceCountQ = useQuery({
-    queryKey: ['dashboard.deviceCount'],
-    queryFn: () => chainToPromise(countDevices({})),
-  });
-  const onlineCountQ = useQuery({
-    queryKey: ['dashboard.onlineCount'],
-    queryFn: () => chainToPromise(countDevices({ predicate: { and: [{ condition: { field: 'online', op: 'eq', value: 'ONLINE' } }] } })),
-  });
-  const alarmCountQ = useQuery({
-    queryKey: ['dashboard.alarmCount'],
-    queryFn: () => chainToPromise(countAlarmEvents({})),
-  });
-  const unackCountQ = useQuery({
-    queryKey: ['dashboard.unackCount'],
-    queryFn: () => chainToPromise(countAlarmEvents({ predicate: { and: [{ condition: { field: 'acknowledged', op: 'eq', value: 'UNACK' } }] } })),
-  });
+  // KPI(统一聚合,内部并行 4 个 count 请求)
+  const kpis = useDashboardKpis();
 
-  // 最近告警 Top 10 (QueryOrder 已改为 field, 之前的 fieldName 已清理)
+  // 最近告警 Top 10
   const recentAlarmsQ = useQuery({
     queryKey: ['dashboard.recentAlarms'],
     queryFn: () => chainToPromise(queryAlarmEvents({ page: { page: 0, size: 10 }, order: [{ field: 'triggeredAt', order: 'DESC' }] })),
@@ -76,10 +60,10 @@ export default function Dashboard() {
 
       {/* KPI 卡片 — 背景 bg-content1, HeroUI 语义色 */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="设备总数" value={deviceCountQ.data} isLoading={deviceCountQ.isLoading} />
-        <KpiCard label="在线设备" value={onlineCountQ.data} isLoading={onlineCountQ.isLoading} color="success" />
-        <KpiCard label="今日告警" value={alarmCountQ.data} isLoading={alarmCountQ.isLoading} color="warning" />
-        <KpiCard label="未确认告警" value={unackCountQ.data} isLoading={unackCountQ.isLoading} color="danger" />
+        <KpiCard label="设备总数" value={kpis.deviceTotal} isLoading={kpis.isLoading} />
+        <KpiCard label="在线设备" value={kpis.onlineTotal} isLoading={kpis.isLoading} color="success" />
+        <KpiCard label="今日告警" value={kpis.alarmTotal} isLoading={kpis.isLoading} color="warning" />
+        <KpiCard label="未确认告警" value={kpis.unackTotal} isLoading={kpis.isLoading} color="danger" />
       </div>
 
       {/* 最近告警 */}

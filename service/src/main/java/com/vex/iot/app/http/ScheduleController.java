@@ -4,7 +4,7 @@ import com.vex.iot.app.http.model.DeviceScheduleDetail;
 import com.vex.iot.app.http.model.DeviceScheduleRequest;
 import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.common.response.Response;
-import com.vex.iot.domain.schedule.service.DeviceScheduleServer;
+import com.vex.iot.domain.schedule.DeviceScheduleServer;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

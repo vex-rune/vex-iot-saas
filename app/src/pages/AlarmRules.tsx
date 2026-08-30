@@ -1,4 +1,5 @@
 import { useState } from 'react';
+// (本文件用 useApiMutation 直接 mutate + onSuccess 注入,不需要再套 useMutation/queryClient)
 import {
   Button,
   Chip,
@@ -25,33 +26,32 @@ import {
   Tooltip,
   addToast,
 } from '@heroui/react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { queryAlarmRules, countAlarmRules, saveAlarmRule, deleteAlarmRule } from '@/api/alarms';
+import { ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS, ALARM_LEVEL_OPTIONS } from '@/lib/levelMeta';
 import { queryDevices, countDevices } from '@/api/devices';
 import { useQueryList } from '@/hooks/useQueryList';
 import type { AlarmRule, Device } from '@/types/api';
 
-const LEVEL_OPTIONS = ['INFO', 'WARNING', 'CRITICAL', 'FATAL'];
+const LEVEL_OPTIONS = ALARM_LEVEL_OPTIONS;
 const CONDITION_OPTIONS = ['GT', 'LT', 'EQ', 'BETWEEN'];
-const LEVEL_LABELS: Record<string, string> = { INFO: '提示', WARNING: '警告', CRITICAL: '紧急', FATAL: '严重' };
-const LEVEL_COLORS: Record<string, 'success' | 'warning' | 'danger' | 'primary'> = {
-  INFO: 'success', WARNING: 'warning', CRITICAL: 'danger', FATAL: 'danger',
-};
+const LEVEL_LABELS = ALARM_LEVEL_LABELS;
+const LEVEL_COLORS = ALARM_LEVEL_COLORS;
 
 export default function AlarmRules() {
-  const queryClient = useQueryClient();
-
   const {
     data: rules,
     total,
+    totalPages,
     page,
     size,
+    setSize,
     setPage,
     isLoading,
+    refetch,
   } = useQueryList<AlarmRule>({
     queryKey: 'alarmRules',
     queryFn: queryAlarmRules,
@@ -100,30 +100,13 @@ export default function AlarmRules() {
     setDrawerOpen(true);
   };
 
+  // useApiMutation 已内置业务异常 toast;成功 toast + 列表刷新通过 mutate 的 onSuccess 注入,
+// 不再套娃 useMutation,避免与 setPage 形成死循环
   const saveMutation = useApiMutation({
     mutationFn: (data: Partial<AlarmRule>) => saveAlarmRule(data),
   });
-  const saveUI = useMutation({
-    mutationFn: async (input: Parameters<typeof saveMutation.mutate>[0]) => {
-      await saveMutation.mutateAsync(input);
-      return input;
-    },
-    onSuccess: () => {
-      addToast({ title: editingRule ? '更新成功' : '创建成功', color: 'success' });
-      setDrawerOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['alarmRules'] });
-    },
-  });
-
   const deleteMutation = useApiMutation({
     mutationFn: deleteAlarmRule,
-  });
-  const deleteUI = useMutation({
-    mutationFn: async (id: string) => { await deleteMutation.mutateAsync(id); return id; },
-    onSuccess: () => {
-      addToast({ title: '删除成功', color: 'success' });
-      queryClient.invalidateQueries({ queryKey: ['alarmRules'] });
-    },
   });
 
   const handleSave = () => {
@@ -135,19 +118,28 @@ export default function AlarmRules() {
       addToast({ title: '请输入阈值', color: 'warning' });
       return;
     }
-    saveUI.mutate({
-      ...(editingRule ? { id: editingRule.id } : {}),
-      deviceId: form.deviceId,
-      pointCode: form.pointCode || undefined,
-      conditionType: form.conditionType as AlarmRule['conditionType'],
-      threshold: Number(form.threshold),
-      thresholdHigh: form.conditionType === 'BETWEEN' ? Number(form.thresholdHigh) : undefined,
-      level: form.level as AlarmRule['level'],
-      enabled: form.enabled,
-      notifyUserIds: form.notifyUserIds
-        ? form.notifyUserIds.split(',').map((s) => s.trim()).filter(Boolean)
-        : [],
-    });
+    saveMutation.mutate(
+      {
+        ...(editingRule ? { id: editingRule.id } : {}),
+        deviceId: form.deviceId,
+        pointCode: form.pointCode || undefined,
+        conditionType: form.conditionType as AlarmRule['conditionType'],
+        threshold: Number(form.threshold),
+        thresholdHigh: form.conditionType === 'BETWEEN' ? Number(form.thresholdHigh) : undefined,
+        level: form.level as AlarmRule['level'],
+        enabled: form.enabled,
+        notifyUserIds: form.notifyUserIds
+          ? form.notifyUserIds.split(',').map((s) => s.trim()).filter(Boolean)
+          : [],
+      },
+      {
+        onSuccess: () => {
+          addToast({ title: editingRule ? '更新成功' : '创建成功', color: 'success' });
+          setDrawerOpen(false);
+          refetch();
+        },
+      },
+    );
   };
 
   const isMobile = useIsMobile();
@@ -205,8 +197,8 @@ export default function AlarmRules() {
                       <PopoverContent>
                         <div className="flex flex-col items-center gap-2 p-2">
                           <p className="text-sm text-foreground">确认删除该规则?</p>
-                          <Button size="sm" color="danger" isLoading={deleteUI.isPending}
-                            onPress={() => deleteUI.mutate(rule.id)}>
+                          <Button size="sm" color="danger" isLoading={deleteMutation.isPending}
+                            onPress={() => deleteMutation.mutate(rule.id, { onSuccess: () => refetch() })}>
                             确认删除
                           </Button>
                         </div>
@@ -266,8 +258,8 @@ export default function AlarmRules() {
                       <PopoverContent>
                         <div className="flex flex-col items-center gap-2 p-2">
                           <p className="text-sm text-foreground">确认删除该规则?</p>
-                          <Button size="sm" color="danger" isLoading={deleteUI.isPending}
-                            onPress={() => deleteUI.mutate(rule.id)}>
+                          <Button size="sm" color="danger" isLoading={deleteMutation.isPending}
+                            onPress={() => deleteMutation.mutate(rule.id, { onSuccess: () => refetch() })}>
                             确认删除
                           </Button>
                         </div>
@@ -282,9 +274,19 @@ export default function AlarmRules() {
       )}
 
       <div className="flex items-center justify-between">
-        <span className="text-sm text-foreground-500">共 {total} 条</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-foreground-500">共 {total} 条</span>
+          <Select size="sm" variant="bordered" className="w-24"
+            aria-label="每页条数"
+            selectedKeys={[String(size)]}
+            onSelectionChange={(keys) => setSize(Number(Array.from(keys)[0]))}>
+            {['15', '30', '60', '100'].map((s) => (
+              <SelectItem key={s}>{s}</SelectItem>
+            ))}
+          </Select>
+        </div>
         <Pagination
-          total={Math.max(1, Math.ceil(total / size))}
+          total={totalPages}
           page={page + 1}
           onChange={(p) => setPage(p - 1)}
           showControls
@@ -366,7 +368,7 @@ export default function AlarmRules() {
           </DrawerBody>
           <DrawerFooter>
             <Button variant="flat" onPress={() => setDrawerOpen(false)}>取消</Button>
-            <Button color="primary" isLoading={saveUI.isPending} onPress={handleSave}>保存</Button>
+            <Button color="primary" isLoading={saveMutation.isPending} onPress={handleSave}>保存</Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
