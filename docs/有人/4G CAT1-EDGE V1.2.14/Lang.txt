@@ -1,0 +1,426 @@
+;语言文件格式为: 名称|中文|英文，竖线分割，逗号与分号为注释，///为换行，空行自动忽略
+;Language file format: Name|Chinese|English，vertical is delimiter， comma or semicolon is Comments，///is newline，Empty lines automatically ignored
+ 
+lang_Main_Title|4G CAT1-EDGE|4G CAT1-EDGE
+lang_Main_AppTitle|4G CAT1-EDGE|4G CAT1-EDGE
+lang_Menu_File|文件|File
+lang_Menu_Quit|退出|Quit
+lang_Menu_Lang|Language|Language
+lang_Menu_Cn|简体中文|简体中文
+lang_Menu_En|English|English
+lang_Menu_Diy|DiyLang|DiyLang
+lang_Menu_Help|帮助|Help
+lang_Menu_About|关于...|About...
+lang_Menu_Hint|实时帮助|Real-time Help
+lang_Menu_Version|检查更新|Latest version
+lang_Menu_DownUrl|http://www.usr.cn/Download/415.html|http://www.usriot.com/p/rs232-rs485-4g-modem/
+lang_Menu_WorkOrder|提交问题|Technical Support
+lang_Visit|访问官网|Visit official website
+lang_Desproduct|产品介绍|Product description
+lang_Manual|使用手册|User Manual
+lang_Menu_Model|产品型号选择|Product model selection
+lang_Menu_WorkOrderUrl|http://h.usr.cn/index.php|http://h.usriot.com/index.php
+lang_lblOpenCom|[PC串口参数] : 串口号|[PC Serial Parameters] : Serial Port
+lang_lblOpenBaud|波特率|BaudRate
+lang_lblOpenPDS|检验/数据/停止|Parity/Data/Stop
+lang_lblOpenFlow|流控 |Flow Control
+lang_btnOpen|打开串口|Open
+lang_btnClose|关闭串口|Close
+lang_btnFwUp|固件升级|Firmware Upgrade
+lang_btnImportParam|导入所有参数|Import All Params
+lang_btnExportParam|导出所有参数|Export All Params
+lang_lblwkmode| 工作模式| Work Mode
+lang_cbbMode10| TCP模式|TCP Mode
+lang_cbbMode11| UDP模式|UDP Mode
+lang_cbbMode12| HTTPD模式|HTTPD Client Mode
+lang_cbbMode13| 短信透传模式|SMS Mode
+lang_cbbMode14| MQTT模式|MQTT Mode
+lang_lblSocketParams| 服务器参数|Socket Params
+lang_rztbshtTD1|通道一|Channel 1
+lang_rztbshtTD2|通道二|Channel 2
+lang_rztbshtTD3|通道三|Channel 3
+lang_rztbshtTD4|通道四|Channel 4
+lang_rztbshtJSON|MODBUS轮询采集|MODBUS collection
+lang_rztbshtBase|基本参数|Base Params
+lang_rzgrpbxPara|相关参数| Parameters
+lang_rzchckbxSkt|启用|Enable
+lang_rzchckbxSktBK|备份服务器|Backup Socket 
+lang_lblIpAndPort|地址和端口|IP&Port
+lang_lblLinkTpye|连接类型|Link Type
+lang_cbbASL0|短连接|Transitory Link
+lang_cbbASL1|长连接|Persistent Link
+lang_OverTimeS|短连接超时时间(秒)|Time of Transitory Link(s)
+lang_lbledtSockRsTim|重连时间间隔(秒)|Interval of Reconnection(s)
+lang_lbledtSOCKRSNUM|重连次数|Times of Reconnection
+lang_rzchckbxHeartEn|启用心跳包|Enable Heartbeat Package
+lang_lblHeartTm|心跳时间(秒)|Heartbeat Interval(s)
+lang_lblHeartDt|心跳数据|Heartbeat Data
+lang_lblHEARTSORT|心跳数据类型|Heartbeat Data Type
+lang_cbbHEARTSORT0|ICCID码|ICCID
+lang_cbbHEARTSORT1|IMEI码|IMEI
+lang_cbbHEARTSORT2|SN码|SN
+lang_cbbHEARTSORT3|自定义数据|User-defined data
+lang_cbbHEARTSORT4|LBS|LBS
+lang_lblHeartSnd|心跳发送方式|Method of Heartbeat
+lang_cbbHeartSnd0|向服务器发送心跳包|Send data to network
+lang_cbbHeartSnd1|向串口终端发送心跳包|Send data to serial port
+lang_rzchckbxRegEn|启用注册包|Enable Identity Package
+lang_lblRegSnd|注册包发送方式|Method of Identity Package
+lang_cbbRegSnd0|与服务器建立连接时向服务器发送一次|Send package once building connection
+lang_cbbRegSnd1|向服务器发送的每个数据包前都加上|Send package as the prefix of every data
+lang_cbbRegSnd2|同时支持以上两种|Support both of above
+lang_lblRegTp|注册数据类型|Type of Identity Package
+lang_cbbRegTp0|ICCID码|ICCID Code
+lang_cbbRegTp1|IMEI码|IMEI Code
+lang_cbbRegTp2|SN码|SN Code
+lang_cbbRegTp4|有人云|Cloud (for PUSR Cloud)
+lang_cbbRegTp3|自定义数据|User-defined data
+lang_cbbRegTp5|UDC|UDC
+lang_lblCloudId|设备编号:共20位|Device ID:Maximum Length is 20
+lang_lblCloudPa|通讯密码:共8位,不足8位在前面补'0'.|Private Key:Length is 8,if less than 8,padding '0' in the front
+lang_CloudIdPw|设备编号和密码|Device id & Password
+lang_rzchckbxSOCKIND|显示网络透传来源Socket|Show Source Socket
+lang_lblHTPTP|HTTP请求方式|HTTP request method
+lang_lblHTPURL|HTTP请求的URL|HTTP URL
+lang_lblHTPSVIP|服务器地址|HTTP server address
+lang_lblHTPSVPort|服务器端口|HTTP server port
+lang_lblHTPHD|HTTP请求头信息|HTTP request Header
+lang_rzchckbxHtpFlt|过滤HTTP头|Remove Header
+lang_lblDSTNUM|透传目标电话号码|Destination phone number 
+lang_rzchckbxSMSFLT|短信来源号码过滤|Only receive SMS from destination number
+lang_rzchckbxSMSPH|显示短信透传来源号码|Show SMS destination number
+lang_lblMQTTclient|MQTTClient/// 连接|MQTT Client/// Connect
+lang_rbMQTT2|通用MQTT|Generic MQTT
+lang_rbALI|阿里云|ALI Cloud
+lang_lblMQTTSVR|服务器地址和端口|MQTT Server IP&Port
+lang_lblMQTTUSER|用户名|Username
+lang_lblMQTTPSW|密码|Password
+lang_lblMQTTID|客户端ID|Client ID
+lang_lblMQTTver|MQTT版本|MQTT Version
+lang_lblALIREGION|Regionid|Regionid
+lang_lblALIPRODKEY|ProductKey|ProductKey
+lang_lblALIDEVSEC|DeviceSecret|DeviceSecret
+lang_lblALIDEVNAME|DeviceName|DeviceName
+lang_lblALIDEVID|ClientID|ClientID
+lang_lblMQTTRSTIM|无连接重启时间(秒)|No connection restart time(s)
+lang_lblMQTTSOCKRSTIM|重连时间间隔(秒)|Interval of Reconnection(s)
+lang_lblMQTTSOCKRSNUM|重连次数|Times of Reconnection
+lang_lblMQTTMOD|MQTT串口传输模式设置|MQTT serial trans mode
+lang_cbbMQTTMOD0|透传模式|Transparent mode
+lang_cbbMQTTMOD1|分发模式|Distribution mode
+lang_lblMQTTCFG|MQTT协议层心跳包时间(秒)|MQTT protocol heartbeat time(s)
+lang_rzchckbxCleansession|清除会话|Clean session
+lang_rzchckbxPRPTEN|断电上报|Power outage reporting
+lang_lblPRPTDT|断电上报数据|Power outage reporting data
+lang_rzchckbxMQTTHeartEn|启用心跳包|Enable Heartbeat Package
+lang_lblMQTTHeartTm|心跳时间(秒)|Heartbeat Interval(s)
+lang_lblMQTTHeartDt|心跳数据|Heartbeat Data
+lang_lblMQTTHEARTSORT|心跳数据类型|Heartbeat Data Type
+lang_lblMQTTTopicType|心跳包Topic类型|Heartbeat Package Topic Type
+lang_cbbMQTTTopicType0|全部主题|ALL Topic
+lang_cbbMQTTTopicType1|主题1|Topic1
+lang_cbbMQTTTopicType2|主题2|Topic2
+lang_cbbMQTTTopicType3|主题3|Topic3
+lang_cbbMQTTTopicType4|主题4|Topic4
+lang_cbbMQTTTopicType5|主题5|Topic5
+lang_cbbMQTTTopicType6|主题6|Topic6
+lang_cbbMQTTTopicType7|主题7|Topic7
+lang_cbbMQTTTopicType8|主题8|Topic8
+lang_cbbMQTTTopicType9|主题9|Topic9
+lang_cbbMQTTTopicType10|主题10|Topic10
+lang_lblMQTTHeartSnd|心跳发送方式|Method of Heartbeat
+lang_cbbMQTTHeartSnd0|向服务器发送心跳包|Send data to network
+lang_cbbMQTTHeartSnd1|向串口终端发送心跳包|Send data to serial port
+lang_rzchckbxMQTTLWTMen|启用遗嘱消息|Will messages enable
+lang_lblMQTTLWTMtopic|遗嘱主题名|Will Topic
+lang_lblMQTTLWTMmsg|遗嘱主题消息|Will Payload
+lang_rzchckbxMQTTLWTMretained|消息保留|Retain
+lang_lblMQTTSUBTP|订阅主题|Subscribe/// Topics
+lang_chkExpandSub|扩展|Expand
+lang_rzchckbxMQTTSUBTP1|主题1|Topic1
+lang_rzchckbxMQTTSUBTP2|主题2|Topic2
+lang_rzchckbxMQTTSUBTP3|主题3|Topic3
+lang_rzchckbxMQTTSUBTP4|主题4|Topic4
+lang_rzchckbxMQTTSUBTP5|主题5|Topic5
+lang_rzchckbxMQTTSUBTP6|主题6|Topic6
+lang_rzchckbxMQTTSUBTP7|主题7|Topic7
+lang_rzchckbxMQTTSUBTP8|主题8|Topic8
+lang_rzchckbxMQTTSUBTP9|主题9|Topic9
+lang_rzchckbxMQTTSUBTP10|主题10|Topic10
+lang_lblMQTTPUBTP|推送主题|Publish Topics
+lang_chkExpandPub|扩展|Expand
+lang_rzchckbxMQTTPUBTP1|主题1|Topic1
+lang_rzchckbxMQTTPUBTP2|主题2|Topic2
+lang_rzchckbxMQTTPUBTP3|主题3|Topic3
+lang_rzchckbxMQTTPUBTP4|主题4|Topic4
+lang_rzchckbxMQTTPUBTP5|主题5|Topic5
+lang_rzchckbxMQTTPUBTP6|主题6|Topic6
+lang_rzchckbxMQTTPUBTP7|主题7|Topic7
+lang_rzchckbxMQTTPUBTP8|主题8|Topic8
+lang_rzchckbxMQTTPUBTP9|主题9|Topic9
+lang_rzchckbxMQTTPUBTP10|主题10|Topic10
+lang_rzchckbxRetained1|消息保留|Retain
+lang_rzchckbxRetained2|消息保留|Retain
+lang_rzchckbxRetained3|消息保留|Retain
+lang_rzchckbxRetained4|消息保留|Retain
+lang_rzchckbxRetained5|消息保留|Retain
+lang_rzchckbxRetained6|消息保留|Retain
+lang_rzchckbxRetained7|消息保留|Retain
+lang_rzchckbxRetained8|消息保留|Retain
+lang_rzchckbxRetained9|消息保留|Retain
+lang_rzchckbxRetained10|消息保留|Retain
+lang_rzgrpbxGNSS|GNSS功能参数|GNSS function parameters
+lang_rzchckbxGNSSen|GNSS功能|GNSS function
+lang_rbPrivateCloud|私有云|Private Cloud
+lang_rbQianXun|千寻位置|Chihiro location
+lang_rbMULT|复用原有通道|MULT
+lang_rbINDE|连接独立服务器|INDE
+lang_lblGBYSOCKTA|基于服务器A|Enable SocketA
+lang_lblGBYSOCKTAItem0|禁用|Disable
+lang_lblGBYSOCKTAItem1|启用|Enable
+lang_lblGBYSOCKTB|基于服务器B|Enable SocketB
+lang_lblGBYSOCKTBItem0|禁用|Disable
+lang_lblGBYSOCKTBItem1|启用|Enable
+lang_lblGBYSOCKTC|基于服务器C|Enable SocketC
+lang_lblGBYSOCKTCItem0|禁用|Disable
+lang_lblGBYSOCKTCItem1|启用|Enable
+lang_lblGBYSOCKTD|基于服务器D|Enable SocketD
+lang_lblGBYSOCKTDItem0|禁用|Disable
+lang_lblGBYSOCKTDItem1|启用|Enable
+lang_lblGBYSOCKTQ|基于服务器Q|Enable SocketQ
+lang_lblGBYSOCKTQItem0|禁用|Disable
+lang_lblGBYSOCKTQItem1|启用|Enable
+lang_lblGPOSSND|定位心跳发送方式|GNSS Heart Send Type
+lang_cbbGPOSSND0|向服务器发送心跳包|Send data to network
+lang_cbbGPOSSND1|向串口终端发送心跳包|Send data to serial port
+lang_cbbGPOSSND2|向服务器和串口发送心跳包|Send heartbeat packets to both network and serial port
+lang_RzLabelSOCKG|工作模式|Work Mode
+lang_lblSockgAddr|服务器地址和端口|IP&Port
+lang_lblSOCKGTO|超时时间(秒)|Over Time (s)
+lang_rzchckbxGHeartEn|启用心跳包|Enable Heartbeat Package
+lang_lblGHeartTm|心跳间隔(秒)|Heartbeat Internal(s)
+lang_lblGHeartCon|心跳数据|Heartbeat data
+lang_rzchckbxGREGTP|启用注册包|Enable Identity Package
+lang_lblGREGTYPE|注册包发送方式|Reg Package Send Type
+lang_cbbGREGTYPE0|与服务器建立连接时向服务器发送一次|Send register data when socket connects
+lang_cbbGREGTYPE1|向服务器发送的每个数据包前都加上|Send register data as the head of every TCP/UDP package
+lang_lblGREGTP|注册数据类型|Reg Package Data Type
+lang_cbbGREGTP0|ICCID|ICCID
+lang_cbbGREGTP1|IMEI|IMEI
+lang_cbbGREGTP2|IMSI|IMSI
+lang_cbbGREGTP3|SN|SN
+lang_cbbGREGTP4|自定义|User-defined data
+lang_lblGREGDT|自定义数据|User-defined data
+lang_lblGPOSUPTM|定位心跳时间(秒)|GNSS Heart Internal(s)
+lang_lblGHEARTTP2|定位心跳包类型|GNSS Heart Type
+lang_cbbGHEARTTP20|NMEA RMC|NMEA RMC
+lang_cbbGHEARTTP21|NMEA GGA|NMEA GGA
+lang_cbbGHEARTTP22|有人modbus定位|USR POSITION MODBUS
+lang_lblMODBUSID2|MODBUS设备ID|MODBUS Device ID
+lang_lblMODBUSAddr2|MODBUS寄存器地址|MODBUS Register address
+lang_lblJT808|JT808服务器|JT808 Server
+lang_lblSOCKQ|千寻服务器和端口|GNSS IP&Port
+lang_lblprotocol|连接类型|Link Type
+lang_lblSOCKQTO|超时时间(秒)|Over Time (s)
+lang_lblPosReport|定位上报设置|Report settings
+lang_rzchckbxQLBSADDEN|附加基站信息|Additional base station information
+lang_rzchckbxQPOSPACK|批量上报使能|Batch report enable
+lang_lblQPOSUPTM|定位上报时间(秒)|Reporting interval(s)
+lang_lblQphone|手机号|Phone
+lang_rzchckbxQHEARTEN|心跳使能|Heart Enabled
+lang_lblQHEARTTM|心跳间隔(秒)|Heart Internal(s)
+lang_rzchckbxGNSSMore|高级|More Function
+lang_lblProvince|省|Province
+lang_lblcity|市|City
+lang_lblCounty|区/县|District/County
+lang_lblQPRODUCER|制造商ID|Producer ID
+lang_lblTerminalid|终端ID|Terminal ID
+lang_lblTerminalmode|终端型号|Terminal model
+lang_lblTerminaltype|终端类型|Terminal type
+lang_cbbtype00|不适用客运车辆|Not applicable to passenger vehicles
+lang_cbbtype01|适用客运车辆|Applicable passenger vehicles
+lang_cbbtype10|不适用危险品车辆|Not applicable to dangerous goods vehicles
+lang_cbbtype11|适用危险品车辆|Applicable dangerous goods vehicles
+lang_cbbtype20|不适用普通货运车辆|Not applicable to ordinary freight vehicles
+lang_cbbtype21|适用普通货运车辆|Applicable to ordinary freight vehicles
+lang_cbbtype30|不适用出租车辆|Not applicable to rental vehicles
+lang_cbbtype31|适用出租车辆|Applicable rental vehicles
+lang_cbbtype60|不支持硬盘录像|Does not support hard disk recording
+lang_cbbtype61|支持硬盘录像|Support hard disk recording
+lang_cbbtype70|一体机|One machine
+lang_cbbtype71|分体机|Split machine
+lang_lblCarcolor|车辆颜色|Vehicle color
+lang_cbbCarcolor0|未上牌|unlicensed
+lang_cbbCarcolor1|蓝色|blue
+lang_cbbCarcolor2|黄色|yellow
+lang_cbbCarcolor3|黑色|black
+lang_cbbCarcolor4|白色|white
+lang_cbbCarcolor5|其他|other
+lang_lblCarNum|车牌|License plate
+lang_lblHWver|硬件版本号|Hardware version
+lang_rzgrpbxSSLParam|TLS加密参数|TLS Encrypted parameters
+lang_rzchckbxSSLen|SSL加密|SSL encryption
+lang_lblSSLVER|TLS版本|TSL version
+lang_lblSSLAUTH|证书验证方式|Certificate verification method
+lang_cbbSSLAUTH0|不验证证书|Do not verify certificate
+lang_cbbSSLAUTH1|验证服务器证书|Verify server certificate
+lang_cbbSSLAUTH2|双向验证|Two-way authentication
+lang_lblSSLCACRT|服务器CA证书|Server CA certificate
+lang_lblSSLClientCRT|客户端证书|Client Certificate
+lang_lblSSLClientPrivateKey|客户端私钥|Client private key
+lang_lblModbusSwitch|协议互转|Protocol Translation
+lang_rzchckbxMODBUSEN|Modbus RTU/TCP协议互转|Modbus RTU/TCP protocol translation
+lang_lblEDGERPTMOD|轮询上报方式|Polling reporting method
+lang_cbbEDGERPTMOD0|透传上报|Transparent reporting
+lang_cbbEDGERPTMOD1|JSON组包上报|JSON package reporting
+lang_rzchckbxEDGEEN|启用Modbus轮询|Enable Modbus polling
+lang_lblCOLLECTTIME|周期轮询时间|Cycle polling time
+lang_lblPOLLTIME|轮询间隔|Polling interval
+lang_lblPOLLTIMEOUT|轮询超时|Poll timeout
+lang_lblPOLLTIMEOUT|轮询超时|Poll timeout
+lang_lblSYSPOINT|JSON组包配置|JSON package configuration
+lang_rzchckbxIMEI|IMEI上报开关|IMEI reporting switch
+lang_rzchckbxSN|SN上报开关|SN reporting switch
+lang_rzchckbxTime|时间上报开关|Time reporting switch
+lang_lblTimeMode|时间格式|Time format
+lang_cbbTimeMode0|数值型Unix时间戳|Numeric Unix timestamp
+lang_cbbTimeMode1|本地时间字符串（格式2024/01/10 13:00:00）|Local time string (format 2024/01/10 13:00:00)
+lang_lblNo|No.|No.
+lang_lblname|变量名|variable
+lang_lblsid|从机地址|slave addr
+lang_lblregtype|功能码|Function
+lang_cbbregtype0|线圈(功能码 01)|Coil(01)
+lang_cbbregtype1|离散量输入(功能码 02)|Discrete input(02)
+lang_cbbregtype2|保持寄存器(功能码 03)|Holding register(03)
+lang_cbbregtype3|输入寄存器(功能码 04)|Input register(04)
+lang_lblregadd|寄存器地址|Register addr
+lang_lbldatatype|数据类型|data type
+lang_cbbdatatype0|位|bit
+lang_cbbdatatype1|16位 无符号|USHORT
+lang_cbbdatatype2|16位 有符号|SHORT
+lang_cbbdatatype3|32位 有符号(ABCD)|LONG_ABCD
+lang_cbbdatatype4|32位 有符号(CDAB)|LONG_CDAB
+lang_cbbdatatype5|32位 无符号(ABCD)|ULONG_ABCD
+lang_cbbdatatype6|32位 无符号(CDAB)|ULONG_CDAB
+lang_cbbdatatype7|32位 浮点数(ABCD)|FLOAT_ABCD
+lang_cbbdatatype8|32位 浮点数(CDAB)|FLOAT_CDAB
+lang_lblrange|倍率|magnification
+lang_lblreport|上报方式|Report
+lang_cbbreport0|不上报|Not reporting
+lang_cbbreport1|直接上报|Report directly
+lang_cbbreport2|变化上报|Change reporting
+lang_lblvalues|幅值|Amplitude
+lang_btnSELECTDB|查询|Query
+lang_btnNewAll|新增全部|New All
+lang_btnDeleteAll|删除全部|Delete All
+lang_btnExport|导出|Export
+lang_btnImport|导入|Import
+lang_btndelete|删除|Delete
+lang_rzgrpbxBase| 全局参数| Modem Parameters
+lang_lblUart|串口参数|Serial Port
+lang_lblBaud|串口波特率|Serial BaudRate 
+lang_rzchckbxMore|高级|More Function
+lang_rzchckbxRFC|类RFC2217|Sync BaudRate
+lang_lblUARTFT|打包时间(ms)|Packaging Interval(ms)
+lang_lblUARTFL|打包长度(Bytes)|Packaging Length(Bytes)
+lang_rzchckbxE|指令回显|Enable Echo
+lang_rzchckbxCACHEN|串口数据缓存|Serial data cache
+lang_rzchckbxUATEN|串口AT指令|Serial AT command
+lang_rzchckbxNATEN|网络AT指令|Network AT Command
+lang_lbledtCmdPw|命令密码|Command Prefix
+lang_lbledtStMsg|启动信息|Reboot Message
+lang_lbledtApn|APN|APN
+lang_lbledtRsTim|无数据自动重启时间(秒)|No data auto restart time(s)
+lang_rzchckbxSAFEATEN|安全机制|Security
+lang_lbledtSIGNINAT|安全密码|Security Code
+lang_rzchckbxNTPEN|NTP功能|NTP function
+lang_lbledtNTPSVR|NTP服务器|NTP Server
+lang_lbledtNTPTM|NTP校准周期(分)|NTP calibration period (min)
+lang_lblsimMode|SIM卡模式选择|SIM Mode Selection
+lang_cbbMode0|单卡锁定|Single card lock
+lang_cbbMode1|外置卡优先|External card priority
+lang_cbbMode2|双卡备份|Dual SIM backup
+lang_cbbsimid0|外置卡|external card
+lang_cbbsimid1|内置卡|built-in card
+lang_rzgrpbxDo| 执行命令及提示| Operation and Hints
+lang_btnAskAll|获取当前参数|Query all parameters
+lang_btnSetAll|设置并保存所有参数|Set and save all parameters
+lang_btnPPPA|进入配置状态|Enter Serial AT command mode
+lang_btnENTM|进入通讯状态|Exit Serial AT command mode
+lang_btnH|帮助信息|Help message
+lang_btnZ|设备重启|Restart
+lang_btnVER|查询版本|Query version
+lang_btnCNUM|查询ICCID|Query ICCID
+lang_btnSysRestart|系统重启|System Restart
+lang_btnCFGTF|存为用户默认|Save as user defaults
+lang_btnRELD|恢复用户默认|Restore as user defaults
+lang_btnCLEAR|恢复出厂设置|Reset to factory settings
+lang_btnCSQ|查信号强度|Query RSSI
+lang_btnBuild|查询SN|Query SN
+lang_btnS|保存参数|Save parameters
+lang_btnIMEI|查询IMEI|Query IMEI
+lang_lblTxHex|发送:|TX:
+lang_lblRxHex|接收:|RX:
+lang_btnResetCount|复位计数|Reset Count
+lang_chbTime|时间戳|Timestamp
+lang_lblReTelNum|目标电话号码|Destination phone number
+lang_pmSendType0|通过串口发送|Send via Serial Port
+lang_pmSendType1|发送手机短信|Send SMS message
+lang_btnSend|发送|Send
+lang_pmSend0|按Enter键发送|Enter key to send
+lang_pmSend1|按Ctrl+Enter键发送|Ctrl+Enter to send
+lang_pmSend3|AT指令自动加回车|Auto attaching CRLF
+lang_pmCls0|复制|Copy
+lang_pmCls1|粘贴|Paste
+lang_pmCls2|全选|Select All
+lang_pmCls4|清屏|Clear
+lang_pmFwUpOpt0|升级后重启|Restar after upgrade
+lang_pmFwUpOpt1|显示数据流|Show data Streaming
+lang_About_Title|关于|About
+lang_About_Version|版本：|Version:
+lang_About_OK|确 认|OK
+lang_About_SoftName|名称：4G CAT1-EDGE|Name: 4G CAT1-EDGE
+lang_About_Description|说明：本程序由济南有人物联网技术有限公司设计提供，本软件使用免费。|Instruction:  This software is design by Jinan USR IOT Technology Co., Ltd..
+lang_About_Contact|联系我们：|Contact Us:
+lang_About_Website|http://www.usr.cn|http://www.pusr.com
+lang_About_Tel|0531-88822739|0531-88822739
+lang_About_Email|tec@usr.cn|inquiry@usriot.com
+hint_cbbOpenUart|PC串口和DTU应采用相同的串口参数|PC Serial port should have same parameters with M2M device
+hint_cbbUart|DTU和串口终端应采用相同的串口参数|M2M device should have same serial port parameters with terminal device
+hint_chkEn|勾选表示启用|Click the block to enable function
+hint_chkHex|勾选以输入16进制数据|Checked to input hexadecimal number
+hint_edtCloudId|20位|length is 20
+hint_edtCloudPa|8位|length is 8
+hint_rzchckbxCloudEn|启用透传云时，注册包功能失效！|When enable PUSR Cloud, register package function invalid!
+hint_cbbRegDt_Udc|UDC ID默认长度为11位，不足11位请补0|Length must be 11
+hint_imgGif|藏这么严，还是被发现了 ^_^ |Hide so strict,also be discovered ^_^ 
+info_ServerParamSOCKA|SOCKA服务器的参数需手动配置!|The parameters of the SOCKA server need to be manually configured!
+info_ServerParamSOCKB|SOCKB服务器的参数需手动配置!|The parameters of the SOCKB server need to be manually configured!
+info_ServerParamSOCKC|SOCKC服务器的参数需手动配置!|The parameters of the SOCKC server need to be manually configured!
+info_ServerParamSOCKD|SOCKD服务器的参数需手动配置!|The parameters of the SOCKD server need to be manually configured!
+info_ComOpenYes|串口已打开|Serial Open Success
+info_ComCloseYes|串口已关闭|Serial Close Success
+info_ComOpenNo|串口打开失败，请检查该串口是否被其他软件占用！|Failure , please close other software which use this Com Port.
+info_FileSelect|文件选择过大，请重新选择！|File selection is too large, please select again
+info_FileSSLCACrt|服务器CA证书路径不能为空，请选择！|The server CA cert path cannot be empty, please select!
+info_FileSSLClientCrt|客户端证书路径不能为空，请选择！|Client cert path cannot be empty, please select!
+info_FileSSLKeyCrt|客户端私钥路径不能为空，请选择！|Client private key path cannot be empty, please select!
+info_ComNoOpen|串口未打开|Serial port is not open
+info_DoOver|执行完毕|Operation complete
+info_Start0|一般操作流程：|General operation process:
+info_Start1|1. 模块连PC串口,上电;|1. Connect the module to PC serial port, power the module
+info_Start2|2. 打开串口;|2. Choose serial port NO. Then Click "Open"
+info_Start3|3. 获取当前参数;|3. Click "Query all parameters"
+info_Start4|4. 选择工作模式,配置相关参数;|4. Choose work mode and configure related parameters
+info_Start5|5. 设置所有参数;|5. Click "Set current parameters"
+info_Restarting|正在重启...|Restarting...
+info_FwUpOver|固件升级完成|Firmware upgrade success
+info_FwUpTime|耗时(秒): |Used time (s): 
+info_SlctFwFile|请选择固件|Please select firmware file
+info_FwFile|固件文件|Firmware File
+info_AllFile|所有文件|All File
+info_AbsentFwFlie|请先选择固件|Please select firmware file First
+info_ModuleRTS|模块请求发送|Module request to send
+info_Sending|发送中...|Sending...
+info_ReloadRepower|如果升级未开始,请按住Reload键,同时给模块重新上电|If upgrade does not start,Please hold down the Reload button and power-on again
+info_PlsUpFw|请升级固件！|Please upgrade the firmware!

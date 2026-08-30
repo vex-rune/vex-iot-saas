@@ -1,0 +1,58 @@
+# Vex 云物联 - 一键启动(开发/小规模生产)
+# 启动: docker compose -f ops/docker/docker-compose.yml up -d
+
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: iot-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: iot_saas
+
+  redis:
+    image: redis:7-alpine
+    container_name: iot-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  emqx:
+    image: emqx/emqx:5.8
+    container_name: iot-emqx
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # MQTT
+      - "18083:18083" # Dashboard
+    environment:
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: public
+
+  service:
+    build:
+      context: ../..
+      dockerfile: ops/docker/service.Dockerfile
+    container_name: iot-service
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+      - emqx
+    ports:
+      - "8080:8080"
+    environment:
+      MONGO_URI: mongodb://mongo:27017/iot_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MQTT_BROVER: tcp://emqx:1883
+      MQTT_USER: iot
+      MQTT_PASSWORD: iot
+      JWT_SECRET: CHANGE_ME_PRODUCTION_SECRET_KEY_AT_LEAST_32B
+      SPRING_PROFILES_ACTIVE: dev
+
+volumes:
+  mongo-data:

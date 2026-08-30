@@ -1,0 +1,100 @@
+spring:
+  application:
+    name: iot-saas
+  profiles:
+    active: dev
+  datasource:
+    url: ${PG_URL:jdbc:postgresql://localhost:5432/iot_saas}
+    username: ${PG_USER:postgres}
+    password: ${PG_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  quartz:
+    # 内存 JobStore，业务表为权威数据源（启动时由 DeviceScheduleBootstrap 加载）
+    job-store-type: memory
+    properties:
+      org:
+        quartz:
+          threadPool:
+            threadCount: 8
+            threadNamePrefix: iot-schedule-
+          jobStore:
+            class: org.quartz.simpl.RAMJobStore
+
+# 阿里云短信(可选,未配置时通知降级为日志通道)
+aliyun:
+  sms:
+    enabled: ${ALIYUN_SMS_ENABLED:false}
+    access-key-id: ${ALIYUN_SMS_AK:}
+    access-key-secret: ${ALIYUN_SMS_SK:}
+    sign-name: ${ALIYUN_SMS_SIGN:}
+    templateCode: ${ALIYUN_SMS_TEMPLATE:}
+
+# JWT 配置
+jwt:
+  # 密钥必须 32 字节以上,生产必须通过环境变量 JWT_SECRET 注入;
+  # 本地启动保留 dev 默认值,生产部署必须显式覆盖,密钥长度低于 32 字节启动失败。
+  secret: ${JWT_SECRET:dev_only_change_me_in_prod_secret_key_32b_min}
+  # 过期时间(秒),默认 12 小时
+  expire-seconds: ${JWT_EXPIRE:43200}
+  # Token 请求头
+  header: Authorization
+  # Token 前缀
+  prefix: "Bearer "
+
+# 管理员配置（固定用户，不存储在数据库中）
+admin:
+  # 管理员盐值（用于动态码生成）
+  salt: ${ADMIN_SALT:admin_salt_16bytes_xx}
+  # 管理员创建时间（用于动态码派生）
+  created-at: ${ADMIN_CREATED_AT:2024-01-01T00:00:00}
+  # 管理员租户ID
+  tenant-id: ${ADMIN_TENANT_ID:0}
+  # 管理员角色
+  role: ${ADMIN_ROLE:SUPER_ADMIN}
+
+# MQTT 配置 (Spring Integration)
+mqtt:
+  # 客户端 ID 前缀,启动时拼接随机后缀避免双实例冲突
+  client-id-prefix: ${MQTT_CLIENT_PREFIX:iot-saas}
+  # EMQX Broker 地址
+  broker-url: ${MQTT_BROKER:tcp://localhost:1883}
+  username: ${MQTT_USER:iot}
+  password: ${MQTT_PASSWORD:iot}
+  # QoS
+  default-qos: 1
+  # 共享订阅组(双实例消费去重)
+  share-group: iot-saas-group
+  # 上报主题(通配符 + 匹配所有设备, USR-G771 协议: ${deviceCode}/update)
+  up-topic-pattern: "+/update"
+  # 下发主题模板 (USR-G771 协议: ${deviceCode}/get)
+  down-topic-pattern: "${deviceCode}/get"
+
+# 日志
+logging:
+  level:
+    root: INFO
+    com.vex.iot: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain

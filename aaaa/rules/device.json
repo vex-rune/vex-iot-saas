@@ -1,0 +1,1665 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "API Documentation",
+    "version" : "1.0"
+  },
+  "paths" : {
+    "/api/devices/query" : {
+      "post" : {
+        "summary" : "设备-条件查询",
+        "description" : "设备-条件查询",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "predicate" : {
+                    "type" : "object",
+                    "properties" : {
+                      "and" : {
+                        "type" : "array",
+                        "description" : "",
+                        "items" : {
+                          "type" : "object",
+                          "properties" : {
+                            "condition" : {
+                              "type" : "object",
+                              "properties" : {
+                                "field" : {
+                                  "type" : "string",
+                                  "description" : "字段名"
+                                },
+                                "op" : {
+                                  "type" : "string",
+                                  "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                  "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                },
+                                "value" : {
+                                  "type" : "object",
+                                  "properties" : { },
+                                  "description" : "值"
+                                }
+                              },
+                              "description" : "叶子条件"
+                            },
+                            "predicate" : {
+                              "type" : "object",
+                              "properties" : {
+                                "and" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                },
+                                "or" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                }
+                              },
+                              "description" : "嵌套谓词"
+                            }
+                          },
+                          "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                        }
+                      },
+                      "or" : {
+                        "type" : "array",
+                        "description" : "",
+                        "items" : {
+                          "type" : "object",
+                          "properties" : {
+                            "condition" : {
+                              "type" : "object",
+                              "properties" : {
+                                "field" : {
+                                  "type" : "string",
+                                  "description" : "字段名"
+                                },
+                                "op" : {
+                                  "type" : "string",
+                                  "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                  "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                },
+                                "value" : {
+                                  "type" : "object",
+                                  "properties" : { },
+                                  "description" : "值"
+                                }
+                              },
+                              "description" : "叶子条件"
+                            },
+                            "predicate" : {
+                              "type" : "object",
+                              "properties" : {
+                                "and" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                },
+                                "or" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                }
+                              },
+                              "description" : "嵌套谓词"
+                            }
+                          },
+                          "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                        }
+                      }
+                    },
+                    "description" : ""
+                  },
+                  "order" : {
+                    "type" : "object",
+                    "properties" : {
+                      "fieldName" : {
+                        "type" : "string",
+                        "description" : "排序字段名"
+                      },
+                      "order" : {
+                        "type" : "string",
+                        "description" : "{ASC=升序, DESC=降序}",
+                        "enum" : [ "ASC", "DESC" ]
+                      }
+                    },
+                    "description" : ""
+                  },
+                  "page" : {
+                    "type" : "object",
+                    "properties" : {
+                      "page" : {
+                        "type" : "integer",
+                        "description" : ""
+                      },
+                      "size" : {
+                        "type" : "integer",
+                        "description" : ""
+                      }
+                    },
+                    "description" : ""
+                  }
+                },
+                "description" : "查询条件"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "设备列表",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "createdAt" : {
+                            "type" : "string",
+                            "description" : ""
+                          },
+                          "createId" : {
+                            "type" : "string",
+                            "description" : ""
+                          },
+                          "updatedAt" : {
+                            "type" : "string",
+                            "description" : ""
+                          },
+                          "updateId" : {
+                            "type" : "string",
+                            "description" : ""
+                          },
+                          "state" : {
+                            "type" : "integer",
+                            "description" : "0=正常, -1=软删除。"
+                          },
+                          "tenantId" : {
+                            "type" : "string",
+                            "description" : "归属租户,默认 \"0\"。"
+                          },
+                          "id" : {
+                            "type" : "string",
+                            "description" : "设备ID（雪花算法生成）"
+                          },
+                          "deviceCode" : {
+                            "maxLength" : 64,
+                            "type" : "string",
+                            "description" : "设备编码（全局唯一）"
+                          },
+                          "deviceName" : {
+                            "maxLength" : 128,
+                            "type" : "string",
+                            "description" : "设备名称"
+                          },
+                          "gatewayId" : {
+                            "maxLength" : 64,
+                            "type" : "string",
+                            "description" : "网关ID"
+                          },
+                          "enabled" : {
+                            "type" : "boolean",
+                            "description" : "是否启用",
+                            "default" : "true"
+                          },
+                          "online" : {
+                            "type" : "string",
+                            "description" : "{OFFLINE=离线, ONLINE=在线}",
+                            "default" : "DeviceOnline.OFFLINE",
+                            "enum" : [ "OFFLINE", "ONLINE" ]
+                          },
+                          "lastHeartbeatAt" : {
+                            "type" : "string",
+                            "description" : "最后心跳时间"
+                          }
+                        },
+                        "description" : "设备\n记录设备基本信息，包括设备编码、名称、MQTT主题、心跳状态等"
+                      }
+                    }
+                  },
+                  "description" : "设备列表"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/count" : {
+      "post" : {
+        "summary" : "设备-数量查询",
+        "description" : "设备-数量查询",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "predicate" : {
+                    "type" : "object",
+                    "properties" : {
+                      "and" : {
+                        "type" : "array",
+                        "description" : "",
+                        "items" : {
+                          "type" : "object",
+                          "properties" : {
+                            "condition" : {
+                              "type" : "object",
+                              "properties" : {
+                                "field" : {
+                                  "type" : "string",
+                                  "description" : "字段名"
+                                },
+                                "op" : {
+                                  "type" : "string",
+                                  "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                  "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                },
+                                "value" : {
+                                  "type" : "object",
+                                  "properties" : { },
+                                  "description" : "值"
+                                }
+                              },
+                              "description" : "叶子条件"
+                            },
+                            "predicate" : {
+                              "type" : "object",
+                              "properties" : {
+                                "and" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                },
+                                "or" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                }
+                              },
+                              "description" : "嵌套谓词"
+                            }
+                          },
+                          "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                        }
+                      },
+                      "or" : {
+                        "type" : "array",
+                        "description" : "",
+                        "items" : {
+                          "type" : "object",
+                          "properties" : {
+                            "condition" : {
+                              "type" : "object",
+                              "properties" : {
+                                "field" : {
+                                  "type" : "string",
+                                  "description" : "字段名"
+                                },
+                                "op" : {
+                                  "type" : "string",
+                                  "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                  "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                },
+                                "value" : {
+                                  "type" : "object",
+                                  "properties" : { },
+                                  "description" : "值"
+                                }
+                              },
+                              "description" : "叶子条件"
+                            },
+                            "predicate" : {
+                              "type" : "object",
+                              "properties" : {
+                                "and" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                },
+                                "or" : {
+                                  "type" : "array",
+                                  "description" : "",
+                                  "items" : {
+                                    "type" : "object",
+                                    "properties" : {
+                                      "condition" : {
+                                        "type" : "object",
+                                        "properties" : {
+                                          "field" : {
+                                            "type" : "string",
+                                            "description" : "字段名"
+                                          },
+                                          "op" : {
+                                            "type" : "string",
+                                            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                                          },
+                                          "value" : {
+                                            "type" : "object",
+                                            "properties" : { },
+                                            "description" : "值"
+                                          }
+                                        },
+                                        "description" : "叶子条件"
+                                      },
+                                      "predicate" : {
+                                        "type" : "object",
+                                        "properties" : { },
+                                        "description" : "嵌套谓词"
+                                      }
+                                    },
+                                    "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                                  }
+                                }
+                              },
+                              "description" : "嵌套谓词"
+                            }
+                          },
+                          "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                        }
+                      }
+                    },
+                    "description" : ""
+                  },
+                  "order" : {
+                    "type" : "object",
+                    "properties" : {
+                      "fieldName" : {
+                        "type" : "string",
+                        "description" : "排序字段名"
+                      },
+                      "order" : {
+                        "type" : "string",
+                        "description" : "{ASC=升序, DESC=降序}",
+                        "enum" : [ "ASC", "DESC" ]
+                      }
+                    },
+                    "description" : ""
+                  },
+                  "page" : {
+                    "type" : "object",
+                    "properties" : {
+                      "page" : {
+                        "type" : "integer",
+                        "description" : ""
+                      },
+                      "size" : {
+                        "type" : "integer",
+                        "description" : ""
+                      }
+                    },
+                    "description" : ""
+                  }
+                },
+                "description" : "查询条件"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "设备数量",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "data" : {
+                      "type" : "integer",
+                      "description" : "",
+                      "format" : "int64"
+                    }
+                  },
+                  "description" : "设备数量"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{id}" : {
+      "get" : {
+        "summary" : "设备-详情",
+        "description" : "设备-详情",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "设备ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "设备信息",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "createdAt" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "createId" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "updatedAt" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "updateId" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "state" : {
+                          "type" : "integer",
+                          "description" : "0=正常, -1=软删除。"
+                        },
+                        "tenantId" : {
+                          "type" : "string",
+                          "description" : "归属租户,默认 \"0\"。"
+                        },
+                        "id" : {
+                          "type" : "string",
+                          "description" : "设备ID（雪花算法生成）"
+                        },
+                        "deviceCode" : {
+                          "maxLength" : 64,
+                          "type" : "string",
+                          "description" : "设备编码（全局唯一）"
+                        },
+                        "deviceName" : {
+                          "maxLength" : 128,
+                          "type" : "string",
+                          "description" : "设备名称"
+                        },
+                        "gatewayId" : {
+                          "maxLength" : 64,
+                          "type" : "string",
+                          "description" : "网关ID"
+                        },
+                        "enabled" : {
+                          "type" : "boolean",
+                          "description" : "是否启用",
+                          "default" : "true"
+                        },
+                        "online" : {
+                          "type" : "string",
+                          "description" : "{OFFLINE=离线, ONLINE=在线}",
+                          "default" : "DeviceOnline.OFFLINE",
+                          "enum" : [ "OFFLINE", "ONLINE" ]
+                        },
+                        "lastHeartbeatAt" : {
+                          "type" : "string",
+                          "description" : "最后心跳时间"
+                        }
+                      },
+                      "description" : ""
+                    }
+                  },
+                  "description" : "设备信息"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "设备-更新",
+        "description" : "设备-更新",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "设备ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "createdAt" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "createId" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "updatedAt" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "updateId" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "state" : {
+                    "type" : "integer",
+                    "description" : "0=正常, -1=软删除。"
+                  },
+                  "tenantId" : {
+                    "type" : "string",
+                    "description" : "归属租户,默认 \"0\"。"
+                  },
+                  "id" : {
+                    "type" : "string",
+                    "description" : "设备ID（雪花算法生成）"
+                  },
+                  "deviceCode" : {
+                    "maxLength" : 64,
+                    "type" : "string",
+                    "description" : "设备编码（全局唯一）"
+                  },
+                  "deviceName" : {
+                    "maxLength" : 128,
+                    "type" : "string",
+                    "description" : "设备名称"
+                  },
+                  "gatewayId" : {
+                    "maxLength" : 64,
+                    "type" : "string",
+                    "description" : "网关ID"
+                  },
+                  "enabled" : {
+                    "type" : "boolean",
+                    "description" : "是否启用",
+                    "default" : "true"
+                  },
+                  "online" : {
+                    "type" : "string",
+                    "description" : "{OFFLINE=离线, ONLINE=在线}",
+                    "default" : "DeviceOnline.OFFLINE",
+                    "enum" : [ "OFFLINE", "ONLINE" ]
+                  },
+                  "lastHeartbeatAt" : {
+                    "type" : "string",
+                    "description" : "最后心跳时间"
+                  }
+                },
+                "description" : "设备信息"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "更新后的设备",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "createdAt" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "createId" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "updatedAt" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "updateId" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "state" : {
+                          "type" : "integer",
+                          "description" : "0=正常, -1=软删除。"
+                        },
+                        "tenantId" : {
+                          "type" : "string",
+                          "description" : "归属租户,默认 \"0\"。"
+                        },
+                        "id" : {
+                          "type" : "string",
+                          "description" : "设备ID（雪花算法生成）"
+                        },
+                        "deviceCode" : {
+                          "maxLength" : 64,
+                          "type" : "string",
+                          "description" : "设备编码（全局唯一）"
+                        },
+                        "deviceName" : {
+                          "maxLength" : 128,
+                          "type" : "string",
+                          "description" : "设备名称"
+                        },
+                        "gatewayId" : {
+                          "maxLength" : 64,
+                          "type" : "string",
+                          "description" : "网关ID"
+                        },
+                        "enabled" : {
+                          "type" : "boolean",
+                          "description" : "是否启用",
+                          "default" : "true"
+                        },
+                        "online" : {
+                          "type" : "string",
+                          "description" : "{OFFLINE=离线, ONLINE=在线}",
+                          "default" : "DeviceOnline.OFFLINE",
+                          "enum" : [ "OFFLINE", "ONLINE" ]
+                        },
+                        "lastHeartbeatAt" : {
+                          "type" : "string",
+                          "description" : "最后心跳时间"
+                        }
+                      },
+                      "description" : ""
+                    }
+                  },
+                  "description" : "更新后的设备"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "设备-删除",
+        "description" : "设备-删除",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "设备ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "操作结果",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : ""
+                    }
+                  },
+                  "description" : "操作结果"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices" : {
+      "post" : {
+        "summary" : "设备-创建",
+        "description" : "设备-创建",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "createdAt" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "createId" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "updatedAt" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "updateId" : {
+                    "type" : "string",
+                    "description" : ""
+                  },
+                  "state" : {
+                    "type" : "integer",
+                    "description" : "0=正常, -1=软删除。"
+                  },
+                  "tenantId" : {
+                    "type" : "string",
+                    "description" : "归属租户,默认 \"0\"。"
+                  },
+                  "id" : {
+                    "type" : "string",
+                    "description" : "设备ID（雪花算法生成）"
+                  },
+                  "deviceCode" : {
+                    "maxLength" : 64,
+                    "type" : "string",
+                    "description" : "设备编码（全局唯一）"
+                  },
+                  "deviceName" : {
+                    "maxLength" : 128,
+                    "type" : "string",
+                    "description" : "设备名称"
+                  },
+                  "gatewayId" : {
+                    "maxLength" : 64,
+                    "type" : "string",
+                    "description" : "网关ID"
+                  },
+                  "enabled" : {
+                    "type" : "boolean",
+                    "description" : "是否启用",
+                    "default" : "true"
+                  },
+                  "online" : {
+                    "type" : "string",
+                    "description" : "{OFFLINE=离线, ONLINE=在线}",
+                    "default" : "DeviceOnline.OFFLINE",
+                    "enum" : [ "OFFLINE", "ONLINE" ]
+                  },
+                  "lastHeartbeatAt" : {
+                    "type" : "string",
+                    "description" : "最后心跳时间"
+                  }
+                },
+                "description" : "设备信息"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "创建后的设备",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "createdAt" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "createId" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "updatedAt" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "updateId" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "state" : {
+                          "type" : "integer",
+                          "description" : "0=正常, -1=软删除。"
+                        },
+                        "tenantId" : {
+                          "type" : "string",
+                          "description" : "归属租户,默认 \"0\"。"
+                        },
+                        "id" : {
+                          "type" : "string",
+                          "description" : "设备ID（雪花算法生成）"
+                        },
+                        "deviceCode" : {
+                          "maxLength" : 64,
+                          "type" : "string",
+                          "description" : "设备编码（全局唯一）"
+                        },
+                        "deviceName" : {
+                          "maxLength" : 128,
+                          "type" : "string",
+                          "description" : "设备名称"
+                        },
+                        "gatewayId" : {
+                          "maxLength" : 64,
+                          "type" : "string",
+                          "description" : "网关ID"
+                        },
+                        "enabled" : {
+                          "type" : "boolean",
+                          "description" : "是否启用",
+                          "default" : "true"
+                        },
+                        "online" : {
+                          "type" : "string",
+                          "description" : "{OFFLINE=离线, ONLINE=在线}",
+                          "default" : "DeviceOnline.OFFLINE",
+                          "enum" : [ "OFFLINE", "ONLINE" ]
+                        },
+                        "lastHeartbeatAt" : {
+                          "type" : "string",
+                          "description" : "最后心跳时间"
+                        }
+                      },
+                      "description" : ""
+                    }
+                  },
+                  "description" : "创建后的设备"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{id}/online" : {
+      "get" : {
+        "summary" : "设备-在线状态",
+        "description" : "设备-在线状态",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "设备ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "在线状态信息",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : ""
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "deviceId" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "deviceCode" : {
+                          "type" : "string",
+                          "description" : ""
+                        },
+                        "online" : {
+                          "type" : "boolean",
+                          "description" : ""
+                        },
+                        "enabled" : {
+                          "type" : "boolean",
+                          "description" : ""
+                        },
+                        "lastHeartbeatAt" : {
+                          "type" : "string",
+                          "description" : ""
+                        }
+                      },
+                      "description" : ""
+                    }
+                  },
+                  "description" : "在线状态信息"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "java.lang.Object" : {
+        "type" : "object",
+        "properties" : { },
+        "description" : "值"
+      },
+      "查询条件\n\n<p>单个比较条件：field + op + value。" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string",
+            "description" : "字段名"
+          },
+          "op" : {
+            "type" : "string",
+            "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+            "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+          },
+          "value" : {
+            "type" : "object",
+            "properties" : { },
+            "description" : "值"
+          }
+        },
+        "description" : "叶子条件"
+      },
+      "查询条件组合:支持 AND / OR 嵌套。" : {
+        "type" : "object",
+        "properties" : {
+          "and" : {
+            "type" : "array",
+            "description" : "",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "condition" : {
+                  "type" : "object",
+                  "properties" : {
+                    "field" : {
+                      "type" : "string",
+                      "description" : "字段名"
+                    },
+                    "op" : {
+                      "type" : "string",
+                      "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                      "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                    },
+                    "value" : {
+                      "type" : "object",
+                      "properties" : { },
+                      "description" : "值"
+                    }
+                  },
+                  "description" : "叶子条件"
+                },
+                "predicate" : {
+                  "type" : "object",
+                  "properties" : {
+                    "and" : {
+                      "type" : "array",
+                      "description" : "",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "condition" : {
+                            "type" : "object",
+                            "properties" : {
+                              "field" : {
+                                "type" : "string",
+                                "description" : "字段名"
+                              },
+                              "op" : {
+                                "type" : "string",
+                                "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                              },
+                              "value" : {
+                                "type" : "object",
+                                "properties" : { },
+                                "description" : "值"
+                              }
+                            },
+                            "description" : "叶子条件"
+                          },
+                          "predicate" : {
+                            "type" : "object",
+                            "properties" : { },
+                            "description" : "嵌套谓词"
+                          }
+                        },
+                        "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                      }
+                    },
+                    "or" : {
+                      "type" : "array",
+                      "description" : "",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "condition" : {
+                            "type" : "object",
+                            "properties" : {
+                              "field" : {
+                                "type" : "string",
+                                "description" : "字段名"
+                              },
+                              "op" : {
+                                "type" : "string",
+                                "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                              },
+                              "value" : {
+                                "type" : "object",
+                                "properties" : { },
+                                "description" : "值"
+                              }
+                            },
+                            "description" : "叶子条件"
+                          },
+                          "predicate" : {
+                            "type" : "object",
+                            "properties" : { },
+                            "description" : "嵌套谓词"
+                          }
+                        },
+                        "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                      }
+                    }
+                  },
+                  "description" : "嵌套谓词"
+                }
+              },
+              "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+            }
+          },
+          "or" : {
+            "type" : "array",
+            "description" : "",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "condition" : {
+                  "type" : "object",
+                  "properties" : {
+                    "field" : {
+                      "type" : "string",
+                      "description" : "字段名"
+                    },
+                    "op" : {
+                      "type" : "string",
+                      "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                      "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                    },
+                    "value" : {
+                      "type" : "object",
+                      "properties" : { },
+                      "description" : "值"
+                    }
+                  },
+                  "description" : "叶子条件"
+                },
+                "predicate" : {
+                  "type" : "object",
+                  "properties" : {
+                    "and" : {
+                      "type" : "array",
+                      "description" : "",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "condition" : {
+                            "type" : "object",
+                            "properties" : {
+                              "field" : {
+                                "type" : "string",
+                                "description" : "字段名"
+                              },
+                              "op" : {
+                                "type" : "string",
+                                "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                              },
+                              "value" : {
+                                "type" : "object",
+                                "properties" : { },
+                                "description" : "值"
+                              }
+                            },
+                            "description" : "叶子条件"
+                          },
+                          "predicate" : {
+                            "type" : "object",
+                            "properties" : { },
+                            "description" : "嵌套谓词"
+                          }
+                        },
+                        "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                      }
+                    },
+                    "or" : {
+                      "type" : "array",
+                      "description" : "",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "condition" : {
+                            "type" : "object",
+                            "properties" : {
+                              "field" : {
+                                "type" : "string",
+                                "description" : "字段名"
+                              },
+                              "op" : {
+                                "type" : "string",
+                                "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                                "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                              },
+                              "value" : {
+                                "type" : "object",
+                                "properties" : { },
+                                "description" : "值"
+                              }
+                            },
+                            "description" : "叶子条件"
+                          },
+                          "predicate" : {
+                            "type" : "object",
+                            "properties" : { },
+                            "description" : "嵌套谓词"
+                          }
+                        },
+                        "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                      }
+                    }
+                  },
+                  "description" : "嵌套谓词"
+                }
+              },
+              "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+            }
+          }
+        },
+        "description" : ""
+      },
+      "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。" : {
+        "type" : "object",
+        "properties" : {
+          "condition" : {
+            "type" : "object",
+            "properties" : {
+              "field" : {
+                "type" : "string",
+                "description" : "字段名"
+              },
+              "op" : {
+                "type" : "string",
+                "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+              },
+              "value" : {
+                "type" : "object",
+                "properties" : { },
+                "description" : "值"
+              }
+            },
+            "description" : "叶子条件"
+          },
+          "predicate" : {
+            "type" : "object",
+            "properties" : {
+              "and" : {
+                "type" : "array",
+                "description" : "",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "condition" : {
+                      "type" : "object",
+                      "properties" : {
+                        "field" : {
+                          "type" : "string",
+                          "description" : "字段名"
+                        },
+                        "op" : {
+                          "type" : "string",
+                          "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                          "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                        },
+                        "value" : {
+                          "type" : "object",
+                          "properties" : { },
+                          "description" : "值"
+                        }
+                      },
+                      "description" : "叶子条件"
+                    },
+                    "predicate" : {
+                      "type" : "object",
+                      "properties" : { },
+                      "description" : "嵌套谓词"
+                    }
+                  },
+                  "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                }
+              },
+              "or" : {
+                "type" : "array",
+                "description" : "",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "condition" : {
+                      "type" : "object",
+                      "properties" : {
+                        "field" : {
+                          "type" : "string",
+                          "description" : "字段名"
+                        },
+                        "op" : {
+                          "type" : "string",
+                          "description" : "{eq=等于, ne=不等于, gt=大于, gte=大于等于, lt=小于, lte=小于等于, like=模糊匹配(等价 SQL LIKE), exp=正则匹配, in=IN, isNull=IS NULL, isNotNull=IS NOT NULL}",
+                          "enum" : [ "eq", "ne", "gt", "gte", "lt", "lte", "like", "exp", "in", "isNull", "isNotNull" ]
+                        },
+                        "value" : {
+                          "type" : "object",
+                          "properties" : { },
+                          "description" : "值"
+                        }
+                      },
+                      "description" : "叶子条件"
+                    },
+                    "predicate" : {
+                      "type" : "object",
+                      "properties" : { },
+                      "description" : "嵌套谓词"
+                    }
+                  },
+                  "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+                }
+              }
+            },
+            "description" : "嵌套谓词"
+          }
+        },
+        "description" : "查询条件项\n\n<p>condition(叶子) / predicate(嵌套) 二选一。"
+      },
+      "排序条件" : {
+        "type" : "object",
+        "properties" : {
+          "fieldName" : {
+            "type" : "string",
+            "description" : "排序字段名"
+          },
+          "order" : {
+            "type" : "string",
+            "description" : "{ASC=升序, DESC=降序}",
+            "enum" : [ "ASC", "DESC" ]
+          }
+        },
+        "description" : ""
+      },
+      "分页参数:page 从 0 起始。" : {
+        "type" : "object",
+        "properties" : {
+          "page" : {
+            "type" : "integer",
+            "description" : ""
+          },
+          "size" : {
+            "type" : "integer",
+            "description" : ""
+          }
+        },
+        "description" : ""
+      },
+      "设备\n记录设备基本信息，包括设备编码、名称、MQTT主题、心跳状态等" : {
+        "type" : "object",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "createId" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "updateId" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "state" : {
+            "type" : "integer",
+            "description" : "0=正常, -1=软删除。"
+          },
+          "tenantId" : {
+            "type" : "string",
+            "description" : "归属租户,默认 \"0\"。"
+          },
+          "id" : {
+            "type" : "string",
+            "description" : "设备ID（雪花算法生成）"
+          },
+          "deviceCode" : {
+            "maxLength" : 64,
+            "type" : "string",
+            "description" : "设备编码（全局唯一）"
+          },
+          "deviceName" : {
+            "maxLength" : 128,
+            "type" : "string",
+            "description" : "设备名称"
+          },
+          "gatewayId" : {
+            "maxLength" : 64,
+            "type" : "string",
+            "description" : "网关ID"
+          },
+          "enabled" : {
+            "type" : "boolean",
+            "description" : "是否启用",
+            "default" : "true"
+          },
+          "online" : {
+            "type" : "string",
+            "description" : "{OFFLINE=离线, ONLINE=在线}",
+            "default" : "DeviceOnline.OFFLINE",
+            "enum" : [ "OFFLINE", "ONLINE" ]
+          },
+          "lastHeartbeatAt" : {
+            "type" : "string",
+            "description" : "最后心跳时间"
+          }
+        },
+        "description" : ""
+      },
+      "设备在线状态响应" : {
+        "type" : "object",
+        "properties" : {
+          "deviceId" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "deviceCode" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "online" : {
+            "type" : "boolean",
+            "description" : ""
+          },
+          "enabled" : {
+            "type" : "boolean",
+            "description" : ""
+          },
+          "lastHeartbeatAt" : {
+            "type" : "string",
+            "description" : ""
+          }
+        },
+        "description" : ""
+      }
+    }
+  }
+}

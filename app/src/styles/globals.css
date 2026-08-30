@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 不自定义主题色, 颜色完全从 HeroUI 语义 CSS 变量取 */
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: theme('fontFamily.sans');
+}
+
+/* 移动端字号 */
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+/* 滚动条 — 使用 HeroUI 语义色, 不写死 rgba */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--heroui-foreground, #111) 15%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--heroui-foreground, #111) 25%, transparent);
+}
+
+/* SSE 点位推送闪烁 — 基于 HeroUI primary 色 18% 透明度 */
+@keyframes twinkle {
+  0%, 100% { background-color: transparent; }
+  50%      { background-color: color-mix(in srgb, var(--heroui-primary, #006FEE) 18%, transparent); }
+}
+.twinkle {
+  animation: twinkle 0.8s ease-in-out;
+}

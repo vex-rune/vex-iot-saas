@@ -1,0 +1,162 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "API Documentation",
+    "version" : "1.0"
+  },
+  "paths" : {
+    "/api/devices/{deviceId}/schedules" : {
+      "get" : {
+        "summary" : "按设备查询定时控制规则（含动作列表）",
+        "description" : "按设备查询定时控制规则（含动作列表）",
+        "parameters" : [ {
+          "name" : "deviceId",
+          "in" : "path",
+          "required" : true,
+          "schema" : { "type" : "string" }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "成功",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : { "type" : "string" },
+                    "message" : { "type" : "string" },
+                    "data" : {
+                      "type" : "array",
+                      "items" : { "$ref" : "#/components/schemas/DeviceScheduleDetail" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/schedules/{id}" : {
+      "get" : {
+        "summary" : "定时规则详情",
+        "description" : "定时规则详情",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : { "type" : "string" }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "成功",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : { "type" : "string" },
+                    "message" : { "type" : "string" },
+                    "data" : { "$ref" : "#/components/schemas/DeviceScheduleDetail" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/schedules" : {
+      "post" : {
+        "summary" : "创建或更新定时规则（含动作）",
+        "description" : "创建或更新定时规则，动作整体覆盖",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : { "$ref" : "#/components/schemas/DeviceScheduleRequest" }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "成功",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : { "type" : "string" },
+                    "message" : { "type" : "string" },
+                    "data" : { "$ref" : "#/components/schemas/DeviceScheduleDetail" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/schedules/{id}/enabled" : {
+      "post" : {
+        "summary" : "启用或禁用定时规则",
+        "description" : "启用或禁用定时规则",
+        "parameters" : [
+          { "name" : "id", "in" : "path", "required" : true, "schema" : { "type" : "string" } },
+          { "name" : "enabled", "in" : "query", "required" : true, "schema" : { "type" : "boolean" } }
+        ],
+        "responses" : {
+          "200" : { "description" : "成功" }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "DeviceScheduleEntity" : {
+        "type" : "object",
+        "properties" : {
+          "id" : { "type" : "string" },
+          "deviceId" : { "type" : "string" },
+          "name" : { "type" : "string" },
+          "cron" : { "type" : "string" },
+          "enabled" : { "type" : "boolean" },
+          "description" : { "type" : "string" },
+          "lastFireAt" : { "type" : "string" },
+          "createdAt" : { "type" : "string" },
+          "updatedAt" : { "type" : "string" }
+        }
+      },
+      "DeviceScheduleActionEntity" : {
+        "type" : "object",
+        "properties" : {
+          "id" : { "type" : "string" },
+          "scheduleId" : { "type" : "string" },
+          "pointId" : { "type" : "string" },
+          "pointCode" : { "type" : "string" },
+          "valueText" : { "type" : "string" },
+          "sortOrder" : { "type" : "integer" }
+        }
+      },
+      "DeviceScheduleDetail" : {
+        "type" : "object",
+        "properties" : {
+          "schedule" : { "$ref" : "#/components/schemas/DeviceScheduleEntity" },
+          "actions" : {
+            "type" : "array",
+            "items" : { "$ref" : "#/components/schemas/DeviceScheduleActionEntity" }
+          }
+        }
+      },
+      "DeviceScheduleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "schedule" : { "$ref" : "#/components/schemas/DeviceScheduleEntity" },
+          "actions" : {
+            "type" : "array",
+            "items" : { "$ref" : "#/components/schemas/DeviceScheduleActionEntity" }
+          }
+        }
+      }
+    }
+  }
+}

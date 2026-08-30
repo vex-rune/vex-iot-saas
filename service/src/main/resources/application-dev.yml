@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:15432/iot_saas_dev
+    username: postgres
+    password: testpass
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+
+mqtt:
+  broker-url: tcp://localhost:1883
+
+logging:
+  level:
+    com.vex.iot: DEBUG
+    org.hibernate.SQL: DEBUG
