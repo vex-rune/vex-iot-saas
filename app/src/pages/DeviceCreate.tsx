@@ -10,22 +10,31 @@ import type { Device } from '@/types/api';
 export default function DeviceCreate() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({ deviceName: '', deviceCode: '', gatewayId: '' });
+  const [form, setForm] = useState({
+    deviceName: '',
+    gatewayId: '',
+    level1Tag: '',
+    level2Tag: '',
+    level3Tag: '',
+  });
 
   const createMutation = useApiMutation({
     mutationFn: (data: Partial<Device>) => createDevice(data),
   });
 
   const handleSave = async () => {
-    if (!form.deviceName.trim() || !form.deviceCode.trim()) {
-      addToast({ title: '请填写设备名称和编号', color: 'warning' });
+    if (!form.deviceName.trim()) {
+      addToast({ title: '请填写设备名称', color: 'warning' });
       return;
     }
     try {
+      const trimOrUndef = (v: string) => v.trim() || undefined;
       const device = await createMutation.mutateAsync({
         deviceName: form.deviceName.trim(),
-        deviceCode: form.deviceCode.trim(),
-        gatewayId: form.gatewayId.trim() || undefined,
+        gatewayId: trimOrUndef(form.gatewayId),
+        level1Tag: trimOrUndef(form.level1Tag),
+        level2Tag: trimOrUndef(form.level2Tag),
+        level3Tag: trimOrUndef(form.level3Tag),
       });
       addToast({ title: '设备已创建，请继续设置点位/告警/面板', color: 'success' });
       queryClient.invalidateQueries({ queryKey: ['devices'] });
@@ -53,11 +62,15 @@ export default function DeviceCreate() {
         <div className="mx-auto flex max-w-lg flex-col gap-4">
           <Input label="设备名称" placeholder="请输入设备名称" value={form.deviceName}
             onValueChange={(v) => setForm((f) => ({ ...f, deviceName: v }))} variant="bordered" isRequired />
-          <Input label="设备编号" placeholder="请输入设备编号（全局唯一）" value={form.deviceCode}
-            onValueChange={(v) => setForm((f) => ({ ...f, deviceCode: v }))} variant="bordered" isRequired />
           <Input label="网关 ID" placeholder="MQTT 网关硬件标识" value={form.gatewayId}
             onValueChange={(v) => setForm((f) => ({ ...f, gatewayId: v }))} variant="bordered"
             description="设备通过此 ID 与 MQTT 网关绑定" />
+          <Input label="一级标签" placeholder="可选,例如:车间 / 楼层" value={form.level1Tag}
+            onValueChange={(v) => setForm((f) => ({ ...f, level1Tag: v }))} variant="bordered" />
+          <Input label="二级标签" placeholder="可选,例如:生产线 / 区域" value={form.level2Tag}
+            onValueChange={(v) => setForm((f) => ({ ...f, level2Tag: v }))} variant="bordered" />
+          <Input label="三级标签" placeholder="可选,例如:设备类型 / 编号" value={form.level3Tag}
+            onValueChange={(v) => setForm((f) => ({ ...f, level3Tag: v }))} variant="bordered" />
         </div>
         <p className="mx-auto mt-6 max-w-lg text-xs text-foreground-400">
           保存后将跳转到设备详情页，可继续配置点位、告警规则、面板展示。

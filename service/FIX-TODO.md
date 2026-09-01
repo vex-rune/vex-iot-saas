@@ -17,8 +17,9 @@
 
 ### 1.3 MongoQueriesExecutor 下沉到 Server 层
 
-- [ ] DeviceServer 新增 `query(QueriesPageRequest)` 和 `count(QueriesPageRequest)` 方法
-- [ ] PointTableServer 新增 `query(QueriesPageRequest)` 和 `count(QueriesPageRequest)` 方法
+- [x] DeviceServer 新增 `query(QueriesPageRequest)` 和 `count(QueriesPageRequest)` 方法
+- [x] PointTableServer 新增 `query(QueriesPageRequest)` 和 `count(QueriesPageRequest)` 方法
+- [x] DeviceServer + PointTableServer 合并为 DeviceDefinitionServer
 - [ ] AlarmRuleServer 新增 `query(QueriesPageRequest)` 和 `count(QueriesPageRequest)` 方法
 - [ ] NotifyServer 新增 `query(QueriesPageRequest)` 和 `count(QueriesPageRequest)` 方法
 - [ ] Server 层方法不调用 TenantContext.require ()

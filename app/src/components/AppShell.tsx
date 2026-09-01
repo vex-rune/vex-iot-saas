@@ -50,7 +50,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard', label: '概览', icon: ChartBarIcon },
+  { to: '/dashboard', label: '控制台', icon: ChartBarIcon },
   { to: '/devices', label: '设备管理', icon: CpuChipIcon },
   { to: '/alarms/events', label: '警告信息', icon: BellIcon },
   { to: '/notify-users', label: '通知', icon: UsersIcon },

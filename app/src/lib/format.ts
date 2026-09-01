@@ -15,6 +15,27 @@ export function formatTime(value: string | number | Date | null | undefined): st
   return d.isValid() ? d.format('HH:mm:ss') : '-';
 }
 
+/**
+ * 相对时间(中文):刚刚 / X 秒前 / X 分钟前 / X 小时前 / X 天前 / YYYY-MM-DD
+ * 输入无效返回 '-'
+ */
+export function formatRelativeTime(value: string | number | Date | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '-';
+  const d = dayjs(value);
+  if (!d.isValid()) return '-';
+  const diffMs = Date.now() - d.valueOf();
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 0) return '刚刚'; // 未来时间(时钟漂移)兜底
+  if (sec < 60) return '刚刚';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} 分钟前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} 小时前`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day} 天前`;
+  return d.format('YYYY-MM-DD');
+}
+
 export function toIso(value?: Date | string | number): string | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const d = dayjs(value);

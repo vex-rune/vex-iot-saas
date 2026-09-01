@@ -30,6 +30,7 @@ import { useApiMutation } from '@/hooks/useApiMutation';
 import { useQueryList } from '@/hooks/useQueryList';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
+import { SearchFilterBar, type FilterGroupSpec } from '@/components/list/SearchFilterBar';
 import { MagnifyingGlassIcon, PencilIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import {
   queryNotifyUsers,
@@ -51,9 +52,13 @@ import type {
   NotifyTemplateType,
   NotifyTemplatePlatform,
   NotifyChannel,
+  NotifyRecordStatus,
   Predicate,
   PredicateItem,
+  QueryBody,
 } from '@/types/api';
+
+type RecordSortField = 'time' | 'status' | 'channel';
 
 // ──────── 常量 ────────
 const MAX_USERS = 6;
@@ -87,10 +92,17 @@ const CHANNEL_LABELS: Record<string, string> = {
 };
 
 const RECORD_CHANNEL_OPTIONS: { key: 'ALL' | NotifyChannel; label: string }[] = [
-  { key: 'ALL', label: '全部渠道' },
+  { key: 'ALL', label: '全部' },
   { key: 'SMS', label: '短信' },
   { key: 'WECHAT', label: '微信' },
   { key: 'EMAIL', label: '邮件' },
+];
+
+const RECORD_STATUS_OPTIONS: { key: 'ALL' | NotifyRecordStatus; label: string }[] = [
+  { key: 'ALL', label: '全部' },
+  { key: 'SUCCESS', label: '成功' },
+  { key: 'FAILED', label: '失败' },
+  { key: 'PENDING', label: '发送中' },
 ];
 
 // ──────── 表单类型 ────────
@@ -253,6 +265,10 @@ export default function NotifyUsers() {
   // ═══════ 2. 通知记录(只读,标准表格 + 筛选) ═══════
   const [recordSearch, setRecordSearch] = useState('');
   const [recordChannel, setRecordChannel] = useState<'ALL' | NotifyChannel>('ALL');
+  const [recordStatus, setRecordStatus] = useState<'ALL' | NotifyRecordStatus>('ALL');
+  /** 排序:发送时间(默认)/发送状态/渠道 */
+  const [recordSort, setRecordSort] = useState<RecordSortField>('time');
+  const [recordDir, setRecordDir] = useState<'ASC' | 'DESC'>('DESC');
   const [debouncedRecordSearch, setDebouncedRecordSearch] = useState('');
 
   useEffect(() => {
@@ -272,8 +288,16 @@ export default function NotifyUsers() {
     if (recordChannel !== 'ALL') {
       items.push({ condition: { field: 'channel', op: 'eq' as const, value: recordChannel } });
     }
+    if (recordStatus !== 'ALL') {
+      items.push({ condition: { field: 'status', op: 'eq' as const, value: recordStatus } });
+    }
     return items.length > 0 ? { and: items } : undefined;
-  }, [debouncedRecordSearch, recordChannel]);
+  }, [debouncedRecordSearch, recordChannel, recordStatus]);
+
+  const recordOrder = useMemo<QueryBody['order']>(
+    () => [{ field: recordSort, order: recordDir }],
+    [recordSort, recordDir],
+  );
 
   const {
     data: records,
@@ -290,12 +314,14 @@ export default function NotifyUsers() {
     countFn: countNotifyRecords,
     defaultSize: RECORDS_PAGE_SIZE,
     defaultPredicate: recordPredicate,
+    defaultOrder: recordOrder,
   });
 
-  // 通知记录默认按时间倒序(最新在上,只初始化一次)
+  // 排序变化时同步给 useQueryList 内部 order state,触发 queryKey 重查 + 跳回首页
   useEffect(() => {
-    setRecordsOrder([{ field: 'time', order: 'DESC' }]);
-  }, [setRecordsOrder]);
+    setRecordsOrder(recordOrder);
+    setRecordsPage(0);
+  }, [recordOrder, setRecordsOrder, setRecordsPage]);
 
   const userNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -648,25 +674,43 @@ export default function NotifyUsers() {
           </div>
         </header>
 
-        {/* 筛选栏(去 label,只留 placeholder,降低高度) */}
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Input size="sm" placeholder="搜索事件"
-            aria-label="搜索事件"
-            startContent={<MagnifyingGlassIcon className="h-4 w-4 text-foreground-400" />}
-            value={recordSearch} onValueChange={setRecordSearch}
-            variant="bordered" className="w-48" />
-          <Select size="sm" placeholder="渠道" aria-label="渠道"
-            variant="bordered" className="w-24"
-            selectedKeys={[recordChannel]}
-            onSelectionChange={(keys) => setRecordChannel(Array.from(keys)[0] as 'ALL' | NotifyChannel)}>
-            {RECORD_CHANNEL_OPTIONS.map((o) => (
-              <SelectItem key={o.key}>{o.label}</SelectItem>
-            ))}
-          </Select>
-          <Button size="sm" variant="flat" onPress={() => {
-            setRecordSearch('');
-            setRecordChannel('ALL');
-          }}>重置</Button>
+        {/* 通用搜索/排序/筛选/重置 工具栏 */}
+        <div className="mb-3">
+          <SearchFilterBar
+            searchPlaceholder="搜索事件"
+            searchValue={recordSearch}
+            onSearchChange={setRecordSearch}
+            sort={{
+              fields: [
+                { key: 'time', label: '发送时间' },
+                { key: 'status', label: '发送状态' },
+                { key: 'channel', label: '渠道' },
+              ],
+              value: recordSort,
+              onChange: (k) => setRecordSort(k as RecordSortField),
+              dir: recordDir,
+              onDirChange: setRecordDir,
+            }}
+            filters={[
+              {
+                label: '渠道',
+                value: recordChannel,
+                options: RECORD_CHANNEL_OPTIONS,
+                onChange: (v) => setRecordChannel(v as 'ALL' | NotifyChannel),
+              },
+              {
+                label: '发送状态',
+                value: recordStatus,
+                options: RECORD_STATUS_OPTIONS,
+                onChange: (v) => setRecordStatus(v as 'ALL' | NotifyRecordStatus),
+              },
+            ] satisfies FilterGroupSpec[]}
+            onReset={() => {
+              setRecordSearch('');
+              setRecordChannel('ALL'); setRecordStatus('ALL');
+              setRecordSort('time'); setRecordDir('DESC');
+            }}
+          />
         </div>
 
         {recordsLoading ? (
@@ -681,7 +725,7 @@ export default function NotifyUsers() {
               暂无通知记录
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="masonry">
               {records.map((r) => (
                 <EntityCard
                   key={r.id}

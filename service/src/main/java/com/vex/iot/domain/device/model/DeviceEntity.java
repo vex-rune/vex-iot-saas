@@ -31,11 +31,6 @@ public class DeviceEntity extends BaseEntity {
     @SnowflakeId
     private String id;
 
-    /// 设备编码（全局唯一）
-    @Size(max = 64)
-    @Column(nullable = false, length = 64)
-    private String deviceCode;
-
     /// 设备名称
     @Size(max = 128)
     @Column(length = 128)
@@ -54,6 +49,21 @@ public class DeviceEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private DeviceOnline online = DeviceOnline.OFFLINE;
+
+    /// 一级标签
+    @Size(max = 64)
+    @Column(length = 64)
+    private String level1Tag;
+
+    /// 二级标签
+    @Size(max = 64)
+    @Column(length = 64)
+    private String level2Tag;
+
+    /// 三级标签
+    @Size(max = 64)
+    @Column(length = 64)
+    private String level3Tag;
 
     /// 最后心跳时间
     private LocalDateTime lastHeartbeatAt;

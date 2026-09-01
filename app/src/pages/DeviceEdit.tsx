@@ -10,7 +10,7 @@ import {
 } from '@heroui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
-import { getDevice, updateDevice, checkDeviceCodeAvailable } from '@/api/devices';
+import { getDevice, updateDevice } from '@/api/devices';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { chainToPromise } from '@/hooks/useQueryList';
 import PanelPanelTab from '@/components/panel/PanelPanelTab';
@@ -42,47 +42,23 @@ export default function DeviceEdit() {
     enabled: !!id,
   });
 
-  const [deviceForm, setDeviceForm] = useState({ deviceName: '', deviceCode: '', gatewayId: '' });
+  const [deviceForm, setDeviceForm] = useState({
+    deviceName: '',
+    gatewayId: '',
+    level1Tag: '',
+    level2Tag: '',
+    level3Tag: '',
+  });
   const [originalDevice, setOriginalDevice] = useState<Device | null>(null);
-
-  // 设备编号实时去重：编辑自己时排除自身
-  const [codeConflict, setCodeConflict] = useState<{ checking: boolean; conflict: boolean }>(
-    { checking: false, conflict: false },
-  );
-  useEffect(() => {
-    const code = deviceForm.deviceCode.trim();
-    if (!code) {
-      setCodeConflict({ checking: false, conflict: false });
-      return;
-    }
-    // 与原编号一致时直接放行
-    if (originalDevice && code === (originalDevice.deviceCode ?? '').trim()) {
-      setCodeConflict({ checking: false, conflict: false });
-      return;
-    }
-    let cancelled = false;
-    setCodeConflict({ checking: true, conflict: false });
-    const t = setTimeout(() => {
-      checkDeviceCodeAvailable(code, id)
-        .then((list) => {
-          if (!cancelled) setCodeConflict({ checking: false, conflict: list.length > 0 });
-        })
-        .catch(() => {
-          if (!cancelled) setCodeConflict({ checking: false, conflict: false });
-        });
-    }, 400);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [deviceForm.deviceCode, id, originalDevice]);
 
   useEffect(() => {
     if (device) {
       setDeviceForm({
         deviceName: device.deviceName,
-        deviceCode: device.deviceCode,
         gatewayId: device.gatewayId ?? '',
+        level1Tag: device.level1Tag ?? '',
+        level2Tag: device.level2Tag ?? '',
+        level3Tag: device.level3Tag ?? '',
       });
       setOriginalDevice(device);
     }
@@ -90,8 +66,10 @@ export default function DeviceEdit() {
 
   const isDeviceDirty = originalDevice != null && (
     deviceForm.deviceName.trim() !== (originalDevice.deviceName ?? '').trim() ||
-    deviceForm.deviceCode.trim() !== (originalDevice.deviceCode ?? '').trim() ||
-    deviceForm.gatewayId.trim() !== (originalDevice.gatewayId ?? '').trim()
+    deviceForm.gatewayId.trim() !== (originalDevice.gatewayId ?? '').trim() ||
+    deviceForm.level1Tag.trim() !== (originalDevice.level1Tag ?? '').trim() ||
+    deviceForm.level2Tag.trim() !== (originalDevice.level2Tag ?? '').trim() ||
+    deviceForm.level3Tag.trim() !== (originalDevice.level3Tag ?? '').trim()
   );
 
   // 设备信息有未保存改动时阻止意外离开页面
@@ -107,35 +85,24 @@ export default function DeviceEdit() {
 
   const deviceMutation = useApiMutation({ mutationFn: (data: Partial<Device>) => updateDevice(id!, data) });
   const saveDeviceInfo = async () => {
-    if (!deviceForm.deviceName.trim() || !deviceForm.deviceCode.trim()) {
-      addToast({ title: '设备名称和编号不能为空', color: 'warning' });
-      return;
-    }
-    if (codeConflict.conflict) {
-      addToast({
-        title: `设备编号「${deviceForm.deviceCode.trim()}」已被其他设备占用`,
-        color: 'warning',
-      });
+    if (!deviceForm.deviceName.trim()) {
+      addToast({ title: '设备名称不能为空', color: 'warning' });
       return;
     }
     try {
+      const trimOrUndef = (v: string) => v.trim() || undefined;
       const updated = await deviceMutation.mutateAsync({
         deviceName: deviceForm.deviceName.trim(),
-        deviceCode: deviceForm.deviceCode.trim(),
-        gatewayId: deviceForm.gatewayId.trim() || undefined,
+        gatewayId: trimOrUndef(deviceForm.gatewayId),
+        level1Tag: trimOrUndef(deviceForm.level1Tag),
+        level2Tag: trimOrUndef(deviceForm.level2Tag),
+        level3Tag: trimOrUndef(deviceForm.level3Tag),
       });
       setOriginalDevice(updated);
       queryClient.setQueryData(['device', id], updated);
       addToast({ title: '设备信息已保存', color: 'success' });
-    } catch (e) {
-      // 兜底：后端返回冲突（如用户连续快速改值，前端还没查完）
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.includes('已被其他设备占用') || msg.includes('conflict')) {
-        setCodeConflict({ checking: false, conflict: true });
-        addToast({ title: '设备编号已被其他设备占用', color: 'warning' });
-      } else {
-        addToast({ title: '设备信息保存失败', color: 'danger' });
-      }
+    } catch {
+      addToast({ title: '设备信息保存失败', color: 'danger' });
     }
   };
 
@@ -169,11 +136,15 @@ export default function DeviceEdit() {
           </Button>
           <div className="flex min-w-0 flex-col">
             <h1 className="truncate text-xl font-semibold text-foreground">{device.deviceName}</h1>
-            <span className="truncate text-xs text-foreground-400">{device.deviceCode}</span>
           </div>
           <Chip size="sm" variant="flat" color={device.online === 'ONLINE' ? 'success' : 'default'}>
             {device.online === 'ONLINE' ? '在线' : '离线'}
           </Chip>
+          {[device.level1Tag, device.level2Tag, device.level3Tag]
+            .filter((t): t is string => !!t && t.trim().length > 0)
+            .map((t) => (
+              <Chip key={t} size="sm" variant="flat" color="default">{t}</Chip>
+            ))}
         </div>
       </header>
 
@@ -192,37 +163,22 @@ export default function DeviceEdit() {
                 <h2 className="text-base font-medium text-foreground">设备信息</h2>
               </div>
               <Button size="sm" color="primary" isLoading={deviceMutation.isPending}
-                isDisabled={!isDeviceDirty || codeConflict.conflict || codeConflict.checking}
+                isDisabled={!isDeviceDirty}
                 onPress={saveDeviceInfo}>保存设备</Button>
             </div>
             <div className="mx-auto flex max-w-lg flex-col gap-4">
               <Input label="设备名称" placeholder="请输入设备名称" value={deviceForm.deviceName}
                 onValueChange={(v) => setDeviceForm((f) => ({ ...f, deviceName: v }))}
                 variant="bordered" isRequired />
-              <Input
-                label="设备编号"
-                placeholder="请输入设备编号（全局唯一）"
-                value={deviceForm.deviceCode}
-                onValueChange={(v) => setDeviceForm((f) => ({ ...f, deviceCode: v }))}
-                variant="bordered" isRequired
-                isInvalid={codeConflict.conflict}
-                color={codeConflict.conflict ? 'danger' : 'default'}
-                description={codeConflict.checking
-                  ? '检查中...'
-                  : codeConflict.conflict
-                    ? `设备编号「${deviceForm.deviceCode.trim()}」已被其他设备占用`
-                    : '设备在系统内的唯一标识，保存后需确保不与其他设备重复'}
-                endContent={codeConflict.checking ? (
-                  <span className="text-xs text-foreground-400">…</span>
-                ) : codeConflict.conflict ? (
-                  <span className="text-xs text-danger">✕</span>
-                ) : deviceForm.deviceCode.trim() ? (
-                  <span className="text-xs text-success">✓</span>
-                ) : null}
-              />
               <Input label="网关 ID" placeholder="MQTT 网关硬件标识" value={deviceForm.gatewayId}
                 onValueChange={(v) => setDeviceForm((f) => ({ ...f, gatewayId: v }))}
                 variant="bordered" description="设备通过此 ID 与 MQTT 网关绑定" />
+              <Input label="一级标签" placeholder="可选,例如:车间 / 楼层" value={deviceForm.level1Tag}
+                onValueChange={(v) => setDeviceForm((f) => ({ ...f, level1Tag: v }))} variant="bordered" />
+              <Input label="二级标签" placeholder="可选,例如:生产线 / 区域" value={deviceForm.level2Tag}
+                onValueChange={(v) => setDeviceForm((f) => ({ ...f, level2Tag: v }))} variant="bordered" />
+              <Input label="三级标签" placeholder="可选,例如:设备类型 / 编号" value={deviceForm.level3Tag}
+                onValueChange={(v) => setDeviceForm((f) => ({ ...f, level3Tag: v }))} variant="bordered" />
             </div>
           </section>
         </Tab>

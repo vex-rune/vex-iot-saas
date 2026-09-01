@@ -77,28 +77,6 @@ export function getDeviceOnline(id: string): RequestChain<DeviceOnlineResponse> 
   return get<DeviceOnlineResponse>(`/devices/${id}/online`);
 }
 
-/**
- * 设备-检查编号是否可用
- * excludeId：编辑自己时排除自身
- * 返回占用此编号的设备列表（0 = 可用，>0 = 已被占用）
- */
-export async function checkDeviceCodeAvailable(
-  deviceCode: string,
-  excludeId?: string,
-): Promise<Device[]> {
-  const list = await new Promise<Device[]>((resolve, reject) => {
-    post<Device[]>('/devices/query', {
-      predicate: { deviceCode: { eq: deviceCode } },
-      page: { page: 0, size: 5 },
-    })
-      .onSuccess((d) => resolve(d))
-      .onBizError((e) => reject(e))
-      .onHttpError((e) => reject(e))
-      .execute();
-  });
-  return excludeId ? list.filter((d) => d.id !== excludeId) : list;
-}
-
 /** 设备-实时数据 */
 export function getDeviceRealtime(deviceId: string): RequestChain<DeviceRealtimeResponse> {
   return get<DeviceRealtimeResponse>(`/devices/${deviceId}/realtime`);
@@ -122,14 +100,14 @@ export function controlPoint(deviceId: string, pointCode: string, key: unknown):
   return post<void>(`/devices/${deviceId}/points/${pointCode}/control`, { key } as PointControlReq);
 }
 
-/** 点位-保存（新增或更新） */
+/** 设备-点位保存（新增或更新） */
 export function savePoint(data: Partial<PointDefinition>): RequestChain<PointDefinition> {
-  return post<PointDefinition>('/points', data);
+  return post<PointDefinition>('/devices/points', data);
 }
 
-/** 点位-删除 */
+/** 设备-点位删除 */
 export function deletePoint(id: string): RequestChain<void> {
-  return del<void>(`/points/${id}`);
+  return del<void>(`/devices/points/${id}`);
 }
 
 /** 设备-批量更新点位排序（仅写 sortOrder 字段） */

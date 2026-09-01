@@ -65,7 +65,7 @@ admin:
   # 管理员角色
   role: ${ADMIN_ROLE:SUPER_ADMIN}
 
-# MQTT 配置 (Spring Integration)
+# MQTT 配置
 mqtt:
   # 客户端 ID 前缀,启动时拼接随机后缀避免双实例冲突
   client-id-prefix: ${MQTT_CLIENT_PREFIX:iot-saas}
@@ -73,14 +73,25 @@ mqtt:
   broker-url: ${MQTT_BROKER:tcp://localhost:1883}
   username: ${MQTT_USER:iot}
   password: ${MQTT_PASSWORD:iot}
-  # QoS
+  # 默认 QoS(命令未指定 qos 时使用)
   default-qos: 1
   # 共享订阅组(双实例消费去重)
   share-group: iot-saas-group
-  # 上报主题(通配符 + 匹配所有设备, USR-G771 协议: ${deviceCode}/update)
-  up-topic-pattern: "+/update"
-  # 下发主题模板 (USR-G771 协议: ${deviceCode}/get)
-  down-topic-pattern: "${deviceCode}/get"
+  # MQTT 遗嘱(可选)
+  will:
+    enabled: false
+    topic: ""
+    payload: "offline"
+    qos: 1
+    retained: true
+  # 订阅列表:新增协议只需追加一条
+  subscriptions:
+    - name: usr-g771-update
+      topic: "+/update"
+      qos: 1
+    - name: usr-g771-heartbeat
+      topic: "+/heartbeat"
+      qos: 1
 
 # 日志
 logging:

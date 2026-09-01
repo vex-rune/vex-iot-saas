@@ -10,11 +10,11 @@ import java.util.List;
  * Cron 表达式辅助
  * <p>使用 Spring 自带的 {@link CronExpression}，支持 5 段 / 6 段。
  */
-final class CronExpressionHelper {
+public final class CronExpressionHelper {
 
     private CronExpressionHelper() {}
 
-    static void parse(String cron) {
+    public static void parse(String cron) {
         CronExpression.parse(cron);
     }
 
@@ -26,7 +26,7 @@ final class CronExpressionHelper {
      * @param end     结束时间（不包含）
      * @return 执行时间点列表（按时间升序）
      */
-    static List<LocalDateTime> getNextFireTimes(String cron, LocalDateTime start, LocalDateTime end) {
+    public static List<LocalDateTime> getNextFireTimes(String cron, LocalDateTime start, LocalDateTime end) {
         List<LocalDateTime> fireTimes = new ArrayList<>();
         CronExpression expression = CronExpression.parse(cron);
 
@@ -39,3 +39,4 @@ final class CronExpressionHelper {
         return fireTimes;
     }
 }
+

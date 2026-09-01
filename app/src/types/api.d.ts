@@ -90,11 +90,14 @@ export type DeviceOnline = 'OFFLINE' | 'ONLINE';
 
 export interface Device {
   id: string;
-  deviceCode: string;
   deviceName: string;
   gatewayId?: string;
   enabled: boolean;
   online: DeviceOnline;
+  /** 三级标签,均为可选(旧数据无值) */
+  level1Tag?: string;
+  level2Tag?: string;
+  level3Tag?: string;
   lastHeartbeatAt?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -102,7 +105,6 @@ export interface Device {
 
 export interface DeviceOnlineResponse {
   deviceId: string;
-  deviceCode: string;
   online: boolean;
   enabled: boolean;
   lastHeartbeatAt?: string;
@@ -176,7 +178,6 @@ export interface RealtimePointValue {
 
 export interface DeviceRealtimeResponse {
   deviceId: string;
-  deviceCode: string;
   timestamp: { epochSecond: number; nano: number };
   points: RealtimePointValue[];
 }

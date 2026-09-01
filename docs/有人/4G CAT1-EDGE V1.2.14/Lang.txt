@@ -5,7 +5,7 @@ lang_Main_Title|4G CAT1-EDGE|4G CAT1-EDGE
 lang_Main_AppTitle|4G CAT1-EDGE|4G CAT1-EDGE
 lang_Menu_File|文件|File
 lang_Menu_Quit|退出|Quit
-lang_Menu_Lang|Language|Language
+lang_Menu_Lang|语言|Language
 lang_Menu_Cn|简体中文|简体中文
 lang_Menu_En|English|English
 lang_Menu_Diy|DiyLang|DiyLang

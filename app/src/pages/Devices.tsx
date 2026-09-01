@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Chip,
-  Input,
   Pagination,
   Popover,
   PopoverContent,
@@ -20,7 +19,12 @@ import {
   Tooltip,
   addToast,
 } from '@heroui/react';
-import { PlusIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import {
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  EyeIcon,
+} from '@heroicons/react/24/outline';
 import {
   queryActiveDevices, countActiveDevices,
   queryDeletedDevices, countDeletedDevices,
@@ -30,56 +34,60 @@ import { useQueryList } from '@/hooks/useQueryList';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
+import { SearchFilterBar, type FilterGroupSpec } from '@/components/list/SearchFilterBar';
 import { formatDateTime } from '@/lib/format';
 import type { Device, Predicate, PredicateItem } from '@/types/api';
 
-const STATUS_OPTIONS = [
-  { key: 'ALL', label: '全部' },
-  { key: 'ONLINE', label: '在线' },
-  { key: 'OFFLINE', label: '离线' },
-];
-
-const ENABLED_OPTIONS = [
-  { key: 'ALL', label: '全部' },
-  { key: 'true', label: '已启用' },
-  { key: 'false', label: '已禁用' },
-];
-
 type DeviceView = 'active' | 'deleted';
+type DeviceSortField = 'default' | 'name' | 'tag';
 
 export default function Devices() {
   const navigate = useNavigate();
 
   const [view, setView] = useState<DeviceView>('active');
-  const [searchName, setSearchName] = useState('');
-  const [searchCode, setSearchCode] = useState('');
+  const [keyword, setKeyword] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterEnabled, setFilterEnabled] = useState('ALL');
+  /** 排序字段:default=数据库自然序,name=设备名称,code=设备编码,tag=三级标签(客户端) */
+  const [sortField, setSortField] = useState<DeviceSortField>('name');
+  /** 排序方向 */
+  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC');
 
   // 输入即时态 + 防抖提交的搜索态（避免每打一个字就触发请求）
-  const [debouncedName, setDebouncedName] = useState('');
-  const [debouncedCode, setDebouncedCode] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedName(searchName), 300);
+    const t = setTimeout(() => setDebouncedKeyword(keyword), 300);
     return () => clearTimeout(t);
-  }, [searchName]);
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedCode(searchCode), 300);
-    return () => clearTimeout(t);
-  }, [searchCode]);
+  }, [keyword]);
 
   const defaultPredicate = useMemo<Predicate | undefined>(() => {
     const items: PredicateItem[] = [];
-    if (debouncedName.trim())
-      items.push({ condition: { field: 'deviceName', op: 'like' as const, value: `%${debouncedName.trim()}%` } });
-    if (debouncedCode.trim())
-      items.push({ condition: { field: 'deviceCode', op: 'like' as const, value: `%${debouncedCode.trim()}%` } });
+    // 统一关键字:命中 设备名称 / 三级标签 任一即返回(OR)
+    if (debouncedKeyword.trim()) {
+      const likeValue = `%${debouncedKeyword.trim()}%`;
+      items.push({
+        predicate: {
+          or: [
+            { condition: { field: 'deviceName', op: 'like' as const, value: likeValue } },
+            { condition: { field: 'level1Tag', op: 'like' as const, value: likeValue } },
+            { condition: { field: 'level2Tag', op: 'like' as const, value: likeValue } },
+            { condition: { field: 'level3Tag', op: 'like' as const, value: likeValue } },
+          ],
+        },
+      });
+    }
     if (filterStatus !== 'ALL')
       items.push({ condition: { field: 'online', op: 'eq' as const, value: filterStatus } });
     if (filterEnabled !== 'ALL')
       items.push({ condition: { field: 'enabled', op: 'eq' as const, value: filterEnabled === 'true' } });
     return items.length > 0 ? { and: items } : undefined;
-  }, [debouncedName, debouncedCode, filterStatus, filterEnabled]);
+  }, [debouncedKeyword, filterStatus, filterEnabled]);
+
+  // 排序:数据库能处理的字段(name)直接走 order;tag 是合并字段,客户端排序
+  const defaultOrder = useMemo<QueryBody['order']>(() => {
+    if (sortField === 'name') return [{ field: 'deviceName', order: sortDir }];
+    return undefined; // default / tag:不传 order(default=数据库自然序,tag=客户端排序)
+  }, [sortField, sortDir]);
 
   const queryFn = useMemo(
     () => (view === 'active' ? queryActiveDevices : queryDeletedDevices),
@@ -91,7 +99,8 @@ export default function Devices() {
   );
 
   const {
-    data: devices, total, totalPages, page, size, setPage, setSize, isLoading, refetch,
+    data: devicesRaw, total, totalPages, page, size, setPage, setSize, isLoading, refetch,
+    setOrder,
   } = useQueryList<Device>({
     queryKey: `devices.${view}`,
     queryFn,
@@ -100,15 +109,44 @@ export default function Devices() {
     // 筛选/搜索条件直接作 defaultPredicate 注入;变化时通过 queryKey 自带 predicate
     // 触发 react-query 重新拉取,无需 effect 推 setPredicate
     defaultPredicate,
+    defaultOrder,
   });
+
+  // 排序字段/方向变化时,同步推给 useQueryList 的内部 order state,
+  // 这样 listQuery 的 queryKey 会包含新 order,自动触发重查
+  useEffect(() => {
+    setOrder(defaultOrder);
+    // 切换排序后回到第 1 页,避免在新排序下还停在旧页码
+    setPage(0);
+  }, [defaultOrder, setOrder, setPage]);
+
+  // 客户端兜底排序:三级标签拼接后字典序比较;空标签排到末尾
+  // 注意:这是基于当前页的 in-memory 排序(分页 > 1 时仅本页有序)
+  const devices = useMemo<Device[]>(() => {
+    if (sortField !== 'tag') return devicesRaw;
+    const sign = sortDir === 'ASC' ? 1 : -1;
+    const tagKey = (d: Device) =>
+      [d.level1Tag ?? '', d.level2Tag ?? '', d.level3Tag ?? ''].join('\u0000');
+    return [...devicesRaw].sort((a, b) => {
+      const ka = tagKey(a); const kb = tagKey(b);
+      // 空标签(全空)排到末尾:任何与空字符串比较时把空视为"无穷大"
+      const aEmpty = ka.replace(/\u0000/g, '') === '';
+      const bEmpty = kb.replace(/\u0000/g, '') === '';
+      if (aEmpty && !bEmpty) return 1;
+      if (!aEmpty && bEmpty) return -1;
+      return ka.localeCompare(kb, 'zh-CN') * sign;
+    });
+  }, [devicesRaw, sortField, sortDir]);
 
   // 切换 设备管理 / 回收站:清筛选 + 跳回第 1 页。queryKey 自带 view,
     // react-query 自动因 key 变化而 refetch,无需手动 refetch
   const switchView = useCallback((next: DeviceView) => {
     if (next === view) return;
     setView(next);
-    setSearchName(''); setSearchCode(''); setFilterStatus('ALL'); setFilterEnabled('ALL');
-    setDebouncedName(''); setDebouncedCode('');
+    setKeyword('');
+    setFilterStatus('ALL'); setFilterEnabled('ALL');
+    setDebouncedKeyword('');
+    setSortField('name'); setSortDir('ASC');
     setPage(0);
   }, [view, setPage]);
 
@@ -172,33 +210,53 @@ export default function Devices() {
         )}
       </header>
 
-      {/* 筛选栏(由 size="sm" 统一锁定 32px,不做外部高度覆盖) */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Input size="sm" placeholder="搜索名称" aria-label="搜索名称"
-          startContent={<MagnifyingGlassIcon className="h-4 w-4 text-foreground-400" />}
-          value={searchName} onValueChange={setSearchName}
-          variant="bordered" className="w-40" />
-        <Input size="sm" placeholder="搜索编码" aria-label="搜索编码"
-          startContent={<MagnifyingGlassIcon className="h-4 w-4 text-foreground-400" />}
-          value={searchCode} onValueChange={setSearchCode}
-          variant="bordered" className="w-40" />
-        <Select size="sm" placeholder="在线状态" aria-label="在线状态"
-          variant="bordered" className="w-28"
-          selectedKeys={[filterStatus]}
-          onSelectionChange={(keys) => setFilterStatus(Array.from(keys)[0] as string)}>
-          {STATUS_OPTIONS.map((o) => (<SelectItem key={o.key}>{o.label}</SelectItem>))}
-        </Select>
-        <Select size="sm" placeholder="启用状态" aria-label="启用状态"
-          variant="bordered" className="w-28"
-          selectedKeys={[filterEnabled]}
-          onSelectionChange={(keys) => setFilterEnabled(Array.from(keys)[0] as string)}>
-          {ENABLED_OPTIONS.map((o) => (<SelectItem key={o.key}>{o.label}</SelectItem>))}
-        </Select>
-        <Button size="sm" variant="flat" onPress={() => {
-          setSearchName(''); setSearchCode(''); setFilterStatus('ALL'); setFilterEnabled('ALL');
-          setDebouncedName(''); setDebouncedCode('');
-        }}>重置</Button>
-      </div>
+      {/* 通用搜索/排序/筛选/重置 工具栏 */}
+      <SearchFilterBar
+        searchPlaceholder="搜索名称 / 标签"
+        searchValue={keyword}
+        onSearchChange={setKeyword}
+        sort={{
+          fields: [
+            { key: 'default', label: '默认' },
+            { key: 'name', label: '名称' },
+            { key: 'tag', label: '标签' },
+          ],
+          value: sortField,
+          onChange: (k) => setSortField(k as DeviceSortField),
+          dir: sortDir,
+          onDirChange: setSortDir,
+          clientSortHint: '按标签排序仅作用于当前页;切换到首页可看到全部命中的有序结果。',
+          clientSortKeys: ['tag'],
+        }}
+        filters={[
+          {
+            label: '在线状态',
+            value: filterStatus,
+            options: [
+              { key: 'ALL', label: '全部' },
+              { key: 'ONLINE', label: '在线' },
+              { key: 'OFFLINE', label: '离线' },
+            ],
+            onChange: setFilterStatus,
+          },
+          {
+            label: '启用状态',
+            value: filterEnabled,
+            options: [
+              { key: 'ALL', label: '全部' },
+              { key: 'true', label: '已启用' },
+              { key: 'false', label: '已禁用' },
+            ],
+            onChange: setFilterEnabled,
+          },
+        ] satisfies FilterGroupSpec[]}
+        onReset={() => {
+          setKeyword('');
+          setFilterStatus('ALL'); setFilterEnabled('ALL');
+          setDebouncedKeyword('');
+          setSortField('name'); setSortDir('ASC');
+        }}
+      />
 
       {/* 列表(桌面端表格 / 移动端卡片) */}
       {isLoading ? (
@@ -214,12 +272,14 @@ export default function Devices() {
             暂无设备数据
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          // 多列瀑布流:CSS columns 实现,卡片高度独立、紧贴排列、无白空洞
+          // 用 inline style + globals.css 的 .masonry 媒体查询响应式
+          <div className="masonry">
             {devices.map((device) => (
               <EntityCard
                 key={device.id}
                 title={device.deviceName}
-                subtitle={device.deviceCode}
+                // subtitle={device.level1Tag || device.level2Tag || device.level3Tag || undefined}
                 badge={
                   <div className="flex flex-col items-end gap-1">
                     <Chip size="sm" variant="flat" color={device.online === 'ONLINE' ? 'success' : 'danger'}>
@@ -265,6 +325,15 @@ export default function Devices() {
                   )
                 }
               >
+                {[device.level1Tag, device.level2Tag, device.level3Tag].filter((t): t is string => !!t && t.trim().length > 0).length > 0 && (
+                  <div className="mb-1 flex flex-wrap gap-1">
+                    {[device.level1Tag, device.level2Tag, device.level3Tag]
+                      .filter((t): t is string => !!t && t.trim().length > 0)
+                      .map((t) => (
+                        <Chip key={t} size="sm" variant="flat" color="default">{t}</Chip>
+                      ))}
+                  </div>
+                )}
                 <FieldRow label="网关ID" value={device.gatewayId ?? '-'} />
                 <FieldRow label="最近心跳" value={formatDateTime(device.lastHeartbeatAt)} />
               </EntityCard>
@@ -275,19 +344,30 @@ export default function Devices() {
         <Table aria-label="设备列表" isStriped classNames={{ wrapper: 'bg-content1 rounded-2xl' }}>
           <TableHeader>
             <TableColumn>设备名称</TableColumn>
-            <TableColumn>编号</TableColumn>
-            <TableColumn>网关ID</TableColumn>
+            <TableColumn className="hidden md:table-cell">标签</TableColumn>
+            <TableColumn className="hidden sm:table-cell">网关ID</TableColumn>
             <TableColumn>在线</TableColumn>
             <TableColumn>启用</TableColumn>
             <TableColumn>最近心跳</TableColumn>
             <TableColumn>操作</TableColumn>
           </TableHeader>
           <TableBody emptyContent="暂无设备数据" items={devices}>
-            {(device: Device) => (
+            {(device: Device) => {
+              const tags = [device.level1Tag, device.level2Tag, device.level3Tag]
+                .filter((t): t is string => !!t && t.trim().length > 0);
+              return (
               <TableRow key={device.id}>
                 <TableCell><span className="font-medium text-foreground">{device.deviceName}</span></TableCell>
-                <TableCell><code className="text-xs text-foreground-600">{device.deviceCode}</code></TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {tags.map((t) => (
+                        <Chip key={t} size="sm" variant="flat" color="default">{t}</Chip>
+                      ))}
+                    </div>
+                  ) : <span className="text-foreground-400">-</span>}
+                </TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <span className="text-foreground-500">{device.gatewayId ?? '-'}</span>
                 </TableCell>
                 <TableCell>
@@ -346,7 +426,8 @@ export default function Devices() {
                   </div>
                 </TableCell>
               </TableRow>
-            )}
+              );
+            }}
           </TableBody>
         </Table>
       )}

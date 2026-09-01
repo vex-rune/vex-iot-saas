@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { countDevices } from '@/api/devices';
+import {countActiveDevices} from '@/api/devices';
 import { countAlarmEvents } from '@/api/alarms';
 import { chainToPromise } from '@/hooks/useQueryList';
 
@@ -27,13 +27,13 @@ export interface DashboardKpis {
 export function useDashboardKpis(): DashboardKpis {
   const deviceTotalQ = useQuery({
     queryKey: ['dashboard.kpis', 'deviceTotal'],
-    queryFn: () => chainToPromise(countDevices({})),
+    queryFn: () => chainToPromise(countActiveDevices({})),
   });
   const onlineTotalQ = useQuery({
     queryKey: ['dashboard.kpis', 'onlineTotal'],
     queryFn: () =>
       chainToPromise(
-        countDevices({
+          countActiveDevices({
           predicate: { and: [{ condition: { field: 'online', op: 'eq', value: 'ONLINE' } }] },
         }),
       ),

@@ -3,10 +3,13 @@ package com.vex.iot.domain.device.repository;
 import com.vex.iot.domain.device.model.DeviceEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface DeviceRepository extends JpaRepository<DeviceEntity, String> {
-    Optional<DeviceEntity> findByDeviceCode(String deviceCode);
 
-    Optional<DeviceEntity> findByTenantIdAndDeviceCode(String tenantId, String deviceCode);
+    /**
+     * 按网关 ID 查找。预留用于将来多协议场景(当前仅 USR-G771,使用 deviceName 查询)。
+     */
+    List<DeviceEntity> findByGatewayId(String gatewayId);
 }

@@ -63,9 +63,7 @@ public class AccountEntity extends BaseEntity {
     private String displayName;
 
     /// 角色集合
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "sys_user_role", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role", length = 64)
+    @Column(name = "roles", length = 64, columnDefinition = "TEXT")
     @Builder.Default
     private Set<String> roles = new HashSet<>();
 

@@ -6,7 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface AlarmRuleRepository extends JpaRepository<AlarmRuleEntity, String> {
+
     List<AlarmRuleEntity> findByTenantIdAndDeviceIdAndEnabledTrue(String tenantId, String deviceId);
 
     List<AlarmRuleEntity> findByDeviceIdAndEnabledTrue(String deviceId);
+
+    List<AlarmRuleEntity> findByPointDefinitionIdAndEnabledTrue(String pointDefinitionId);
 }

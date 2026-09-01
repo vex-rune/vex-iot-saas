@@ -52,3 +52,20 @@ body {
 .twinkle {
   animation: twinkle 0.8s ease-in-out;
 }
+
+/* 多列瀑布流:卡片高度独立、紧贴排列、无白空洞
+   配套使用:EntityCard 自带 break-inside-avoid + mb-3,
+   容器只挂这个类即可获得响应式 1/2/3/4 列瀑布流 */
+.masonry {
+  column-count: 1;
+  column-gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .masonry { column-count: 2; }
+}
+@media (min-width: 1024px) {
+  .masonry { column-count: 3; }
+}
+@media (min-width: 1280px) {
+  .masonry { column-count: 4; }
+}

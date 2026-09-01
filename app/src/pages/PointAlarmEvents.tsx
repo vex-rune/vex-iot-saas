@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Chip,
-  Input,
   Pagination,
   Select,
   SelectItem,
@@ -15,7 +14,7 @@ import {
   TableRow,
   addToast,
 } from '@heroui/react';
-import { CheckCircleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import {
   queryPointAlarmEvents,
   countPointAlarmEvents,
@@ -25,9 +24,12 @@ import { useApiMutation } from '@/hooks/useApiMutation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
 import { useQueryList } from '@/hooks/useQueryList';
+import { SearchFilterBar, type FilterGroupSpec } from '@/components/list/SearchFilterBar';
 import { formatDateTime } from '@/lib/format';
 import { POINT_LEVEL_COLORS, POINT_LEVEL_LABELS } from '@/lib/levelMeta';
-import type { PointAlarmEvent, PointAlarmEventStatus, Predicate, PredicateItem } from '@/types/api';
+import type { PointAlarmEvent, PointAlarmEventStatus, Predicate, PredicateItem, QueryBody } from '@/types/api';
+
+type AlarmSortField = 'occurTime' | 'recoverTime' | 'level';
 
 const LEVEL_COLORS = POINT_LEVEL_COLORS;
 const LEVEL_LABELS = POINT_LEVEL_LABELS;
@@ -61,6 +63,9 @@ export default function PointAlarmEvents() {
   }, [searchText]);
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterLevel, setFilterLevel] = useState('ALL');
+  /** 排序:发生时间(默认)/恢复时间/告警级别 */
+  const [sortField, setSortField] = useState<AlarmSortField>('occurTime');
+  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');
 
   const defaultPredicate = useMemo<Predicate | undefined>(() => {
     const items: PredicateItem[] = [];
@@ -75,6 +80,11 @@ export default function PointAlarmEvents() {
     }
     return items.length > 0 ? { and: items } : undefined;
   }, [debouncedSearch, filterStatus, filterLevel]);
+
+  const defaultOrder = useMemo<QueryBody['order']>(
+    () => [{ field: sortField, order: sortDir }],
+    [sortField, sortDir],
+  );
 
   const {
     data: events,
@@ -94,12 +104,14 @@ export default function PointAlarmEvents() {
     defaultSize: 15,
     // 筛选/搜索条件直接作 defaultPredicate 注入,变化时 react-query 自动 refetch
     defaultPredicate,
+    defaultOrder,
   });
 
-  // 默认按发生时间倒序(只初始化一次)
+  // 排序变化时同步给 useQueryList 内部 order state,触发 queryKey 重查 + 跳回首页
   useEffect(() => {
-    setOrder([{ field: 'occurTime', order: 'DESC' }]);
-  }, [setOrder]);
+    setOrder(defaultOrder);
+    setPage(0);
+  }, [defaultOrder, setOrder, setPage]);
 
   const ackMutation = useApiMutation({
     mutationFn: acknowledgePointAlarmEvent,
@@ -122,37 +134,47 @@ export default function PointAlarmEvents() {
         <p className="mt-1 text-sm text-foreground-500">共 {total} 条</p>
       </header>
 
-      {/* 筛选栏(由 size="sm" 统一锁定 32px) */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Input size="sm" placeholder="搜索告警信息" aria-label="搜索告警信息"
-          startContent={<MagnifyingGlassIcon className="h-4 w-4 text-foreground-400" />}
-          value={searchText} onValueChange={setSearchText}
-          variant="bordered" className="w-48" />
-        <Select size="sm" placeholder="告警级别" aria-label="告警级别"
-          variant="bordered" className="w-28"
-          selectedKeys={[filterLevel]}
-          onSelectionChange={(keys) => setFilterLevel(Array.from(keys)[0] as string)}>
-          {[
-            { key: 'ALL', label: '全部' },
-            { key: 'INFO', label: '提示' },
-            { key: 'WARN', label: '警告' },
-            { key: 'ERROR', label: '严重' },
-          ].map((o) => (
-            <SelectItem key={o.key}>{o.label}</SelectItem>
-          ))}
-        </Select>
-        <Select size="sm" placeholder="状态" aria-label="状态"
-          variant="bordered" className="w-28"
-          selectedKeys={[filterStatus]}
-          onSelectionChange={(keys) => setFilterStatus(Array.from(keys)[0] as string)}>
-          {STATUS_OPTIONS.map((o) => (<SelectItem key={o.key}>{o.label}</SelectItem>))}
-        </Select>
-        <Button size="sm" variant="flat" onPress={() => {
+      {/* 通用搜索/排序/筛选/重置 工具栏 */}
+      <SearchFilterBar
+        searchPlaceholder="搜索告警信息"
+        searchValue={searchText}
+        onSearchChange={setSearchText}
+        sort={{
+          fields: [
+            { key: 'occurTime', label: '发生时间' },
+            { key: 'recoverTime', label: '恢复时间' },
+            { key: 'level', label: '告警级别' },
+          ],
+          value: sortField,
+          onChange: (k) => setSortField(k as AlarmSortField),
+          dir: sortDir,
+          onDirChange: setSortDir,
+        }}
+        filters={[
+          {
+            label: '告警级别',
+            value: filterLevel,
+            options: [
+              { key: 'ALL', label: '全部' },
+              { key: 'INFO', label: '提示' },
+              { key: 'WARN', label: '警告' },
+              { key: 'ERROR', label: '严重' },
+            ],
+            onChange: setFilterLevel,
+          },
+          {
+            label: '状态',
+            value: filterStatus,
+            options: STATUS_OPTIONS,
+            onChange: setFilterStatus,
+          },
+        ] satisfies FilterGroupSpec[]}
+        onReset={() => {
           setSearchText('');
-          setFilterStatus('ALL');
-          setFilterLevel('ALL');
-        }}>重置</Button>
-      </div>
+          setFilterStatus('ALL'); setFilterLevel('ALL');
+          setSortField('occurTime'); setSortDir('DESC');
+        }}
+      />
 
       {/* 列表(桌面端表格 / 移动端卡片) */}
       {isLoading ? (

@@ -14,7 +14,7 @@ interface EntityCardProps {
 /** 移动端列表项的统一样式: 圆角白底卡片 + 标题/标签 + 字段区 + 操作区 */
 export function EntityCard({ title, subtitle, badge, children, actions }: EntityCardProps) {
   return (
-    <Card shadow="sm" className="bg-content1">
+    <Card shadow="sm" className="break-inside-avoid mb-3 bg-content1">
       {(title || badge) && (
         <CardHeader className="flex items-start justify-between gap-2">
           <div className="min-w-0">

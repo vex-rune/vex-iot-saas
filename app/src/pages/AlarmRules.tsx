@@ -308,7 +308,7 @@ export default function AlarmRules() {
               onSelectionChange={(keys) => setForm((f) => ({ ...f, deviceId: Array.from(keys)[0] as string }))}
             >
               {(deviceList ?? []).map((d) => (
-                <SelectItem key={d.id}>{d.deviceName} ({d.deviceCode})</SelectItem>
+                <SelectItem key={d.id}>{d.deviceName}</SelectItem>
               ))}
             </Select>
             <Input

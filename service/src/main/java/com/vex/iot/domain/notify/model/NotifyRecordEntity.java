@@ -49,9 +49,7 @@ public class NotifyRecordEntity extends BaseEntity {
     private String event;
 
     /// 通知人 ID 列表
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "notify_record_user", joinColumns = @JoinColumn(name = "record_id"))
-    @Column(name = "user_id", length = 64)
+    @Column(name = "user_ids", length = 64, columnDefinition = "TEXT")
     private List<String> notifyUserIds;
 
     /// 通知渠道

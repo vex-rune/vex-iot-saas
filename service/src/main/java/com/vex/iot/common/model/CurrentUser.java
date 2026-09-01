@@ -17,6 +17,6 @@ public record CurrentUser(
      * MQTT/设备等非用户场景,仅填充 tenantId 和设备标识。
      */
     public static CurrentUser ofDevice(String tenantId, String deviceCode) {
-        return new CurrentUser(null, "device:" + deviceCode, null, tenantId, Set.of());
+        return new CurrentUser("0", "device:" + deviceCode, null, tenantId, Set.of());
     }
 }

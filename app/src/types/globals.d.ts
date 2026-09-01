@@ -52,6 +52,10 @@ declare module '@heroicons/react/24/outline' {
   export const PencilSquareIcon: IconComponent;
   export const DocumentDuplicateIcon: IconComponent;
   export const Bars3Icon: IconComponent;
+  export const BarsArrowDownIcon: IconComponent;
+  export const ArrowUpIcon: IconComponent;
+  export const ArrowDownIcon: IconComponent;
+  export const ArrowUpDownIcon: IconComponent;
 }
 
 declare module '@heroicons/react/24/solid' {

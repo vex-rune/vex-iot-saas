@@ -8,8 +8,13 @@ spring:
       hibernate:
         format_sql: true
 
+# MQTT 配置
 mqtt:
-  broker-url: tcp://localhost:1883
+  connection:
+    broker: tcp://8.160.183.109:1883
+    username: vex_admin
+    password: vex_admin_SDFI3FOUID8
+
 
 logging:
   level:

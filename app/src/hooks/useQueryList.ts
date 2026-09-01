@@ -10,6 +10,8 @@ interface UseQueryListOptions<T> {
   countFn: (body: QueryBody) => RequestChain<number>;
   defaultSize?: number;
   defaultPredicate?: QueryBody['predicate'];
+  /** 初始排序(同 defaultPredicate 仅作初始值;后续变更请用 setOrder) */
+  defaultOrder?: QueryBody['order'];
 }
 
 /**
@@ -32,11 +34,12 @@ export function useQueryList<T>({
   countFn,
   defaultSize = 20,
   defaultPredicate,
+  defaultOrder,
 }: UseQueryListOptions<T>) {
   const [page, setPage] = useState(0); // 后端分页从 0 开始
   const [size, setSizeState] = useState(defaultSize);
   const [predicate, setPredicate] = useState<QueryBody['predicate']>(defaultPredicate);
-  const [order, setOrder] = useState<QueryBody['order']>(undefined);
+  const [order, setOrder] = useState<QueryBody['order']>(defaultOrder);
 
   const body: QueryBody = useMemo(
     () => ({ predicate, order, page: { page, size } }),

@@ -17,10 +17,13 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
-/// 报警规则
-/// 定义点位数据的报警条件，包括比较方式、阈值、报警级别、通知用户等
+/// 预警规则
+/// 统一设备级和点位级的预警规则，通过 source 字段区分来源
 @Data
 @EqualsAndHashCode(callSuper = false)
 @SuperBuilder
@@ -30,48 +33,84 @@ import java.util.List;
 @Table(name = "alarm_rule")
 public class AlarmRuleEntity extends BaseEntity {
 
-    /// 报警规则ID（雪花算法生成）
+    /// 预警规则ID
     @Id
     @SnowflakeId
     private String id;
 
-    /// 设备ID
+    /// 规则来源：DEVICE-设备级 / POINT-点位级
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rule_source")
+    private AlarmRuleSource source;
+
+    /// 设备ID（设备级规则使用）
     @Size(max = 64)
     @Column(length = 64)
     private String deviceId;
 
-    /// 点位编码
+    /// 点位编码（设备级规则使用）
     @Size(max = 64)
     @Column(length = 64)
     private String pointCode;
 
-    /// 条件类型（gt / ge / lt / le / eq / ne / between）
+    /// 点位定义ID（点位级规则使用）
+    @Size(max = 64)
+    @Column(name = "point_definition_id", length = 64)
+    private String pointDefinitionId;
+
+    /// 规则类型：THRESHOLD-阈值 / STATE-状态
     @Enumerated(EnumType.STRING)
+    @Column(name = "rule_type")
+    private AlarmRuleType ruleType;
+
+    /// 条件类型（阈值规则使用）：GT / GTE / LT / LTE / EQ / NE / BETWEEN
+    @Enumerated(EnumType.STRING)
+    @Column(name = "condition_type")
     private AlarmConditionType conditionType;
 
-    /// 条件中文名称（用户可自定义；为空时回退到 enum.getDisplayName()）
+    /// 条件名称（用户可自定义）
     @Size(max = 64)
     @Column(length = 64)
     private String conditionName;
 
     /// 阈值（单阈值时使用）
-    private Double threshold;
+    private String threshold;
 
-    /// 阈值上限（between 时使用）
-    private Double thresholdHigh;
+    /// 阈值上限（BETWEEN 时使用）
+    private String thresholdHigh;
 
-    /// 报警级别
+    /// 预警级别：INFO / WARN / ERROR
     @Enumerated(EnumType.STRING)
     private AlarmLevel level;
 
+    /// 预警提示文案
+    @Size(max = 512)
+    @Column(length = 512)
+    private String message;
+
     /// 是否启用
-    private boolean enabled;
+    private Boolean enabled;
+
+    /// 是否屏蔽（检修屏蔽）
+    @Column(name = "mask_enable")
+    private Boolean maskEnable;
+
+    /// 屏蔽到期时间，null 代表永久屏蔽
+    @Column(name = "mask_expire_time")
+    private LocalDateTime maskExpireTime;
 
     /// 通知用户ID列表
     private List<String> notifyUserIds;
 
-    /// 正向公式（用于计算报警值）
-    @Size(max = 512)
-    @Column(length = 512)
-    private String forwardFormula;
+    /// 规则来源枚举
+    public enum AlarmRuleSource {
+        DEVICE,  // 设备级
+        POINT    // 点位级
+    }
+
+    /// 规则类型枚举
+    public enum AlarmRuleType {
+        THRESHOLD,  // 阈值
+        STATE       // 状态
+    }
 }
