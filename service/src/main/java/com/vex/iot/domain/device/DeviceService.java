@@ -9,8 +9,16 @@ import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.common.util.UserContext;
+import com.vex.iot.domain.device.event.DeviceCreatedEvent;
+import com.vex.iot.domain.device.event.DeviceDeletedEvent;
+import com.vex.iot.domain.device.event.DeviceEnabledChangedEvent;
 import com.vex.iot.domain.device.event.DeviceHeartbeatEvent;
 import com.vex.iot.domain.device.event.DeviceOfflineEvent;
+import com.vex.iot.domain.device.event.DeviceUpdatedEvent;
+import com.vex.iot.domain.device.event.PointCreatedEvent;
+import com.vex.iot.domain.device.event.PointDeletedEvent;
+import com.vex.iot.domain.device.event.PointSortOrderChangedEvent;
+import com.vex.iot.domain.device.event.PointUpdatedEvent;
 import com.vex.iot.domain.device.exception.DeviceNotFoundException;
 import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.device.model.DeviceOnlineResponse;
@@ -72,8 +80,8 @@ public class DeviceService {
         return deviceRepository.findById(id).orElseThrow(DeviceNotFoundException::new);
     }
 
-    public Optional<DeviceEntity> optDevice(String id) {
-        return deviceRepository.findById(id);
+    public List<DeviceEntity> optDeviceByGatewayId(String gatewayId) {
+        return deviceRepository.findByGatewayIdAndEnabled(gatewayId, true);
     }
 
     public DeviceEntity createDevice(DeviceEntity device) {
@@ -84,7 +92,10 @@ public class DeviceService {
             device.setTenantId(BaseEntity.DEFAULT_TENANT_ID);
         }
         device.stampCreated(resolveCreatorId(device.getCreateId()), now);
-        return deviceRepository.save(device);
+        DeviceEntity saved = deviceRepository.save(device);
+        // 发送"设备创建"事件 — BroadcastApp 将按 tenantId 通过 SSE 广播
+        applicationEventPublisher.publishEvent(new DeviceCreatedEvent(saved));
+        return saved;
     }
 
     public DeviceEntity updateDevice(String id, DeviceEntity device) {
@@ -97,7 +108,10 @@ public class DeviceService {
         exist.setLevel3Tag(device.getLevel3Tag());
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         exist.stampUpdated(resolveCreatorId(device.getUpdateId()), now);
-        return deviceRepository.save(exist);
+        DeviceEntity saved = deviceRepository.save(exist);
+        // 发送"设备更新"事件
+        applicationEventPublisher.publishEvent(new DeviceUpdatedEvent(saved));
+        return saved;
     }
 
     @CacheEvict(key = "#id")
@@ -105,7 +119,10 @@ public class DeviceService {
         DeviceEntity exist = getDevice(id);
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         exist.markDeleted(resolveCreatorId(null), now);
-        deviceRepository.save(exist);
+        DeviceEntity saved = deviceRepository.save(exist);
+        // 发送"设备删除"事件
+        applicationEventPublisher.publishEvent(new DeviceDeletedEvent(
+                saved.getTenantId(), saved.getId(), saved.getUpdateId(), now));
     }
 
     /**
@@ -115,7 +132,10 @@ public class DeviceService {
     public DeviceEntity setDeviceEnabled(String id, boolean enabled) {
         DeviceEntity exist = getDevice(id);
         exist.setEnabled(enabled);
-        return deviceRepository.save(exist);
+        DeviceEntity saved = deviceRepository.save(exist);
+        // 发送"设备启停变更"事件
+        applicationEventPublisher.publishEvent(new DeviceEnabledChangedEvent(saved, enabled));
+        return saved;
     }
 
     /**
@@ -189,7 +209,14 @@ public class DeviceService {
         }
 
         try {
-            return pointRepository.save(def);
+            PointEntity saved = pointRepository.save(def);
+            // 发送"点位创建/更新"事件 — BroadcastApp 按 tenantId 通过 SSE 广播
+            if (isNew) {
+                applicationEventPublisher.publishEvent(new PointCreatedEvent(saved));
+            } else {
+                applicationEventPublisher.publishEvent(new PointUpdatedEvent(saved));
+            }
+            return saved;
         } catch (DataIntegrityViolationException ex) {
             // 并发兜底:查重通过后仍可能撞上 DB 唯一约束
             throw new ConflictException("点位编码「" + def.getPointCode() + "」在该设备下已存在");
@@ -197,7 +224,19 @@ public class DeviceService {
     }
 
     public void deletePoint(String id) {
+        // 删除前先取实体信息用于事件投递
+        PointEntity exist = pointRepository.findById(id).orElse(null);
         pointRepository.deleteById(id);
+        if (exist != null) {
+            String operator = UserContext.username().orElse(BaseEntity.SYSTEM_USER_ID);
+            // 发送"点位删除"事件
+            applicationEventPublisher.publishEvent(new PointDeletedEvent(
+                    exist.getTenantId(),
+                    exist.getDeviceId(),
+                    exist.getId(),
+                    operator,
+                    LocalDateTime.now()));
+        }
     }
 
     /**
@@ -227,6 +266,13 @@ public class DeviceService {
             p.stampUpdated(operator, now);
         }
         pointRepository.saveAll(points);
+
+        // 推送"点位排序变更"事件 — BroadcastApp 按 tenantId 通过 SSE 广播
+        final String tenantId = points.isEmpty()
+                ? getDevice(deviceId).getTenantId()
+                : points.get(0).getTenantId();
+        applicationEventPublisher.publishEvent(new PointSortOrderChangedEvent(
+                tenantId, deviceId, pointIds, operator));
     }
 
     // ==================== 内部 ====================
@@ -235,13 +281,15 @@ public class DeviceService {
         return (requested == null || requested.isBlank()) ? BaseEntity.SYSTEM_USER_ID : requested;
     }
 
-    public void heart(String gatewayId) {
+    public void heartByGatewayId(String gatewayId) {
         deviceRepository.findByGatewayId(gatewayId).forEach(device -> {
+            LocalDateTime now = LocalDateTime.now();
             device.setOnline(DeviceOnline.ONLINE);
-            device.setLastHeartbeatAt(LocalDateTime.now());
-            deviceRepository.save(device);
-            evictOnlineCache(device.getId());
-            applicationEventPublisher.publishEvent(new DeviceHeartbeatEvent(device.getId()));
+            device.setLastHeartbeatAt(now);
+            DeviceEntity saved = deviceRepository.save(device);
+            evictOnlineCache(saved.getId());
+            // 发送"设备心跳"事件（携带 tenantId）— BroadcastApp 按 tenantId 通过 SSE 广播
+            applicationEventPublisher.publishEvent(new DeviceHeartbeatEvent(saved));
             log.debug("设备心跳更新: {}", gatewayId);
         });
     }
@@ -250,11 +298,14 @@ public class DeviceService {
         return pointRepository.findByDeviceId(id);
     }
 
-    public void will(String gatewayId) {
+    public void willByGatewayId(String gatewayId) {
         deviceRepository.findByGatewayId(gatewayId).forEach(device -> {
+            LocalDateTime now = LocalDateTime.now();
             device.setOnline(DeviceOnline.OFFLINE);
-            deviceRepository.save(device);
-            applicationEventPublisher.publishEvent(new DeviceOfflineEvent(device.getId()));
+            DeviceEntity saved = deviceRepository.save(device);
+            // 发送"设备离线"事件（携带 tenantId）— BroadcastApp 按 tenantId 通过 SSE 广播
+            applicationEventPublisher.publishEvent(new DeviceOfflineEvent(
+                    saved.getTenantId(), saved.getId(), now));
             log.debug("设备离线: {}", gatewayId);
         });
     }
@@ -266,4 +317,5 @@ public class DeviceService {
             cache.evict(deviceId);
         }
     }
+
 }

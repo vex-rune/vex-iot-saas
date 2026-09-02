@@ -9,7 +9,6 @@ import DeviceCreate from '@/pages/DeviceCreate';
 import DeviceEdit from '@/pages/DeviceEdit';
 import PointAlarmEvents from '@/pages/PointAlarmEvents';
 import NotifyUsers from '@/pages/NotifyUsers';
-import Placeholder from '@/pages/Placeholder';
 
 export default function App() {
   return (

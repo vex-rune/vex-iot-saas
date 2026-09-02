@@ -292,7 +292,7 @@ function WidgetConfigDrawer({
     const q = pointSearch.trim().toLowerCase();
     if (!q) return points;
     return points.filter(
-      (p) => p.pointName.toLowerCase().includes(q) || p.pointCode.toLowerCase().includes(q),
+      (p) => (p.pointName ?? '').toLowerCase().includes(q) || p.pointCode.toLowerCase().includes(q),
     );
   }, [points, pointSearch]);
 

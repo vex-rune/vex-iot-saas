@@ -4,6 +4,7 @@ import com.vex.iot.app.DeviceDataApp;
 import com.vex.iot.app.mqtt.usr.MqttUsrHeartMessage;
 import com.vex.iot.app.mqtt.usr.MqttUsrUpdateMessage;
 import com.vex.iot.app.mqtt.usr.MqttUsrWillMessage;
+import com.vex.iot.domain.data.event.DataUpdateEvent;
 import com.vex.iot.domain.device.DeviceService;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -25,8 +26,10 @@ public class MqttUsrHeartMessageHandler {
     @EventListener(MqttUsrHeartMessage.class)
     public void heart(MqttUsrHeartMessage event) {
         System.out.println("Received heart message: " + event);
-        dataApp.heart(event);
+        String gatewayId = event.payload().trim();
+        dataApp.heartByGatewayId(gatewayId);
     }
+
     @Async
     @EventListener(MqttUsrUpdateMessage.class)
     public void update(MqttUsrUpdateMessage event) {

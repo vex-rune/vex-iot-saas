@@ -21,9 +21,9 @@ import type { AlarmEvent, RealtimePointValue, Device, PointDefinition } from '@/
 import { useState, useCallback, useMemo } from 'react';
 import { useDashboardKpis } from '@/hooks/useDashboardKpis';
 import { ALARM_LEVEL_COLORS } from '@/lib/levelMeta';
-import { DeviceCard } from '@/components/DeviceCard';
+import DeviceCard from '@/components/DeviceCard';
 import { useDeviceHeartbeats } from '@/hooks/useDeviceHeartbeats';
-import { SearchFilterBar } from '@/components/list/SearchFilterBar';
+import SearchFilterBar from '@/components/list/SearchFilterBar';
 import PanelRenderer from '@/components/panel/PanelRenderer';
 import { parsePanelConfig } from '@/components/panel/types';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
@@ -190,7 +190,7 @@ function RecentAlarmsCard({ recentAlarmsQ, recentData }: any) {
               {(event: AlarmEvent) => (
                 <TableRow key={event.id}>
                   <TableCell><span className="text-xs text-foreground-600">{formatDateTime(event.triggeredAt)}</span></TableCell>
-                  <TableCell><code className="text-xs text-foreground">{event.deviceId.slice(0, 8)}</code></TableCell>
+                  <TableCell><code className="text-xs text-foreground">{(event.deviceId ?? '').slice(0, 8) || '-'}</code></TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Chip size="sm" variant="flat" color={LEVEL_COLORS[event.level]}>{event.level}</Chip>
                   </TableCell>
@@ -232,8 +232,8 @@ function RealtimePointsCard({ realtimePoints }: { realtimePoints: RealtimePointV
                 <TableRow key={point.pointCode}>
                   <TableCell className="text-foreground">{point.pointName}</TableCell>
                   <TableCell><code className="text-xs text-foreground">{point.pointCode}</code></TableCell>
-                  <TableCell><span className="font-mono twinkle text-primary-600">{point.displayValue || point.rawValue}</span></TableCell>
-                  <TableCell className="hidden sm:table-cell text-foreground-500">{point.unit ?? '-'}</TableCell>
+                  <TableCell><span className="font-mono twinkle text-primary-600">{point.value ?? point.rawValue}</span></TableCell>
+                  <TableCell className="hidden sm:table-cell text-foreground-500">-</TableCell>
                 </TableRow>
               )}
             </TableBody>

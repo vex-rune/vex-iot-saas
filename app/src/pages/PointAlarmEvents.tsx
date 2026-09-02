@@ -1,3 +1,15 @@
+/**
+ * 点位级告警事件列表 (openapi v2 alarm.events query + source=POINT 过滤).
+ *
+ * 后端已把旧的 /api/point-alarm 模块合并入 /api/alarm,前端通过 source 区分.
+ *
+ * 数据模型从老的 PointAlarmEvent 平迁到 AlarmEvent:
+ *   - alarmMessage → message
+ *   - alarmLevel   → level
+ *   - alarmRuleId  → ruleId
+ *   - eventStatus  → 新 alarm.events 用 acknowledged='ACK'/'UNACK'
+ *   - occurTime / recoverTime → triggeredAt / recoveredAt (并存,旧名 alias)
+ */
 import { useEffect, useMemo, useState } from 'react';
 import {
   Button,
@@ -18,65 +30,71 @@ import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import {
   queryPointAlarmEvents,
   countPointAlarmEvents,
-  acknowledgePointAlarmEvent,
-} from '@/api/pointAlarm';
+  ackAlarmEvent,
+} from '@/api/alarms';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
 import { useQueryList } from '@/hooks/useQueryList';
-import { SearchFilterBar, type FilterGroupSpec } from '@/components/list/SearchFilterBar';
 import { formatDateTime } from '@/lib/format';
-import { POINT_LEVEL_COLORS, POINT_LEVEL_LABELS } from '@/lib/levelMeta';
-import type { PointAlarmEvent, PointAlarmEventStatus, Predicate, PredicateItem, QueryBody } from '@/types/api';
+import { ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS } from '@/lib/levelMeta';
+import type {
+  AlarmEvent,
+  AlarmLevel,
+  AlarmAckStatus,
+  Predicate,
+  PredicateItem,
+  QueryBody,
+} from '@/types/api';
 
-type AlarmSortField = 'occurTime' | 'recoverTime' | 'level';
+type PointAlarmSortField = 'triggeredAt' | 'recoveredAt' | 'level';
 
-const LEVEL_COLORS = POINT_LEVEL_COLORS;
-const LEVEL_LABELS = POINT_LEVEL_LABELS;
+const LEVEL_COLORS = ALARM_LEVEL_COLORS;
+const LEVEL_LABELS = ALARM_LEVEL_LABELS;
 
-const STATUS_OPTIONS = [
-  { key: 'ALL', label: '全部' },
-  { key: 'ACTIVE', label: '活跃' },
-  { key: 'RECOVERED', label: '已恢复' },
+const STATUS_OPTIONS: { key: AlarmAckStatus; label: string }[] = [
+  { key: 'UNACK', label: '未确认' },
   { key: 'ACK', label: '已确认' },
 ];
 
-const STATUS_LABELS: Record<PointAlarmEventStatus, string> = {
-  ACTIVE: '活跃',
-  RECOVERED: '已恢复',
+const STATUS_LABELS: Record<AlarmAckStatus, string> = {
+  UNACK: '未确认',
   ACK: '已确认',
 };
 
-const STATUS_COLORS: Record<PointAlarmEventStatus, 'danger' | 'warning' | 'success'> = {
-  ACTIVE: 'danger',
-  RECOVERED: 'warning',
+const STATUS_COLORS: Record<AlarmAckStatus, 'warning' | 'success'> = {
+  UNACK: 'warning',
   ACK: 'success',
 };
 
 export default function PointAlarmEvents() {
-  // 搜索 / 筛选
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchText), 300);
     return () => clearTimeout(t);
   }, [searchText]);
-  const [filterStatus, setFilterStatus] = useState('ALL');
-  const [filterLevel, setFilterLevel] = useState('ALL');
-  /** 排序:发生时间(默认)/恢复时间/告警级别 */
-  const [sortField, setSortField] = useState<AlarmSortField>('occurTime');
+  const [filterStatus, setFilterStatus] = useState<AlarmAckStatus | 'ALL'>('ALL');
+  const [filterLevel, setFilterLevel] = useState<AlarmLevel | 'ALL'>('ALL');
+  const [sortField, setSortField] = useState<PointAlarmSortField>('triggeredAt');
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC');
 
   const defaultPredicate = useMemo<Predicate | undefined>(() => {
     const items: PredicateItem[] = [];
     if (debouncedSearch.trim()) {
-      items.push({ condition: { field: 'alarmMessage', op: 'like' as const, value: `%${debouncedSearch.trim()}%` } });
+      items.push({
+        condition: {
+          field: 'message',
+          op: 'like' as const,
+          value: `%${debouncedSearch.trim()}%`,
+        },
+      });
     }
     if (filterStatus !== 'ALL') {
-      items.push({ condition: { field: 'eventStatus', op: 'eq' as const, value: filterStatus } });
+      items.push({ condition: { field: 'acknowledged', op: 'eq' as const, value: filterStatus } });
     }
     if (filterLevel !== 'ALL') {
-      items.push({ condition: { field: 'alarmLevel', op: 'eq' as const, value: filterLevel } });
+      items.push({ condition: { field: 'level', op: 'eq' as const, value: filterLevel } });
     }
     return items.length > 0 ? { and: items } : undefined;
   }, [debouncedSearch, filterStatus, filterLevel]);
@@ -97,24 +115,22 @@ export default function PointAlarmEvents() {
     setOrder,
     isLoading,
     refetch,
-  } = useQueryList<PointAlarmEvent>({
+  } = useQueryList<AlarmEvent>({
     queryKey: 'pointAlarmEvents',
     queryFn: (body) => queryPointAlarmEvents(body),
     countFn: (body) => countPointAlarmEvents(body),
     defaultSize: 15,
-    // 筛选/搜索条件直接作 defaultPredicate 注入,变化时 react-query 自动 refetch
     defaultPredicate,
     defaultOrder,
   });
 
-  // 排序变化时同步给 useQueryList 内部 order state,触发 queryKey 重查 + 跳回首页
   useEffect(() => {
     setOrder(defaultOrder);
     setPage(0);
   }, [defaultOrder, setOrder, setPage]);
 
   const ackMutation = useApiMutation({
-    mutationFn: acknowledgePointAlarmEvent,
+    mutationFn: ackAlarmEvent,
   });
   const handleAck = (id: string) => {
     ackMutation.mutate(id, {
@@ -127,56 +143,60 @@ export default function PointAlarmEvents() {
 
   const isMobile = useIsMobile();
 
+  const levelOptions: (AlarmLevel | 'ALL')[] = ['ALL', 'INFO', 'WARNING', 'CRITICAL', 'FATAL'];
+
   return (
     <div className="flex min-h-full flex-col gap-4">
       <header>
-        <h1 className="text-xl font-semibold text-foreground">警告信息</h1>
+        <h1 className="text-xl font-semibold text-foreground">点位级告警事件</h1>
         <p className="mt-1 text-sm text-foreground-500">共 {total} 条</p>
       </header>
 
-      {/* 通用搜索/排序/筛选/重置 工具栏 */}
-      <SearchFilterBar
-        searchPlaceholder="搜索告警信息"
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        sort={{
-          fields: [
-            { key: 'occurTime', label: '发生时间' },
-            { key: 'recoverTime', label: '恢复时间' },
-            { key: 'level', label: '告警级别' },
-          ],
-          value: sortField,
-          onChange: (k) => setSortField(k as AlarmSortField),
-          dir: sortDir,
-          onDirChange: setSortDir,
-        }}
-        filters={[
-          {
-            label: '告警级别',
-            value: filterLevel,
-            options: [
-              { key: 'ALL', label: '全部' },
-              { key: 'INFO', label: '提示' },
-              { key: 'WARN', label: '警告' },
-              { key: 'ERROR', label: '严重' },
-            ],
-            onChange: setFilterLevel,
-          },
-          {
-            label: '状态',
-            value: filterStatus,
-            options: STATUS_OPTIONS,
-            onChange: setFilterStatus,
-          },
-        ] satisfies FilterGroupSpec[]}
-        onReset={() => {
-          setSearchText('');
-          setFilterStatus('ALL'); setFilterLevel('ALL');
-          setSortField('occurTime'); setSortDir('DESC');
-        }}
-      />
+      {/* 筛选 / 排序 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          placeholder="搜索告警信息"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="rounded-medium border border-divider bg-content1 px-3 py-1.5 text-sm outline-none transition focus:border-primary"
+        />
+        <Select size="sm" variant="bordered" aria-label="状态" className="w-28"
+          selectedKeys={[filterStatus]}
+          onSelectionChange={(k) => setFilterStatus(Array.from(k)[0] as typeof filterStatus)}>
+          <>
+            <SelectItem key="ALL">全部</SelectItem>
+            {STATUS_OPTIONS.map((o) => (
+              <SelectItem key={o.key}>{o.label}</SelectItem>
+            ))}
+          </>
+        </Select>
+        <Select size="sm" variant="bordered" aria-label="告警级别" className="w-28"
+          selectedKeys={[filterLevel]}
+          onSelectionChange={(k) => setFilterLevel(Array.from(k)[0] as typeof filterLevel)}>
+          <>
+            {levelOptions.map((l) => (
+              <SelectItem key={l}>
+                {l === 'ALL' ? '全部级别' : (LEVEL_LABELS[l] ?? l)}
+              </SelectItem>
+            ))}
+          </>
+        </Select>
+        <Select size="sm" variant="bordered" aria-label="排序字段" className="w-32"
+          selectedKeys={[sortField]}
+          onSelectionChange={(k) => setSortField(Array.from(k)[0] as PointAlarmSortField)}>
+          <SelectItem key="triggeredAt">发生时间</SelectItem>
+          <SelectItem key="recoveredAt">恢复时间</SelectItem>
+          <SelectItem key="level">告警级别</SelectItem>
+        </Select>
+        <Select size="sm" variant="bordered" aria-label="排序方向" className="w-20"
+          selectedKeys={[sortDir]}
+          onSelectionChange={(k) => setSortDir(Array.from(k)[0] as 'ASC' | 'DESC')}>
+          <SelectItem key="DESC">降序</SelectItem>
+          <SelectItem key="ASC">升序</SelectItem>
+        </Select>
+      </div>
 
-      {/* 列表(桌面端表格 / 移动端卡片) */}
       {isLoading ? (
         <div className="rounded-2xl bg-content1 p-4">
           <div className="space-y-3">
@@ -193,40 +213,41 @@ export default function PointAlarmEvents() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {events.map((event) => (
-              <EntityCard
-                key={event.id}
-                title={event.alarmMessage || event.alarmLevel}
-                subtitle={formatDateTime(event.occurTime)}
-                badge={
-                  <div className="flex flex-col items-end gap-1">
-                    <Chip size="sm" variant="flat" color={LEVEL_COLORS[event.alarmLevel] ?? 'default'}>
-                      {LEVEL_LABELS[event.alarmLevel] ?? event.alarmLevel}
+            {events.map((event) => {
+              const ackTime = event.acknowledgedAt ?? event.ackTime;
+              return (
+                <EntityCard
+                  key={event.id}
+                  title={event.message || event.level}
+                  subtitle={formatDateTime(event.triggeredAt ?? event.occurTime ?? '')}
+                  badge={
+                    <Chip size="sm" variant="flat" color={LEVEL_COLORS[event.level] ?? 'default'}>
+                      {LEVEL_LABELS[event.level] ?? event.level}
                     </Chip>
-                    <Chip size="sm" variant="flat" color={STATUS_COLORS[event.eventStatus]}>
-                      {STATUS_LABELS[event.eventStatus]}
-                    </Chip>
-                  </div>
-                }
-                actions={
-                  event.eventStatus !== 'ACK' ? (
-                    <Button size="sm" variant="flat" color="success"
-                      startContent={<CheckCircleIcon className="h-4 w-4" />}
-                      isLoading={ackMutation.isPending}
-                      onPress={() => handleAck(event.id)}>确认</Button>
-                  ) : (
-                    <span className="text-xs text-foreground-500">{event.ackUserId ?? ''}</span>
-                  )
-                }
-              >
-                <FieldRow label="触发值" value={<code className="text-xs">{event.triggerValue ?? '-'}</code>} />
-                <FieldRow label="恢复时间" value={event.recoverTime ? formatDateTime(event.recoverTime) : '-'} />
-              </EntityCard>
-            ))}
+                  }
+                >
+                  <FieldRow label="消息" value={event.message} />
+                  <FieldRow
+                    label="触发值"
+                    value={<code className="text-xs">{event.triggerValue ?? '-'}</code>}
+                  />
+                  <FieldRow
+                    label="状态"
+                    value={
+                      <Chip size="sm" variant="flat" color={STATUS_COLORS[event.acknowledged ?? 'UNACK'] ?? 'default'}>
+                        {STATUS_LABELS[event.acknowledged ?? 'UNACK'] ?? '-'}
+                      </Chip>
+                    }
+                  />
+                  <FieldRow label="恢复" value={event.recoveredAt ? formatDateTime(event.recoveredAt) : '-'} />
+                  <FieldRow label="确认时间" value={ackTime ? formatDateTime(ackTime) : '-'} />
+                </EntityCard>
+              );
+            })}
           </div>
         )
       ) : (
-        <Table aria-label="警告信息列表" isStriped classNames={{ wrapper: 'bg-content1 rounded-2xl' }}>
+        <Table aria-label="点位级告警事件列表" isStriped classNames={{ wrapper: 'bg-content1 rounded-2xl' }}>
           <TableHeader>
             <TableColumn>发生时间</TableColumn>
             <TableColumn>级别</TableColumn>
@@ -237,43 +258,49 @@ export default function PointAlarmEvents() {
             <TableColumn>操作</TableColumn>
           </TableHeader>
           <TableBody emptyContent="暂无告警信息" items={events}>
-            {(event: PointAlarmEvent) => (
+            {(event: AlarmEvent) => (
               <TableRow key={event.id}>
                 <TableCell>
-                  <span className="text-xs text-foreground-600">{formatDateTime(event.occurTime)}</span>
+                  <span className="text-xs text-foreground-600">
+                    {formatDateTime(event.triggeredAt ?? event.occurTime ?? '')}
+                  </span>
                 </TableCell>
                 <TableCell>
-                  <Chip size="sm" variant="flat" color={LEVEL_COLORS[event.alarmLevel] ?? 'default'}>
-                    {LEVEL_LABELS[event.alarmLevel] ?? event.alarmLevel}
+                  <Chip size="sm" variant="flat" color={LEVEL_COLORS[event.level] ?? 'default'}>
+                    {LEVEL_LABELS[event.level] ?? event.level}
                   </Chip>
                 </TableCell>
                 <TableCell>
                   <span className="max-w-[280px] truncate text-sm text-foreground">
-                    {event.alarmMessage}
+                    {event.message}
                   </span>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
                   <code className="text-xs text-foreground-600">{event.triggerValue ?? '-'}</code>
                 </TableCell>
                 <TableCell>
-                  <Chip size="sm" variant="flat" color={STATUS_COLORS[event.eventStatus]}>
-                    {STATUS_LABELS[event.eventStatus]}
+                  <Chip size="sm" variant="flat" color={STATUS_COLORS[event.acknowledged ?? 'UNACK'] ?? 'default'}>
+                    {STATUS_LABELS[event.acknowledged ?? 'UNACK'] ?? '-'}
                   </Chip>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <span className="text-xs text-foreground-600">
-                    {event.recoverTime ? formatDateTime(event.recoverTime) : '-'}
+                    {event.recoveredAt ? formatDateTime(event.recoveredAt) : '-'}
                   </span>
                 </TableCell>
                 <TableCell>
-                  {event.eventStatus !== 'ACK' && (
+                  {event.acknowledged !== 'ACK' && (
                     <Button size="sm" variant="flat" color="success"
                       startContent={<CheckCircleIcon className="h-4 w-4" />}
                       isLoading={ackMutation.isPending}
-                      onPress={() => handleAck(event.id)}>确认</Button>
+                      onPress={() => handleAck(event.id)}>
+                      确认
+                    </Button>
                   )}
-                  {event.eventStatus === 'ACK' && (
-                    <span className="text-xs text-foreground-500">{event.ackUserId ?? ''}</span>
+                  {event.acknowledged === 'ACK' && (
+                    <span className="text-xs text-foreground-500">
+                      {event.acknowledgedBy ?? event.ackUserId ?? ''}
+                    </span>
                   )}
                 </TableCell>
               </TableRow>
@@ -282,13 +309,12 @@ export default function PointAlarmEvents() {
         </Table>
       )}
 
-      {/* 分页(始终显示,左侧"共 N 条"+页大小选择器,右侧 Pagination) */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm text-foreground-500">共 {total} 条</span>
           <Select size="sm" variant="bordered" className="w-24"
             selectedKeys={[String(size)]}
-            onSelectionChange={(keys) => setSize(Number(Array.from(keys)[0]))}>
+            onSelectionChange={(k) => setSize(Number(Array.from(k)[0]))}>
             {['15', '30', '60', '100'].map((s) => (
               <SelectItem key={s}>{s}</SelectItem>
             ))}

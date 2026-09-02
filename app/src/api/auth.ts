@@ -13,15 +13,21 @@
  */
 import { post, get, type BizEnvelope, type RequestChain, type RequestCallbacks } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth';
-import type { CurrentUserResponse, TokenPairResp, LoginType } from '@/types/api';
+import type {
+  CurrentUserResponse,
+  TokenPairResp,
+  LoginType,
+  KeyInfoResponse,
+  TokenRefreshReq,
+} from '@/types/api';
 
 /** 登录请求入参 */
 export interface LoginReq {
   username: string;
   loginType: 'USER' | 'ADMIN';
-  /** USER 模式 = 密码明文; ADMIN 模式 = 任意占位 */
+  /** USER 模式 = 经 salt+window 签名后的密码; ADMIN 模式 = 任意占位 */
   challenge: string;
-  /** USER 模式 = 任意占位; ADMIN 模式 = 6 位 TOTP 动态码 */
+  /** ADMIN 模式 = 6 位 TOTP 动态码; USER 模式 = 任意占位 */
   signature: string;
 }
 
@@ -41,7 +47,26 @@ function dispatch<T>(chain: RequestChain<T>, cbs?: RequestCallbacks<T>): void {
 }
 
 /**
+ * 登录前握手: 获取 salt + 服务端时间窗信息.
+ * 用法(USER 模式):
+ *   fetchKeyInfo('alice').onSuccess(info => {
+ *     const signed = signPassword(password, info);
+ *     login({ username: 'alice', loginType: 'USER', challenge: signed.challenge, signature: signed.signature });
+ *   });
+ */
+export function fetchKeyInfo(
+  username: string,
+  cbs?: RequestCallbacks<KeyInfoResponse>,
+): void {
+  const chain = get<KeyInfoResponse>('/auth/key-info', { username });
+  dispatch(chain, cbs);
+}
+
+/**
  * 账号密码登录 (USER)
+ *
+ * 注意:challenge / signature 传入前必须已做 salt 签名,不做服务端会拒绝.
+ * 详见 fetchKeyInfo.
  */
 export function login(
   req: LoginReq,
@@ -51,13 +76,25 @@ export function login(
     username: req.username,
     loginType: 'USER' as LoginType,
     challenge: req.challenge,
-    signature: req.challenge,
+    signature: req.signature,
   });
   dispatch(chain, cbs);
 }
 
 /**
  * 管理员 TOTP 动态码登录 (ADMIN)
+ *
+ * openapi v2 契约:
+ *   - challenge:ADMIN 模式 = 任意占位(后端忽略)
+ *   - signature:ADMIN 模式 = 6 位 TOTP 动态码(经 salt+window SHA-256 签名后)
+ *
+ * 推荐签名流程(前端组装):
+ *   1. fetchKeyInfo → 拿到 salt / windowStart / windowSeconds
+ *   2. signature = SHA-256(salt + ':' + windowStart + ':' + windowSeconds + ':' + dynamicCode)
+ *   3. challenge = 占位(后端不读)
+ *
+ * 注:密码与动态码登录均使用 /auth/login 一个端点,区分通过 loginType,
+ * 后端校验按 loginType 路由.
  */
 export function loginAdmin(
   req: LoginReq,
@@ -66,7 +103,9 @@ export function loginAdmin(
   const chain = post<TokenPair>('/auth/login', {
     username: req.username,
     loginType: 'ADMIN' as LoginType,
-    challenge: req.signature,
+    // 后端 ADMIN 模式忽略 challenge;给一个非空占位避免空串触发某些网关 400
+    challenge: req.challenge || req.username || 'placeholder',
+    // signature 字段直接是签名后的 6 位 TOTP 动态码
     signature: req.signature,
   });
   dispatch(chain, cbs);
@@ -80,6 +119,31 @@ export function fetchCurrentUser(
   cbs?: RequestCallbacks<CurrentUserResponse>,
 ): void {
   const chain = get<CurrentUserResponse>('/auth/me');
+  dispatch(chain, cbs);
+}
+
+/**
+ * 刷新 token:
+ *   入参:{ refreshToken }
+ *   出参:TokenPair(新的 accessToken + refreshToken)
+ * 一般用法:拦截器内部自动调用,上层不直接使用.
+ */
+export function refreshToken(
+  req: TokenRefreshReq,
+  cbs?: RequestCallbacks<TokenPair>,
+): void {
+  const chain = post<TokenPair>('/auth/refresh', req);
+  dispatch(chain, cbs);
+}
+
+/**
+ * 服务端登出 (openapi v2 新增).
+ * 后端清 token 状态,前端拿到响应后再清本地.
+ */
+export function logout(
+  cbs?: RequestCallbacks<unknown>,
+): void {
+  const chain = post<unknown>('/auth/logout', {});
   dispatch(chain, cbs);
 }
 

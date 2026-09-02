@@ -57,7 +57,7 @@ import type { PointRow } from './pointUtils';
 
 const toRow = (p: PointDefinition): PointRow => ({
   _key: p.id,
-  pointName: p.pointName,
+  pointName: p.pointName ?? '',
   pointCode: p.pointCode,
   description: p.description ?? '',
   unit: p.unit ?? '',
@@ -182,7 +182,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
       if (!orig) continue;
       items.push({
         key: pointId,
-        label: orig.pointName,
+        label: orig.pointName ?? '',
         payload: { id: pointId, deviceId, ...changes } as Partial<PointDefinition>,
       });
     }
@@ -286,7 +286,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
     const savedNewNames = new Set(
       savedSuccess
         .filter((s) => !existingPoints.find((p) => p.id === s.id))
-        .map((s) => s.pointName.trim()),
+        .map((s) => s.pointName?.trim() ?? ''),
     );
     setNewRows((prev) =>
       prev.filter((r) => !savedNewNames.has(r.pointName.trim()) && !failed.some((f) => f.key === r._key)),
@@ -329,7 +329,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
       pointCode: generateUniquePointCode('', existingPoints, newRows),
       description: '',
       unit: '',
-      dataType: 'LONG',
+      dataType: 'INT',
       access: 'RO',
       groupLabel: '',
       valueMappings: [],
@@ -504,7 +504,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
 
     // 快捷排序：所有键都以 pointName 作为二级排序
     const byName = (a: PointDefinition, b: PointDefinition) =>
-      a.pointName.localeCompare(b.pointName, 'zh-Hans-CN');
+      (a.pointName ?? '').localeCompare(b.pointName ?? '', 'zh-Hans-CN');
     const finalRow = (p: PointDefinition) => getPointFinal(p);
     const cmp = (key: (a: PointDefinition, b: PointDefinition) => number) => (a: PointDefinition, b: PointDefinition) => {
       const r = key(a, b);
@@ -547,7 +547,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
     const name = pointFilter.name.trim().toLowerCase();
     return orderedPoints.filter((p) => {
       const row = getPointFinal(p);
-      if (name && !p.pointName.toLowerCase().includes(name) && !(p.pointCode ?? '').toLowerCase().includes(name)) return false;
+      if (name && !(p.pointName ?? '').toLowerCase().includes(name) && !(p.pointCode ?? '').toLowerCase().includes(name)) return false;
       if (pointFilter.dataType !== 'all' && row.dataType !== pointFilter.dataType) return false;
       if (pointFilter.access !== 'all' && row.access !== pointFilter.access) return false;
       if (pointFilter.group !== 'all' && row.groupLabel !== pointFilter.group) return false;
@@ -643,7 +643,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
                 const map = new Map(visibleExisting.map((p) => [p.id, p] as const));
                 const arr = baseOrder.map((id) => map.get(id)).filter((p): p is PointDefinition => !!p);
                 const byName = (a: PointDefinition, b: PointDefinition) =>
-                  a.pointName.localeCompare(b.pointName, 'zh-Hans-CN');
+                  (a.pointName ?? '').localeCompare(b.pointName ?? '', 'zh-Hans-CN');
                 const finalRow = (p: PointDefinition) => getPointFinal(p);
                 const cmp = (k: (a: PointDefinition, b: PointDefinition) => number) =>
                   (a: PointDefinition, b: PointDefinition) => {

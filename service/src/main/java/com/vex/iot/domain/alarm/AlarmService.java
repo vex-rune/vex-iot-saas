@@ -175,16 +175,15 @@ public class AlarmService {
         eventRepo.save(event);
 
         // 发送事件
-        applicationEventPublisher.publishEvent(AlarmTriggeredEvent.builder()
-                .triggerUser(CurrentUser.ofDevice(rule.getDeviceId(), rule.getTenantId()))
-                .tenantId(rule.getTenantId())
-                .eventId("UUIS")
-                .deviceId(rule.getDeviceId())
-                .pointCode(rule.getPointCode())
-                .level(rule.getLevel())
-                .message(rule.getMessage())
-                .notifyUserIds(rule.getNotifyUserIds() == null ? List.of() : rule.getNotifyUserIds())
-                .build());
+        applicationEventPublisher.publishEvent(new AlarmTriggeredEvent(
+                rule.getTenantId(),
+                rule.getDeviceId(),
+                rule.getPointCode(),
+                rule.getLevel(),
+                rule.getMessage(),
+                rule.getNotifyUserIds() == null ? List.of() : rule.getNotifyUserIds(),
+                CurrentUser.ofDevice(rule.getDeviceId(), rule.getTenantId())
+        ));
     }
 
     private static final int SUPPRESS_WINDOW_MINUTES = 5;

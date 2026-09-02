@@ -34,9 +34,10 @@ import { useQueryList } from '@/hooks/useQueryList';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
-import { SearchFilterBar, type FilterGroupSpec } from '@/components/list/SearchFilterBar';
+import SearchFilterBar from '@/components/list/SearchFilterBar';
+import type { FilterGroupSpec } from '@/components/list/SearchFilterBar';
 import { formatDateTime } from '@/lib/format';
-import type { Device, Predicate, PredicateItem } from '@/types/api';
+import type { Device, Predicate, PredicateItem, QueryBody } from '@/types/api';
 
 type DeviceView = 'active' | 'deleted';
 type DeviceSortField = 'default' | 'name' | 'tag';
@@ -222,7 +223,7 @@ export default function Devices() {
             { key: 'tag', label: '标签' },
           ],
           value: sortField,
-          onChange: (k) => setSortField(k as DeviceSortField),
+          onChange: (k: string) => setSortField(k as DeviceSortField),
           dir: sortDir,
           onDirChange: setSortDir,
           clientSortHint: '按标签排序仅作用于当前页;切换到首页可看到全部命中的有序结果。',

@@ -79,7 +79,7 @@ public class AlarmApp {
      */
     private void evaluateSingleRule(DataEntity data, AlarmRuleEntity rule) {
         // 获取点位原始值
-        String rawValue = data.getValue();
+        String rawValue = data.getStringValue();
         if (rawValue == null) {
             return;
         }

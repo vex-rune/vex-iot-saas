@@ -30,8 +30,9 @@ import { useApiMutation } from '@/hooks/useApiMutation';
 import { useQueryList } from '@/hooks/useQueryList';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
-import { SearchFilterBar, type FilterGroupSpec } from '@/components/list/SearchFilterBar';
-import { MagnifyingGlassIcon, PencilIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import SearchFilterBar from '@/components/list/SearchFilterBar';
+import type { FilterGroupSpec } from '@/components/list/SearchFilterBar';
+import { PencilIcon, PlusIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import {
   queryNotifyUsers,
   countNotifyUsers,
@@ -207,9 +208,9 @@ export default function NotifyUsers() {
   const openEditUser = (user: NotifyUser) => {
     setEditingUser(user);
     const form: UserFormShape = {
-      name: user.name,
-      phone: user.phone,
-      smsEnabled: user.smsEnabled,
+      name: user.name ?? '',
+      phone: user.phone ?? '',
+      smsEnabled: user.smsEnabled ?? true,
       enabled: user.enabled ?? true,
     };
     setUserForm(form);
@@ -325,7 +326,7 @@ export default function NotifyUsers() {
 
   const userNameById = useMemo(() => {
     const m = new Map<string, string>();
-    for (const u of users) m.set(u.id, u.name);
+    for (const u of users) m.set(u.id, u.name ?? '');
     return m;
   }, [users]);
 
@@ -368,12 +369,12 @@ export default function NotifyUsers() {
   const openEditTpl = (tpl: NotifyTemplate) => {
     setEditingTpl(tpl);
     const form: TplFormShape = {
-      name: tpl.name,
+      name: tpl.name ?? '',
       type: tpl.type,
       platform: tpl.platform,
-      templateId: tpl.templateId,
-      contentExample: tpl.contentExample,
-      enabled: tpl.enabled,
+      templateId: tpl.templateId ?? '',
+      contentExample: tpl.contentExample ?? '',
+      enabled: tpl.enabled ?? true,
     };
     setTplForm(form);
     // 已落库的数据视为合法,只更新 form,不预先标红
@@ -687,7 +688,7 @@ export default function NotifyUsers() {
                 { key: 'channel', label: '渠道' },
               ],
               value: recordSort,
-              onChange: (k) => setRecordSort(k as RecordSortField),
+              onChange: (k: string) => setRecordSort(k as RecordSortField),
               dir: recordDir,
               onDirChange: setRecordDir,
             }}
@@ -736,12 +737,12 @@ export default function NotifyUsers() {
                   }
                   subtitle={formatDateTime(r.time)}
                   badge={
-                    <Chip size="sm" variant="flat">{CHANNEL_LABELS[r.channel] ?? r.channel}</Chip>
+                    <Chip size="sm" variant="flat">{CHANNEL_LABELS[r.channel ?? ''] ?? r.channel ?? '-'}</Chip>
                   }
                 >
                   <FieldRow label="通知人" value={
-                    r.notifyUserIds
-                      .map((id) => userNameById.get(id) ?? id.slice(0, 8))
+                    (r.notifyUserIds ?? [])
+                      .map((id: string) => userNameById.get(id) ?? id.slice(0, 8))
                       .join('、') || '-'
                   } />
                   <FieldRow label="内容" value={
@@ -774,12 +775,12 @@ export default function NotifyUsers() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Chip size="sm" variant="flat">{CHANNEL_LABELS[r.channel] ?? r.channel}</Chip>
+                    <Chip size="sm" variant="flat">{CHANNEL_LABELS[r.channel ?? ''] ?? r.channel ?? '-'}</Chip>
                   </TableCell>
                   <TableCell>
                     <span className="text-xs text-foreground-600">
-                      {r.notifyUserIds
-                        .map((id) => userNameById.get(id) ?? id.slice(0, 8))
+                      {(r.notifyUserIds ?? [])
+                        .map((id: string) => userNameById.get(id) ?? id.slice(0, 8))
                         .join('、') || '-'}
                     </span>
                   </TableCell>

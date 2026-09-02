@@ -25,7 +25,6 @@ import {
 import {
   BellIcon,
   ChartBarIcon,
-  Cog6ToothIcon,
   ComputerDesktopIcon,
   CpuChipIcon,
   DevicePhoneMobileIcon,

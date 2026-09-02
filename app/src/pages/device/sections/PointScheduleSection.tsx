@@ -40,6 +40,7 @@ import type {
   DataType,
   DeviceSchedule,
   DeviceScheduleAction,
+  DeviceScheduleDetail,
   PointDefinition,
 } from '@/types/api';
 
@@ -120,11 +121,16 @@ export interface PointScheduleSectionProps {
 export default function PointScheduleSection({ deviceId, sectionRef }: PointScheduleSectionProps) {
   const queryClient = useQueryClient();
 
-  const { data: schedules = [] } = useQuery<DeviceSchedule[]>({
+  const { data: scheduleItems = [] } = useQuery<DeviceScheduleDetail[]>({
     queryKey: ['schedules.list.byDevice', deviceId],
     queryFn: () => chainToPromise(listDeviceSchedules(deviceId)),
     enabled: !!deviceId,
   });
+  /** 兼容老代码:把新接口形态压平成 DeviceSchedule[] 视图,保留 schedule+actions 内部映射. */
+  const schedules: DeviceSchedule[] = useMemo(
+    () => scheduleItems.map((it) => it.schedule),
+    [scheduleItems],
+  );
   const { data: points = [] } = useQuery<PointDefinition[]>({
     queryKey: ['points', deviceId],
     queryFn: () => chainToPromise(getDevicePoints(deviceId)),
@@ -152,9 +158,9 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
     const c = pendingChanges.get(s.id!) ?? {};
     return {
       id: s.id,
-      name: c.name ?? s.name,
-      cron: c.cron ?? s.cron,
-      enabled: c.enabled ?? s.enabled,
+      name: c.name ?? s.name ?? '',
+      cron: c.cron ?? s.cron ?? '',
+      enabled: c.enabled ?? s.enabled ?? true,
       description: c.description ?? (s.description ?? ''),
       actions: c.actions ?? [], // 编辑模式从 ServerActions 恢复（见 reloadEffectiveActions）
     };
@@ -278,7 +284,7 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
               description: eff.description.trim() || undefined,
             },
             actions: [], // 留空：不修改 actions
-          } as Parameters<typeof saveSchedule>[0]);
+          });
         },
       });
     }
@@ -468,15 +474,20 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
                       ? updateDraft(row.idx!, { name: v })
                       : updateField(row.id, { name: v })}
                     className="min-w-40 flex-1" />
-                  <Input
-                    size="sm" variant="bordered" placeholder="Cron 表达式"
-                    value={row.data.cron}
+                  <Select
+                    size="sm" variant="bordered" placeholder="选择执行周期"
+                    selectedKeys={row.data.cron ? [row.data.cron] : []}
                     isDisabled={isDel}
-                    onValueChange={(v) => isNew
-                      ? updateDraft(row.idx!, { cron: v })
-                      : updateField(row.id, { cron: v })}
-                    className="w-48 font-mono" />
-                  <Chip size="sm" variant="flat" color="default">{cronToText(row.data.cron)}</Chip>
+                    onSelectionChange={(keys) => {
+                      const v = Array.from(keys)[0] as string ?? '';
+                      isNew ? updateDraft(row.idx!, { cron: v }) : updateField(row.id, { cron: v });
+                    }}
+                    className="w-48"
+                  >
+                    {CRON_PRESETS.map((p) => (
+                      <SelectItem key={p.cron} description={p.description}>{p.label}</SelectItem>
+                    ))}
+                  </Select>
                   <Switch size="sm" isSelected={row.data.enabled} isDisabled={isDel}
                     onValueChange={(v) => isNew
                       ? updateDraft(row.idx!, { enabled: v })
@@ -504,7 +515,7 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
                                     valueText: a.valueText,
                                     sortOrder: i,
                                   })),
-                                } as Parameters<typeof saveSchedule>[0]);
+                                });
                                 addToast({ title: '规则已保存', color: 'success' });
                                 removeDraftAt(row.idx!);
                                 queryClient.invalidateQueries({ queryKey: ['schedules.list.byDevice', deviceId] });

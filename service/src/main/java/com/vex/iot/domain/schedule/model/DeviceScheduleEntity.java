@@ -6,6 +6,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -58,8 +61,8 @@ public class DeviceScheduleEntity extends BaseEntity {
     private LocalDateTime lastFireAt;
 
     /// 动作列表（JSON 存储）
-    @Convert(converter = ScheduleActionConverter.class)
-    @Column(columnDefinition = "jsonb")
+    @Column(name = "actions", columnDefinition = "jsonb")
     @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
     private List<ScheduleAction> actions = new ArrayList<>();
 }

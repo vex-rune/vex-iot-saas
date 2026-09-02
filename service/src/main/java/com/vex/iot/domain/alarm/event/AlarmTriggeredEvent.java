@@ -2,44 +2,67 @@ package com.vex.iot.domain.alarm.event;
 
 import com.vex.iot.common.enums.AlarmLevel;
 import com.vex.iot.common.model.CurrentUser;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.vex.iot.common.util.IdGenerator;
+import com.vex.iot.domain.event.IEvent;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
-/// 报警触发事件
-/// AlarmEngine 评估命中后发布,由 NotifyDispatchServer 订阅并发起通知推送。
-/// triggerUser 透传触发该报警链路的上下文(设备上行场景下为 CurrentUser.ofDevice 构造的设备身份),
-/// 异步订阅方不再依赖 ThreadLocal 的 UserContext。
+/// 报警触发事件 — 实现 {@link IEvent}。兼容旧 API：业务字段直接暴露 getter。
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AlarmTriggeredEvent {
+public final class AlarmTriggeredEvent implements IEvent<Map<String, Object>> {
 
-    /// 触发本次报警链路的上下文(用户 / 设备)
-    private CurrentUser triggerUser;
+    public static final String CATEGORY = "alarm";
 
-    /// 租户ID
-    private String tenantId;
+    // ==================== IEvent 标准字段 ====================
 
-    /// 事件ID
-    private String eventId;
+    private final IEvent.Metadata metadata;
+    private final Map<String, Object> payload;
 
-    /// 设备ID
-    private String deviceId;
+    // ==================== 兼容旧业务 getter 的字段 ====================
 
-    /// 点位编码
-    private String pointCode;
+    private final AlarmLevel level;
+    private final String message;
+    private final List<String> notifyUserIds;
+    private final CurrentUser triggerUser;
+    private final String tenantId;
+    private final String deviceId;
+    private final String pointCode;
+    private final String eventId;
 
-    /// 报警级别
-    private AlarmLevel level;
+    public AlarmTriggeredEvent(String tenantId, String deviceId, String pointCode,
+                               AlarmLevel level, String message, List<String> notifyUserIds,
+                               CurrentUser triggerUser) {
+        String eid = IdGenerator.snowId();
+        this.eventId = eid;
+        this.tenantId = tenantId;
+        this.deviceId = deviceId;
+        this.pointCode = pointCode;
+        this.level = level;
+        this.message = message;
+        this.notifyUserIds = notifyUserIds;
+        this.triggerUser = triggerUser;
 
-    /// 报警消息
-    private String message;
+        this.metadata = new IEvent.Metadata(
+                eid, tenantId, "alarm-engine", LocalDateTime.now(),
+                deviceId, pointCode, CATEGORY
+        );
 
-    /// 通知用户ID列表
-    private List<String> notifyUserIds;
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("eventId", eid);
+        data.put("deviceId", deviceId);
+        data.put("pointCode", pointCode);
+        data.put("level", level == null ? null : level.name());
+        data.put("message", message);
+        data.put("notifyUserIds", notifyUserIds);
+        if (triggerUser != null) {
+            data.put("triggerUserId", triggerUser.userId());
+            data.put("triggerUsername", triggerUser.username());
+        }
+        data.put("occurredAt", LocalDateTime.now());
+        this.payload = data;
+    }
 }

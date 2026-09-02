@@ -88,13 +88,13 @@ export default function AlarmRules() {
   const openEdit = (rule: AlarmRule) => {
     setEditingRule(rule);
     setForm({
-      deviceId: rule.deviceId,
+      deviceId: rule.deviceId ?? '',
       pointCode: rule.pointCode ?? '',
       conditionType: rule.conditionType,
       threshold: String(rule.threshold ?? ''),
       thresholdHigh: String(rule.thresholdHigh ?? ''),
       level: rule.level,
-      enabled: rule.enabled,
+      enabled: rule.enabled ?? true,
       notifyUserIds: (rule.notifyUserIds ?? []).join(','),
     });
     setDrawerOpen(true);
@@ -124,8 +124,11 @@ export default function AlarmRules() {
         deviceId: form.deviceId,
         pointCode: form.pointCode || undefined,
         conditionType: form.conditionType as AlarmRule['conditionType'],
-        threshold: Number(form.threshold),
-        thresholdHigh: form.conditionType === 'BETWEEN' ? Number(form.thresholdHigh) : undefined,
+        threshold: form.threshold.trim(),
+        thresholdHigh:
+          form.conditionType === 'BETWEEN' && form.thresholdHigh
+            ? form.thresholdHigh.trim()
+            : undefined,
         level: form.level as AlarmRule['level'],
         enabled: form.enabled,
         notifyUserIds: form.notifyUserIds
@@ -207,7 +210,7 @@ export default function AlarmRules() {
                   </>
                 }
               >
-                <FieldRow label="设备" value={<code className="text-xs">{rule.deviceId.slice(0, 8)}</code>} />
+                <FieldRow label="设备" value={<code className="text-xs">{(rule.deviceId ?? '').slice(0, 8) || '-'}</code>} />
                 <FieldRow label="通知人" value={`${(rule.notifyUserIds ?? []).length} 人`} />
               </EntityCard>
             ))}
@@ -226,7 +229,7 @@ export default function AlarmRules() {
           <TableBody emptyContent="暂无告警规则" items={rules}>
             {(rule: AlarmRule) => (
               <TableRow key={rule.id}>
-                <TableCell><code className="text-xs text-foreground">{rule.deviceId.slice(0, 8)}</code></TableCell>
+                <TableCell><code className="text-xs text-foreground">{(rule.deviceId ?? '').slice(0, 8) || '-'}</code></TableCell>
                 <TableCell className="hidden sm:table-cell"><code className="text-xs text-foreground">{rule.pointCode ?? '-'}</code></TableCell>
                 <TableCell className="text-sm text-foreground">
                   {rule.conditionType} {rule.threshold}

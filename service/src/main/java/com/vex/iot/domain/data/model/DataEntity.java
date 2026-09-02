@@ -1,5 +1,6 @@
 package com.vex.iot.domain.data.model;
 
+import com.vex.iot.common.constants.DataState;
 import com.vex.iot.common.enums.PointDataType;
 import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
@@ -16,7 +17,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 /// 设备点位历史数据(时序快照)
@@ -75,8 +75,8 @@ public class DataEntity extends BaseEntity {
     @Column(name = "ingested_at")
     private LocalDateTime ingestedAt;
 
-    /// 兼容兜底，全部类型都存字符串快照，用于调试导出
-    @Size(max = 4096)
-    @Column(length = 4096)
-    private String value;
+    /// 数据状态
+    @Enumerated(EnumType.STRING)
+    private PointDataState dataState;
+
 }

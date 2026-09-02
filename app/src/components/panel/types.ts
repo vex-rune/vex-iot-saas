@@ -36,9 +36,11 @@ export const PLUGIN_META: Record<PluginKind, { label: string; description: strin
 /** 点位数据类型 ↔ 插件兼容矩阵 */
 const POINT_PLUGIN_COMPAT: Record<DataType, PluginKind[]> = {
   BOOL: ['switch-light', 'control-switch', 'status-badge'],
-  LONG: ['status-badge', 'metric-value', 'line-chart', 'gauge'],
+  /** openapi v2:DataType 已无 LONG,整型统一收口到 INT */
+  INT: ['status-badge', 'metric-value', 'line-chart', 'gauge'],
   DOUBLE: ['status-badge', 'metric-value', 'line-chart', 'gauge'],
   STRING: ['status-badge', 'metric-value'],
+  FLOAT: ['status-badge', 'metric-value', 'line-chart', 'gauge'],
 };
 
 export function pluginsForDataType(dataType: DataType): PluginKind[] {

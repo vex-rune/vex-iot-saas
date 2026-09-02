@@ -155,7 +155,7 @@ export default function AlarmEvents() {
                 }
               >
                 <div className="text-sm text-foreground">{event.message}</div>
-                <FieldRow label="设备ID" value={<code className="text-xs">{event.deviceId.slice(0, 8)}</code>} />
+                <FieldRow label="设备ID" value={<code className="text-xs">{(event.deviceId ?? '').slice(0, 8) || '-'}</code>} />
                 {event.pointCode && (
                   <FieldRow label="点位" value={<code className="text-xs">{event.pointCode}</code>} />
                 )}
@@ -180,7 +180,7 @@ export default function AlarmEvents() {
                 <TableCell>
                   <span className="text-xs text-foreground-600">{formatDateTime(event.triggeredAt)}</span>
                 </TableCell>
-                <TableCell><code className="text-xs text-foreground">{event.deviceId.slice(0, 8)}</code></TableCell>
+                <TableCell><code className="text-xs text-foreground">{(event.deviceId ?? '').slice(0, 8) || '-'}</code></TableCell>
                 <TableCell className="hidden sm:table-cell"><code className="text-xs text-foreground">{event.pointCode ?? '-'}</code></TableCell>
                 <TableCell>
                   <Chip size="sm" variant="flat" color={LEVEL_COLORS[event.level]}>

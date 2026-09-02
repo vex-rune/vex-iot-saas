@@ -1,7 +1,7 @@
 import type { AccessType, DataType, PointDefinition } from '@/types/api';
 
 // ─── 常量 ──────────────────────────────────────────────────────────────
-export const DATA_TYPES: DataType[] = ['BOOL', 'LONG', 'STRING', 'DOUBLE'];
+export const DATA_TYPES: DataType[] = ['BOOL', 'INT', 'DOUBLE', 'STRING'];
 export const ACCESS_TYPES: AccessType[] = ['RO', 'RW'];
 export const ACCESS_LABELS: Record<AccessType, string> = { RO: '只读', RW: '读写' };
 

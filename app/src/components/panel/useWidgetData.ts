@@ -35,8 +35,21 @@ export function parseBoolValue(raw: string | undefined): boolean | undefined {
   return undefined;
 }
 
-function toMs(ts: { epochSecond?: number; seconds?: number } | undefined): number {
-  return (ts?.epochSecond ?? ts?.seconds ?? 0) * 1000;
+/**
+ * 把多种时间形态统一换算成毫秒:
+ *   - ISO 字符串("2025-09-01T10:00:00Z")→ Date.parse
+ *   - { epochSecond, seconds } 数值对象 → * 1000
+ *   - undefined / 解析失败 → 0(由调用方过滤掉)
+ */
+function toMs(ts: string | { epochSecond?: number; seconds?: number } | undefined): number {
+  if (typeof ts === 'string') {
+    const parsed = Date.parse(ts);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (ts && typeof ts === 'object') {
+    return (ts.epochSecond ?? ts.seconds ?? 0) * 1000;
+  }
+  return 0;
 }
 
 /**

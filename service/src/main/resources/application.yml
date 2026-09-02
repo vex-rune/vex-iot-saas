@@ -65,6 +65,26 @@ admin:
   # 管理员角色
   role: ${ADMIN_ROLE:SUPER_ADMIN}
 
+# CORS 配置 (运行时由 SecurityConfig#corsConfigurationSource 生效)
+cors:
+  # allowed-origin-patterns: 列表模式支持通配符，例如 "https://*.example.com"
+  allowed-origin-patterns:
+    - "*"
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  exposed-headers:
+    - Authorization
+    - Content-Disposition
+  allow-credentials: false
+  max-age: 3600
+
 # MQTT 配置
 mqtt:
   # 客户端 ID 前缀,启动时拼接随机后缀避免双实例冲突

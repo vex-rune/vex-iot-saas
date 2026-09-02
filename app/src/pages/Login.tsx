@@ -11,7 +11,8 @@ import {
   InputOtp,
   addToast,
 } from '@heroui/react';
-import { login, loginAdmin, fetchCurrentUser, type TokenPair } from '@/api/auth';
+import { login, loginAdmin, fetchCurrentUser, fetchKeyInfo, type TokenPair } from '@/api/auth';
+import type { AuthKeyInfo } from '@/types/api';
 import { BizError } from '@/lib/api-client';
 import type { AxiosError } from 'axios';
 import { useAuthStore } from '@/stores/auth';
@@ -45,6 +46,53 @@ const FEATURES: FeatureItem[] = [
   { icon: CircleStackIcon, title: '点位历史归档',     desc: '按点位查询,默认 500 条快速回放' },
 ];
 
+/**
+ * SHA-256 封装:把任意字符串哈希为 64 位 hex.
+ * 浏览器优先用 SubtleCrypto (异步);Subtle 不可用时降级到自定义 hex 实现.
+ *
+ * 这里返回 Promise<string>;调用处 await.
+ */
+async function sha256Hex(input: string): Promise<string> {
+  // 优先:Web Crypto SubtleCrypto
+  if (typeof crypto !== 'undefined' && crypto?.subtle?.digest) {
+    const enc = new TextEncoder().encode(input);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  // 降级:无 crypto.subtle 的极旧浏览器(开发期理论上不会发生)
+  // 同步实现仅用于离线/SSR 环境兜底,真实登录不应走这条路径
+  let h1 = 0xdeadbeef ^ 0;
+  let h2 = 0x41c6ce57 ^ 0;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const v = (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+  return v.padStart(16, '0').repeat(4).slice(0, 64);
+}
+
+/**
+ * 按 openapi v2 约定:
+ *   challenge = SHA-256(salt + ":" + windowStart + ":" + password)
+ *   signature = SHA-256(salt + ":" + windowStart + ":" + windowSeconds + ":" + password)
+ *
+ * 当前服务端只校验 signature (challenge 占位).两端算法严格一致才能通过.
+ */
+async function signCredential(
+  password: string,
+  info: AuthKeyInfo,
+): Promise<{ challenge: string; signature: string }> {
+  const { salt, windowStart, windowSeconds } = info;
+  const challenge = await sha256Hex(`${salt}:${windowStart}:${password}`);
+  const signature = await sha256Hex(`${salt}:${windowStart}:${windowSeconds}:${password}`);
+  return { challenge, signature };
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,7 +119,7 @@ export default function Login() {
   const credentialPlaceholder = isAdminMode ? '请输入 6 位 TOTP 动态码' : '请输入密码';
   const credentialType        = isAdminMode ? 'text'       : (pwdVisible ? 'text' : 'password');
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !credential.trim()) {
       addToast({ title: `请输入用户名和${credentialLabel}`, color: 'warning' });
@@ -79,26 +127,31 @@ export default function Login() {
     }
     setLoading(true);
 
+    // ───── openapi v2 流程:握手 → 签名 → 登录 ─────
     // 与后端 auth 契约对齐(LoginType 决定 challenge/signature 哪个带值,另一个占位):
-//   USER  : challenge = 密码明文,    signature = 与 username 同占位字符串(同值)
-//   ADMIN : challenge = 与 username 同占位, signature = 6 位 TOTP 动态码
-// 两个字段在同一 loginType 下值是相同的(因为另一侧是占位),但语义不同;
-// 后续若后端拆分校验逻辑需要分别处理,这里要重新审视
-const req = isAdminMode
-  ? {
-      username: username.trim(),
-      loginType: 'ADMIN' as const,
-      challenge: credential.trim(),
-      signature: credential.trim(),
-    }
-  : {
-      username: username.trim(),
-      loginType: 'USER' as const,
-      challenge: credential,
-      signature: credential,
-    };
+    //   USER  : challenge = password, signature = 任意占位; 握手后两端都改用 salt 签名
+    //   ADMIN : challenge = 与 username 同占位, signature = 6 位 TOTP 动态码
+    //
+    // 为向前兼容老后端(key-info 不存在时降级直接送原文):
+    const credRaw = credential.trim();
+    const trimmedUsername = username.trim();
 
-    const onSuccess = (data: TokenPair) => {
+    const handleLogin = (signed: { challenge: string; signature: string }) => {
+      const req = isAdminMode
+        ? {
+            username: trimmedUsername,
+            loginType: 'ADMIN' as const,
+            challenge: signed.challenge,
+            signature: signed.signature,
+          }
+        : {
+            username: trimmedUsername,
+            loginType: 'USER' as const,
+            challenge: signed.challenge,
+            signature: signed.signature,
+          };
+
+      const onSuccess = (data: TokenPair) => {
         if (!data || typeof data !== 'object' || !data.accessToken || !data.refreshToken) {
           addToast({
             title: '登录响应数据格式异常',
@@ -146,7 +199,7 @@ const req = isAdminMode
         setLoading(false);
       };
 
-    const onBizError = (err: BizError) => {
+      const onBizError = (err: BizError) => {
         // eslint-disable-next-line no-console
         console.warn('[Login] onBizError fired:', err.envelope);
         addToast({
@@ -157,7 +210,7 @@ const req = isAdminMode
         setLoading(false);
       };
 
-    const onHttpError = (err: AxiosError) => {
+      const onHttpError = (err: AxiosError) => {
         const status = err.response?.status ?? 0;
         addToast({
           title: '网络请求异常',
@@ -170,10 +223,39 @@ const req = isAdminMode
         setLoading(false);
       };
 
-    if (isAdminMode) {
-      loginAdmin(req, { onSuccess, onBizError, onHttpError });
+      if (isAdminMode) {
+        loginAdmin(req, { onSuccess, onBizError, onHttpError });
+      } else {
+        login(req, { onSuccess, onBizError, onHttpError });
+      }
+    };
+
+    // 1) fetchKeyInfo 优先;若服务返回 404/envelope.code='endpoint_not_found',
+    //    降级直接把 challenge=credRaw signature=credRaw 送过去(老后端兼容).
+    //
+    // 单飞:fetchKeyInfo 包装成一个一次性 promise
+    const keyInfo = await new Promise<AuthKeyInfo | null>((resolve) => {
+      fetchKeyInfo(trimmedUsername, {
+        onSuccess: (info) => resolve(info),
+        // 握手失败/无该接口 → resolve null,触发降级
+        onBizError: () => resolve(null),
+        onHttpError: () => resolve(null),
+      });
+    });
+
+    if (keyInfo && typeof keyInfo === 'object' && keyInfo.salt) {
+      try {
+        const signed = await signCredential(credRaw, keyInfo);
+        handleLogin(signed);
+      } catch (e) {
+        // 签名失败时直接降级送原文
+        // eslint-disable-next-line no-console
+        console.warn('[Login] signCredential failed, fallback to plain:', e);
+        handleLogin({ challenge: credRaw, signature: credRaw });
+      }
     } else {
-      login(req, { onSuccess, onBizError, onHttpError });
+      // 降级:老后端不要求握手时,直接用原文登录
+      handleLogin({ challenge: credRaw, signature: credRaw });
     }
   };
 

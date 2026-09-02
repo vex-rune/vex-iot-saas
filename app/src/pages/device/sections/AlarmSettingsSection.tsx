@@ -181,7 +181,7 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
         threshold: changes?.threshold ?? (r.threshold != null ? String(r.threshold) : ''),
         thresholdHigh: changes?.thresholdHigh ?? (r.thresholdHigh != null ? String(r.thresholdHigh) : ''),
         level: changes?.level ?? r.level,
-        enabled: changes?.enabled ?? r.enabled,
+        enabled: changes?.enabled ?? r.enabled ?? true,
         notifyUserIds: changes?.notifyUserIds ?? r.notifyUserIds ?? [],
       };
     },
@@ -287,8 +287,9 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
             deviceId,
             pointCode: eff.pointCode.trim(),
             conditionType: eff.conditionType,
-            threshold: Number(eff.threshold),
-            thresholdHigh: eff.conditionType === 'BETWEEN' ? Number(eff.thresholdHigh) : undefined,
+            threshold: eff.threshold.trim(),
+            thresholdHigh:
+              eff.conditionType === 'BETWEEN' ? eff.thresholdHigh.trim() : undefined,
             level: eff.level,
             enabled: eff.enabled,
             notifyUserIds: eff.notifyUserIds,
@@ -309,8 +310,8 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
             pointCode: d.pointCode.trim(),
             conditionType: d.conditionType,
             conditionName: d.conditionName.trim() || undefined,
-            threshold: Number(d.threshold),
-            thresholdHigh: d.conditionType === 'BETWEEN' ? Number(d.thresholdHigh) : undefined,
+            threshold: d.threshold.trim(),
+            thresholdHigh: d.conditionType === 'BETWEEN' ? d.thresholdHigh.trim() : undefined,
             level: d.level,
             enabled: d.enabled,
             notifyUserIds: d.notifyUserIds,
@@ -462,7 +463,7 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
           暂无告警规则，点击「添加规则」开始配置
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {allRows.map((row) => {
             const isNew = !alarmRules.some((r) => r.id === row._key) && !deletedIds.has(row._key);
             const isExistingDirty = isNew ? false : isRuleDirty(alarmRules.find((r) => r.id === row._key)!);
@@ -513,8 +514,9 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
                                 pointCode: row.pointCode.trim(),
                                 conditionType: row.conditionType,
                                 conditionName: row.conditionName.trim() || undefined,
-                                threshold: Number(row.threshold),
-                                thresholdHigh: row.conditionType === 'BETWEEN' ? Number(row.thresholdHigh) : undefined,
+                                threshold: row.threshold.trim(),
+                                thresholdHigh:
+                                  row.conditionType === 'BETWEEN' ? row.thresholdHigh.trim() : undefined,
                                 level: row.level,
                                 enabled: row.enabled,
                                 notifyUserIds: row.notifyUserIds,
@@ -552,8 +554,9 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
                                 pointCode: eff.pointCode.trim(),
                                 conditionType: eff.conditionType,
                                 conditionName: eff.conditionName.trim() || undefined,
-                                threshold: Number(eff.threshold),
-                                thresholdHigh: eff.conditionType === 'BETWEEN' ? Number(eff.thresholdHigh) : undefined,
+                                threshold: eff.threshold.trim(),
+                                thresholdHigh:
+                                  eff.conditionType === 'BETWEEN' ? eff.thresholdHigh.trim() : undefined,
                                 level: eff.level,
                                 enabled: eff.enabled,
                                 notifyUserIds: eff.notifyUserIds,

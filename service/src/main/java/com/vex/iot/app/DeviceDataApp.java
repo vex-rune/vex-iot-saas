@@ -1,22 +1,17 @@
 package com.vex.iot.app;
 
 import com.vex.iot.app.mqtt.usr.DeviceUpReport;
-import com.vex.iot.app.mqtt.usr.MqttUsrHeartMessage;
 import com.vex.iot.app.mqtt.usr.MqttUsrUpdateMessage;
 import com.vex.iot.app.mqtt.usr.MqttUsrWillMessage;
 import com.vex.iot.common.enums.DataType;
-import com.vex.iot.common.enums.DeviceOnline;
 import com.vex.iot.common.enums.PointDataType;
 import com.vex.iot.domain.data.DataService;
 import com.vex.iot.domain.data.model.DataEntity;
-import com.vex.iot.domain.data.repository.DataRepository;
+import com.vex.iot.domain.data.model.PointDataState;
 import com.vex.iot.domain.device.DeviceService;
-import com.vex.iot.domain.device.event.DeviceHeartbeatEvent;
-import com.vex.iot.domain.device.event.DeviceOfflineEvent;
 import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.device.model.PointEntity;
-import com.vex.iot.domain.device.repository.DeviceRepository;
-import com.vex.iot.domain.device.repository.PointDefinitionRepository;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
@@ -49,13 +44,12 @@ public class DeviceDataApp {
     /**
      * 处理设备心跳:将设备标记为在线并刷新最后心跳时间。
      */
-    public void heart(MqttUsrHeartMessage event) {
-        String gatewayId = event.payload().trim();
+    public void heartByGatewayId(String gatewayId) {
         if (Strings.isBlank(gatewayId)) {
             log.warn("心跳消息 payload 为空，忽略");
             return;
         }
-        deviceService.heart(gatewayId);
+        deviceService.heartByGatewayId(gatewayId);
     }
 
     /**
@@ -69,13 +63,23 @@ public class DeviceDataApp {
         }
 
         String gatewayId = params.gatewayId();
-        Optional<DeviceEntity> deviceOpt = deviceService.optDevice(gatewayId);
-        if (deviceOpt.isEmpty()) {
+        List<DeviceEntity> devices = deviceService.optDeviceByGatewayId(gatewayId);
+        if (devices.isEmpty()) {
             log.warn("数据上报消息对应的设备不存在: {}", gatewayId);
             return;
         }
 
-        DeviceEntity device = deviceOpt.get();
+        for (DeviceEntity device : devices) {
+            updateData(params, device);
+            updateDevice(device);
+        }
+    }
+
+    private void updateDevice(DeviceEntity device) {
+        deviceService.heartByGatewayId(device.getGatewayId());
+    }
+
+    private void updateData(DeviceUpReport.DeviceUpParams params, DeviceEntity device) {
         List<DeviceUpReport.ReadDataItem> rData = params.data();
         if (rData == null || rData.isEmpty()) {
             return;
@@ -88,40 +92,53 @@ public class DeviceDataApp {
         LocalDateTime now = LocalDateTime.now();
 
         for (DeviceUpReport.ReadDataItem item : rData) {
-            if (item.name() == null || item.name().isBlank()) {
-                continue;
-            }
-            if (item.err() != null && !item.err().isBlank() && DeviceUpReport.OK.equals(item.err())) {
-                log.debug("点位数据错误: gatewayId={}, pointCode={}, err={}", gatewayId, item.name(), item.err());
-                continue;
-            }
-            if (Strings.isNotBlank(item.value())) {
-                log.debug("点位数据为空: gatewayId={}, pointCode={}", gatewayId, item.name());
-                continue;
-            }
+            ValueResult valueResult = analysisValue(device, item);
 
             Optional<PointEntity> pointDefOpt = points.stream().filter(p -> p.getPointCode().equals(item.name())).findFirst();
             if (pointDefOpt.isEmpty()) {
-                log.debug("未找到点位定义: gatewayId={}, pointCode={}", gatewayId, item.name());
+                log.debug("未找到点位定义: device={}, pointCode={}", device, item.name());
                 continue;
             }
-
             PointEntity point = pointDefOpt.get();
 
-            DataEntity data = DataEntity.builder()
+
+            DataEntity.DataEntityBuilder<?, ?> builder = DataEntity.builder()
                     .deviceId(device.getId())
                     .deviceName(device.getDeviceName())
                     .pointId(point.getId())
                     .dataType(mapDataType(point.getDataType()))
                     .timestamp(deviceTime)
                     .ingestedAt(now)
-                    .value(item.value())
-                    .build();
+                    .dataState(valueResult.state());
 
-            fillTypedValue(data, point.getDataType(), item.value());
+            setFillTypedValue(builder, point.getDataType(), item.value());
+
+            DataEntity data = builder.build();
+
+            // 测试数据
+            // 随机数
+            double doubleValue = Math.random() * 100;
+            data.setDataState(PointDataState.NORMAL);
+            data.setDoubleValue(doubleValue);
+            data.setStringValue(String.valueOf(doubleValue));
 
             dataService.save(data);
         }
+    }
+
+    private static ValueResult analysisValue(DeviceEntity device, DeviceUpReport.ReadDataItem item) {
+        if (item.name() == null || item.name().isBlank()) {
+            return new ValueResult(PointDataState.ERROR, null);
+        }
+        if (item.err() != null && !item.err().isBlank() && DeviceUpReport.OK.equals(item.err())) {
+            log.debug("点位数据错误: device={}, pointCode={}, err={}", device, item.name(), item.err());
+            return new ValueResult(PointDataState.ERROR, null);
+        }
+        if (Strings.isBlank(item.value())) {
+            log.debug("点位数据为空: device={}, pointCode={}", device, item.name());
+            return new ValueResult(PointDataState.ERROR, null);
+        }
+        return new ValueResult(PointDataState.NORMAL, item.value());
     }
 
     /**
@@ -133,7 +150,7 @@ public class DeviceDataApp {
             log.warn("离线消息 payload 为空，忽略");
             return;
         }
-        deviceService.will(gatewayId);
+        deviceService.willByGatewayId(gatewayId);
     }
 
     // ==================== 内部工具 ====================
@@ -171,29 +188,37 @@ public class DeviceDataApp {
         };
     }
 
-    private static void fillTypedValue(DataEntity data, DataType dataType, String value) {
-        if (dataType == null) {
+    private static void setFillTypedValue(@NotNull DataEntity.DataEntityBuilder<?, ?> data, @NotNull DataType dataType, String value) {
+
+        if (Strings.isBlank(value)) {
+            data.stringValue(value);
             return;
         }
+
+
         switch (dataType) {
-            case BOOL -> data.setIntValue("1".equals(value) || "true".equalsIgnoreCase(value) ? 1L : 0L);
             case LONG -> {
                 try {
-                    data.setIntValue(Long.parseLong(value.trim()));
+                    data.intValue(Long.parseLong(value.trim()));
                 } catch (NumberFormatException ignored) {
                     // 值无法解析为 Long,保留字符串快照
+                    data.stringValue(value);
                 }
             }
             case DOUBLE -> {
                 try {
-                    data.setDoubleValue(Double.parseDouble(value.trim()));
+                    data.doubleValue(Double.parseDouble(value.trim()));
                 } catch (NumberFormatException ignored) {
                     // 值无法解析为 Double,保留字符串快照
                 }
             }
-            case STRING -> data.setStringValue(value);
         }
+        data.stringValue(value);
+    }
 
-        data.setStringValue(value);
+    private record ValueResult(
+            PointDataState state,
+            String value
+    ) {
     }
 }

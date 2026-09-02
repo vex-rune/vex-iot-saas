@@ -70,7 +70,7 @@ export interface PanelRendererProps {
 /** widget 显示标签：自定义标题 > 点位名 > 设备属性名 */
 function widgetLabel(widget: WidgetInstance, pointDef?: PointDefinition): string {
   if (widget.title) return widget.title;
-  if (widget.binding.kind === 'point' && pointDef) return pointDef.pointName;
+  if (widget.binding.kind === 'point' && pointDef) return pointDef.pointName ?? '';
   if (widget.binding.kind === 'device') {
     const names: Record<string, string> = {
       online: '在线状态',
@@ -277,7 +277,7 @@ function RealtimeValueBody({
       return (
         <StatusBadgeView
           label={label}
-          value={point?.displayValue || point?.rawValue}
+          value={point?.value ?? point?.rawValue}
           colorRules={widget.props.colorRules}
           noDataText={widget.props.noDataText}
           noDataColor={widget.props.noDataColor}
@@ -287,7 +287,7 @@ function RealtimeValueBody({
       return (
         <MetricValueView
           label={label}
-          value={point?.displayValue || point?.rawValue}
+          value={point?.value ?? point?.rawValue}
           unit={pointDef?.unit}
           showUnit={widget.props.showUnit !== false}
         />
@@ -595,7 +595,11 @@ export default function PanelRenderer({
   onRequestEdit,
 }: PanelRendererProps) {
   const isMobile = useIsMobile();
-  const pointMap = useMemo(() => new Map(points.map((p) => [p.pointCode, p])), [points]);
+  // 显式标注 key 类型,避免 TS 在外层 widen 成 Map<string | undefined, ...>
+  const pointMap = useMemo<Map<string, PointDefinition>>(
+    () => new Map<string, PointDefinition>(points.map((p) => [p.pointCode, p])),
+    [points],
+  );
 
   // 上移/下移：交换排序后相邻两项的 y（单列语义，桌面/手机通用）
   const moveWidget = useCallback(
