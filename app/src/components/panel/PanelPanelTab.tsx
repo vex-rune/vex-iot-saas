@@ -1,49 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
-  Chip,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Skeleton,
   addToast,
 } from '@heroui/react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
-import { getDevicePoints } from '@/api/devices';
+import { getDevicePoints, getPanelConfig, savePanelConfig } from '@/api/devices';
 import { chainToPromise } from '@/hooks/useQueryList';
+import { useBeforeUnload } from '@/hooks/useBeforeUnload';
 import type { PointDefinition } from '@/types/api';
 import PanelRenderer from './PanelRenderer';
 import PanelEditor from './PanelEditor';
 import { parsePanelConfig, panelConfigSchema } from './types';
 import type { PanelConfig } from './types';
-
-// ─── 持久化层 ──────────────────────────────────────────────────────
-//   当前状态:面板草稿走 localStorage,仅作为本地编辑恢复使用。
-//   说明:
-//     - 数据存当前浏览器;换浏览器/清缓存会丢失
-//     - 后端"面板"字段就绪后,只需将 readDraft/saveDraft 替换为设备字段读写
-//       (序列化格式不变,parsePanelConfig 无需调整)
-//   视图层在编辑面板时显式打"演示" Chip,让用户清楚数据存储位置。
-const draftKey = (deviceId: string) => `panel.draft.${deviceId}`;
-
-function readDraft(deviceId: string): string | null {
-  try {
-    return localStorage.getItem(draftKey(deviceId));
-  } catch {
-    return null;
-  }
-}
-
-function saveDraft(deviceId: string, config: PanelConfig): boolean {
-  try {
-    localStorage.setItem(draftKey(deviceId), JSON.stringify(config));
-    return true;
-  } catch {
-    return false; // 存储不可用（隐私模式等）
-  }
-}
 
 /** 安全 JSON.stringify:序列化失败时返回固定哨兵字符串,避免脏值绕过 dirty 比较 */
 function safeStringify(value: unknown): string {
@@ -63,16 +38,30 @@ export default function PanelPanelTab({
   editing: boolean;
   onEditingChange: (editing: boolean) => void;
 }) {
-  // 启动时读取 localStorage 中的"上次保存"作为初始值,并记下它的字符串快照
-  // 用于后续"本次会话是否相对上次保存有未保存修改"的判断 — 避免每次 cancel 都重读 + stringify 一次
-  // save 后即时更新 snapshot,使后续 cancel 行为正确
-  const savedSnapshotRef = useRef<string>(safeStringify(readDraft(deviceId)));
-  // deviceId 变化时重置 snapshot
-  useEffect(() => {
-    savedSnapshotRef.current = safeStringify(readDraft(deviceId));
-  }, [deviceId]);
-  const [config, setConfig] = useState<PanelConfig>(() => parsePanelConfig(readDraft(deviceId)));
+  const queryClient = useQueryClient();
+  const [config, setConfig] = useState<PanelConfig>({ version: 1, widgets: [] });
   const [cancelConfirm, setCancelConfirm] = useState(false);
+
+  // 从后端获取面板配置
+  const panelQuery = useQuery({
+    queryKey: ['device.panel-config', deviceId],
+    queryFn: () => chainToPromise(getPanelConfig(deviceId)),
+    enabled: !!deviceId,
+  });
+
+  // 面板配置加载完成后更新本地状态
+  const savedSnapshotRef = useRef<string>(safeStringify(null));
+  useEffect(() => {
+    if (panelQuery.data) {
+      const parsed = parsePanelConfig(panelQuery.data.panelConfig);
+      setConfig(parsed);
+      savedSnapshotRef.current = safeStringify(parsed);
+    } else if (panelQuery.data === null) {
+      const empty = { version: 1, widgets: [] } as PanelConfig;
+      setConfig(empty);
+      savedSnapshotRef.current = safeStringify(empty);
+    }
+  }, [panelQuery.data]);
 
   const pointsQuery = useQuery({
     queryKey: ['device.points', deviceId],
@@ -81,11 +70,24 @@ export default function PanelPanelTab({
   });
   const points: PointDefinition[] = pointsQuery.data ?? [];
 
-  // 仅比较当前会话 config 与"上次保存"的快照;O(1) 字符串比对,不再走 localStorage / JSON.parse
+  // 保存到后端 — 直接传 PanelConfig 对象,由 axios 自动 JSON 序列化
+  const saveMutation = useMutation({
+    mutationFn: (configObj: PanelConfig) =>
+      chainToPromise(savePanelConfig(deviceId, configObj as unknown as Record<string, unknown>)),
+    onSuccess: () => {
+      savedSnapshotRef.current = safeStringify(config);
+      addToast({ title: '面板已保存', color: 'success' });
+      onEditingChange(false);
+      queryClient.invalidateQueries({ queryKey: ['device.panel-config', deviceId] });
+    },
+    onError: () => {
+      addToast({ title: '保存失败，请稍后重试', color: 'danger' });
+    },
+  });
+
   const isSessionDirty = () => safeStringify(config) !== savedSnapshotRef.current;
 
   const handleSave = () => {
-    // 保存前整体校验：未完成配置的组件 + schema 校验，读写对称
     const invalid = config.widgets.filter(
       (w) => (w.binding.kind === 'point' && !w.binding.pointCode) || !w.title.trim(),
     );
@@ -97,14 +99,7 @@ export default function PanelPanelTab({
       addToast({ title: '面板配置校验未通过，请检查组件配置', color: 'danger' });
       return;
     }
-    if (!saveDraft(deviceId, config)) {
-      addToast({ title: '保存失败，请检查浏览器存储权限', color: 'danger' });
-      return;
-    }
-    // 保存成功:刷新 snapshot,后续 cancel 直接走"未修改"路径
-    savedSnapshotRef.current = safeStringify(config);
-    addToast({ title: '面板已保存', color: 'success' });
-    onEditingChange(false);
+    saveMutation.mutate(config);
   };
 
   const handleCancel = () => {
@@ -116,20 +111,30 @@ export default function PanelPanelTab({
   };
 
   const doCancel = () => {
-    setConfig(parsePanelConfig(readDraft(deviceId)));
+    if (panelQuery.data) {
+      setConfig(parsePanelConfig(panelQuery.data.panelConfig));
+    } else {
+      setConfig({ version: 1, widgets: [] } as PanelConfig);
+    }
     onEditingChange(false);
   };
 
   // 编辑中刷新/关闭页面保护
-  useEffect(() => {
-    if (!editing) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [editing]);
+  useBeforeUnload(editing);
+
+  // 加载中状态
+  if (panelQuery.isLoading) {
+    return (
+      <div className="rounded-2xl bg-content1 p-4">
+        <Skeleton className="h-8 w-48 rounded-lg" />
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (editing) {
     return (
@@ -141,12 +146,11 @@ export default function PanelPanelTab({
           pointsLoading={pointsQuery.isLoading}
           pointsError={pointsQuery.isError}
           onPointsRetry={() => pointsQuery.refetch()}
-          saving={false}
+          saving={saveMutation.isPending}
           onConfigChange={setConfig}
           onSave={handleSave}
           onCancel={handleCancel}
         />
-        {/* 放弃整个编辑会话确认 */}
         <Modal isOpen={cancelConfirm} size="sm" onClose={() => setCancelConfirm(false)}>
           <ModalContent>
             <ModalHeader className="flex flex-col gap-1">放弃未保存的修改？</ModalHeader>
@@ -169,10 +173,7 @@ export default function PanelPanelTab({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <Chip size="sm" variant="flat" color="warning">
-          演示:面板数据存本地浏览器,清缓存会丢失
-        </Chip>
+      <div className="flex items-center justify-end">
         <Button
           size="sm"
           color="primary"

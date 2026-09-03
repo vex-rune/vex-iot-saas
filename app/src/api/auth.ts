@@ -18,18 +18,8 @@ import type {
   TokenPairResp,
   LoginType,
   KeyInfoResponse,
-  TokenRefreshReq,
+  LoginReq,
 } from '@/types/api';
-
-/** 登录请求入参 */
-export interface LoginReq {
-  username: string;
-  loginType: 'USER' | 'ADMIN';
-  /** USER 模式 = 经 salt+window 签名后的密码; ADMIN 模式 = 任意占位 */
-  challenge: string;
-  /** ADMIN 模式 = 6 位 TOTP 动态码; USER 模式 = 任意占位 */
-  signature: string;
-}
 
 export type TokenPair = BizEnvelope<TokenPairResp>['data'];
 
@@ -72,12 +62,7 @@ export function login(
   req: LoginReq,
   cbs?: RequestCallbacks<TokenPair>,
 ): void {
-  const chain = post<TokenPair>('/auth/login', {
-    username: req.username,
-    loginType: 'USER' as LoginType,
-    challenge: req.challenge,
-    signature: req.signature,
-  });
+  const chain = post<TokenPair>('/auth/login', req);
   dispatch(chain, cbs);
 }
 
@@ -92,21 +77,16 @@ export function login(
  *   1. fetchKeyInfo → 拿到 salt / windowStart / windowSeconds
  *   2. signature = SHA-256(salt + ':' + windowStart + ':' + windowSeconds + ':' + dynamicCode)
  *   3. challenge = 占位(后端不读)
- *
- * 注:密码与动态码登录均使用 /auth/login 一个端点,区分通过 loginType,
- * 后端校验按 loginType 路由.
  */
 export function loginAdmin(
   req: LoginReq,
   cbs?: RequestCallbacks<TokenPair>,
 ): void {
   const chain = post<TokenPair>('/auth/login', {
-    username: req.username,
+    ...req,
     loginType: 'ADMIN' as LoginType,
     // 后端 ADMIN 模式忽略 challenge;给一个非空占位避免空串触发某些网关 400
     challenge: req.challenge || req.username || 'placeholder',
-    // signature 字段直接是签名后的 6 位 TOTP 动态码
-    signature: req.signature,
   });
   dispatch(chain, cbs);
 }
@@ -123,16 +103,42 @@ export function fetchCurrentUser(
 }
 
 /**
- * 刷新 token:
- *   入参:{ refreshToken }
- *   出参:TokenPair(新的 accessToken + refreshToken)
- * 一般用法:拦截器内部自动调用,上层不直接使用.
+ * 切换租户(REFRESH loginType):
+ *   - 入参:{ refreshToken, targetTenantId, loginType: 'REFRESH' }
+ *   - 调 POST /api/auth/login(loginType=REFRESH)
+ *   - 后端 UserRefreshTokenAuthenticationProvider 校验后返回新的 TokenPair
+ *   - 调用方需自行 setTokens + 刷新页面
  */
-export function refreshToken(
-  req: TokenRefreshReq,
+export function switchTenant(
+  refreshToken: string,
+  targetTenantId: string,
   cbs?: RequestCallbacks<TokenPair>,
 ): void {
-  const chain = post<TokenPair>('/auth/refresh', req);
+  const chain = post<TokenPair>('/auth/login', {
+    loginType: 'REFRESH' as LoginType,
+    refreshToken,
+    targetTenantId,
+    challenge: 'placeholder',
+    signature: 'placeholder',
+  });
+  dispatch(chain, cbs);
+}
+
+/** 可切换租户信息(GET /api/auth/tenants 响应) */
+export interface AvailableTenant {
+  id: string;
+  code: string;
+  name: string;
+  current: boolean;
+}
+
+/**
+ * 拉取当前账号可切换的租户列表(右上角"切换租户"弹框使用)。
+ */
+export function fetchAvailableTenants(
+  cbs?: RequestCallbacks<AvailableTenant[]>,
+): void {
+  const chain = get<AvailableTenant[]>('/auth/tenants');
   dispatch(chain, cbs);
 }
 

@@ -121,6 +121,47 @@ export function sortDevicePoints(deviceId: string, pointIds: string[]): RequestC
   return put<void>(`/devices/${deviceId}/points/sort`, { pointIds });
 }
 
+// ─── 面板配置 ──────────────────────────────────────────────────────
+
+/**
+ * 面板配置对象(与后端 DevicePanelEntity.panelConfig 对应)。
+ *
+ * <p>后端以 Map<String, Object> 接收,DB 存为 PostgreSQL JSONB;前端直接传对象即可,
+ * axios 会自动 JSON 序列化。</p>
+ */
+export type PanelConfigObject = Record<string, unknown>;
+
+/** 面板配置实体(与后端 DevicePanelEntity 对应) */
+export interface DevicePanelConfig {
+  id: string;
+  deviceId: string;
+  panelConfig: PanelConfigObject | null;
+  createdAt?: string;
+  createId?: string;
+  updatedAt?: string;
+  updateId?: string;
+  state?: number;
+  tenantId?: string;
+}
+
+/** 获取设备面板配置 */
+export function getPanelConfig(deviceId: string): RequestChain<DevicePanelConfig | null> {
+  return get<DevicePanelConfig | null>(`/devices/${deviceId}/panel-config`);
+}
+
+/** 保存设备面板配置 */
+export function savePanelConfig(
+  deviceId: string,
+  panelConfig: PanelConfigObject,
+): RequestChain<DevicePanelConfig> {
+  return put<DevicePanelConfig>(`/devices/${deviceId}/panel-config`, { panelConfig });
+}
+
+/** 删除设备面板配置 */
+export function deletePanelConfig(deviceId: string): RequestChain<void> {
+  return del<void>(`/devices/${deviceId}/panel-config`);
+}
+
 // ─── 兼容垫片(openapi v2 中已删除端点,这里做"路由到新端点"的兼容)───────────
 //
 // 这些函数保留,是为了不让上层 page 在迁移期编译失败。
@@ -145,12 +186,18 @@ export function getDeviceHistory(
   params: { pointCode: string; limit?: number; fromSeconds?: number; toSeconds?: number },
 ): RequestChain<PointHistory[]> {
   // 通过 DataEntity 时间窗查询(对端 toTimestamp 取 now 即可)
-  void params; // 占位:完整迁移时应透传 pointId/limit/fromTimestamp/toTimestamp
+  const conditions: QueryBody['predicate']['and'] = [
+    { condition: { field: 'deviceId', op: 'eq', value: deviceId } },
+    { condition: { field: 'pointCode', op: 'eq', value: params.pointCode } },
+  ];
+  if (params.fromSeconds) {
+    const fromTs = new Date(params.fromSeconds * 1000).toISOString();
+    conditions.push({ condition: { field: 'timestamp', op: 'gte', value: fromTs } });
+  }
   return queryData({
-    predicate: { and: [
-      { condition: { field: 'deviceId', op: 'eq', value: deviceId } },
-      { condition: { field: 'pointId', op: 'eq', value: params.pointCode } },
-    ] },
+    predicate: { and: conditions },
+    ...(params.limit ? { page: { page: 0, size: params.limit } } : {}),
+    order: [{ field: 'timestamp', order: 'DESC' }],
   });
 }
 

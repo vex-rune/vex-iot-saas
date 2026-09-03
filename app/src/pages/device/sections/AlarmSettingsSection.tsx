@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { EditableSectionLayout } from '@/components/common/EditableSectionLayout';
+import { AlarmSettingsCard } from './cards/AlarmSettingsCard';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Button,
   Chip,
@@ -14,6 +16,12 @@ import {
   Select,
   SelectItem,
   Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
   Tooltip,
   addToast,
 } from '@heroui/react';
@@ -32,29 +40,24 @@ import { getDevicePoints } from '@/api/devices';
 import { queryNotifyUsers } from '@/api/notifyUsers';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { chainToPromise } from '@/hooks/useQueryList';
-import { EntityCard, FieldRow } from '@/components/EntityCard';
 import { BatchProgressModal, type BatchTask } from '@/components/common/BatchProgressModal';
-import type { AlarmLevel, AlarmRule, ConditionType, NotifyUser, PointDefinition } from '@/types/api';
+import type { AlarmLevel, AlarmRule, AlarmConditionType, NotifyUser, PointDefinition } from '@/types/api';
 
-const CONDITION_OPTIONS: ConditionType[] = ['GT', 'GE', 'LT', 'LE', 'EQ', 'NE', 'BETWEEN'];
-const CONDITION_DEFAULT_LABELS: Record<ConditionType, string> = {
+const CONDITION_OPTIONS: AlarmConditionType[] = ['GT', 'GE', 'LT', 'LE', 'EQ', 'NE', 'BETWEEN'];
+const CONDITION_DEFAULT_LABELS: Record<AlarmConditionType, string> = {
   GT: '大于', GE: '大于等于', LT: '小于', LE: '小于等于',
   EQ: '等于', NE: '不等于', BETWEEN: '区间',
-};
-const CONDITION_SYMBOLS: Record<ConditionType, string> = {
-  GT: '>', GE: '>=', LT: '<', LE: '<=',
-  EQ: '=', NE: '!=', BETWEEN: '[]',
 };
 const LEVEL_OPTIONS = ALARM_LEVEL_OPTIONS;
 const LEVEL_LABELS = ALARM_LEVEL_LABELS;
 const LEVEL_COLORS = ALARM_LEVEL_COLORS;
 
 /** 表内编辑草稿行（无 id，新增/复制产生） */
-type DraftRow = {
+export type DraftRow = {
   _key: string;
   ruleName: string;
   pointCode: string;
-  conditionType: ConditionType;
+  conditionType: AlarmConditionType;
   conditionName: string;
   threshold: string;
   thresholdHigh: string;
@@ -78,7 +81,7 @@ const EMPTY_DRAFT = (): DraftRow => ({
 
 /** 4 字段唯一性：(pointCode, conditionType, threshold, level) */
 function isDuplicateRule(
-  rule: { pointCode: string; conditionType: ConditionType; threshold: string; level: AlarmLevel },
+  rule: { pointCode: string; conditionType: AlarmConditionType; threshold: string; level: AlarmLevel },
   rules: AlarmRule[],
   drafts: DraftRow[],
   excludeId?: string,
@@ -386,291 +389,302 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
     return [...existing, ...drafts];
   }, [visibleRules, drafts, getEffective]);
 
-  // 提醒用户离开未保存
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
-
   return (
-    <section ref={sectionRef} className="scroll-mt-20 rounded-2xl bg-content1 p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <BellIcon className="h-4 w-4 text-foreground-500" />
-          <h2 className="text-base font-medium text-foreground">告警设置</h2>
-          <Chip size="sm" variant="flat">{visibleRules.length} 条规则</Chip>
-          {isDirty && (
-            <Chip size="sm" variant="flat" color="warning">
-              {pendingChanges.size + drafts.length + deletedIds.size} 项未保存
-            </Chip>
-          )}
+    <EditableSectionLayout
+      ref={sectionRef}
+      title="告警设置"
+      icon={<BellIcon className="h-4 w-4 text-foreground-500" />}
+      countLabel={`${visibleRules.length} 条规则`}
+      hasUnsaved={isDirty}
+      unsavedCount={pendingChanges.size + drafts.length + deletedIds.size}
+      onSaveAll={openSaveAll}
+      onDiscardAll={() => setConfirm({ kind: 'discard' })}
+      isSaving={false} // 需要补充状态判断
+      extraToolbar={
+        <Popover placement="bottom-end">
+          <PopoverTrigger>
+            <Button size="sm" color="primary" startContent={<PlusIcon className="h-4 w-4" />}>
+              添加规则
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent >
+            <div className="flex flex-col gap-1">
+              <Button size="sm" variant="flat" className="justify-start"
+                onPress={() => { addDraft({ conditionType: 'GT', level: 'WARNING' }); }}>
+                超过阈值告警
+              </Button>
+              <Button size="sm" variant="flat" className="justify-start"
+                onPress={() => { addDraft({ conditionType: 'LT', level: 'CRITICAL' }); }}>
+                低于阈值告警
+              </Button>
+              <Button size="sm" variant="flat" className="justify-start"
+                onPress={() => { addDraft({ conditionType: 'EQ', level: 'FATAL' }); }}>
+                等值触发
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      }
+      renderMobile={() => (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {allRows.map((row) => {
+            const isNew = !alarmRules.some((r) => r.id === row._key) && !deletedIds.has(row._key);
+            const isDel = !isNew && deletedIds.has(row._key);
+            const isExistingDirty = isNew ? false : isRuleDirty(alarmRules.find((r) => r.id === row._key)!);
+            return (
+              <AlarmSettingsCard
+                key={row._key}
+                row={isNew ? row : getEffective(alarmRules.find((r) => r.id === row._key)!)}
+                isDirty={isNew || isExistingDirty}
+                isSaving={false}
+                isDeleted={isDel}
+                points={points}
+                notifyUsers={notifyUsers}
+                onChange={(patch) => isNew
+                  ? updateDraft(row._key, patch)
+                  : updateRuleField(row._key, patch)}
+                onSave={isNew ? undefined : async () => {
+                  const r = alarmRules.find((x) => x.id === row._key)!;
+                  const eff = getEffective(r);
+                  await saveAlarmMutation.mutateAsync({
+                    id: r.id, deviceId, pointCode: eff.pointCode.trim(),
+                    conditionType: eff.conditionType,
+                    conditionName: eff.conditionName.trim() || undefined,
+                    threshold: eff.threshold.trim(),
+                    thresholdHigh: eff.conditionType === 'BETWEEN' ? eff.thresholdHigh.trim() : undefined,
+                    level: eff.level, enabled: eff.enabled,
+                    notifyUserIds: eff.notifyUserIds,
+                    ruleName: eff.ruleName.trim() || undefined,
+                  });
+                  discardRule(r.id);
+                  queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
+                }}
+                onDiscard={() => isNew ? removeDraft(row._key) : discardRule(row._key)}
+                onCopy={() => {
+                  const source = isNew ? row : getEffective(alarmRules.find((r) => r.id === row._key)!);
+                  copyRule(source);
+                }}
+                onDelete={() => isNew ? removeDraft(row._key) : markDeleted(row._key)}
+              />
+            );
+          })}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Popover placement="bottom-end">
-            <PopoverTrigger>
-              <Button size="sm" color="primary" startContent={<PlusIcon className="h-4 w-4" />}>
-                添加规则
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-2">
-              <div className="flex flex-col gap-1">
-                <Button size="sm" variant="flat" className="justify-start"
-                  onPress={() => { addDraft({ conditionType: 'GT', level: 'WARNING' }); }}>
-                  超过阈值告警
-                </Button>
-                <Button size="sm" variant="flat" className="justify-start"
-                  onPress={() => { addDraft({ conditionType: 'LT', level: 'CRITICAL' }); }}>
-                  低于阈值告警
-                </Button>
-                <Button size="sm" variant="flat" className="justify-start"
-                  onPress={() => { addDraft({ conditionType: 'BETWEEN', level: 'INFO' }); }}>
-                  区间告警
-                </Button>
-                <Button size="sm" variant="flat" className="justify-start"
-                  onPress={() => { addDraft({ conditionType: 'EQ', level: 'FATAL' }); }}>
-                  等值触发
-                </Button>
-                <div className="my-1 border-t border-divider" />
-                <Button size="sm" variant="flat" className="justify-start"
-                  onPress={() => addDraft()}>
-                  空规则
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          {isDirty && (
-            <>
-              <Button size="sm" variant="flat" color="danger"
-                onPress={() => setConfirm({ kind: 'discard' })}>
-                全部放弃
-              </Button>
-              <Button size="sm" color="primary"
-                onPress={openSaveAll}>
-                全部保存
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
+      )}
+    >
       {allRows.length === 0 ? (
         <div className="rounded-lg border border-dashed border-divider p-8 text-center text-sm text-foreground-400">
           暂无告警规则，点击「添加规则」开始配置
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {allRows.map((row) => {
-            const isNew = !alarmRules.some((r) => r.id === row._key) && !deletedIds.has(row._key);
-            const isExistingDirty = isNew ? false : isRuleDirty(alarmRules.find((r) => r.id === row._key)!);
-            const isDel = !isNew && deletedIds.has(row._key);
-            const pointOptions = points.map((p) => ({ key: p.pointCode, label: `${p.pointName} (${p.pointCode})` }));
-            const userOptions = notifyUsers.map((u) => ({ key: u.id, label: `${u.name}（${u.phone}）` }));
-            const point = points.find((p) => p.pointCode === row.pointCode);
-            const updateField = isNew
-              ? (changes: Partial<DraftRow>) => updateDraft(row._key, changes)
-              : (changes: Partial<DraftRow>) => updateRuleField(row._key, changes);
-            return (
-              <EntityCard
-                key={row._key}
-                title={
-                  <Input
-                    size="sm"
-                    variant="flat"
-                    placeholder="规则名称"
-                    value={row.ruleName}
+        <Table aria-label="告警规则" isStriped classNames={{ wrapper: 'bg-content1 rounded-2xl' }}>
+  <TableHeader>
+    <TableColumn>规则名称</TableColumn>
+    <TableColumn>点位</TableColumn>
+    <TableColumn>条件</TableColumn>
+    <TableColumn>阈值</TableColumn>
+    <TableColumn>级别</TableColumn>
+    <TableColumn>通知人</TableColumn>
+    <TableColumn className="hidden md:table-cell">条件名称</TableColumn>
+    <TableColumn>启用</TableColumn>
+    <TableColumn>状态</TableColumn>
+    <TableColumn>操作</TableColumn>
+  </TableHeader>
+  <TableBody emptyContent="暂无告警规则，点击「添加规则」开始配置">
+    {allRows.map((row) => {
+      const isNew = !alarmRules.some((r) => r.id === row._key) && !deletedIds.has(row._key);
+      const isExistingDirty = isNew ? false : isRuleDirty(alarmRules.find((r) => r.id === row._key)!);
+      const isDel = !isNew && deletedIds.has(row._key);
+      const pointOptions = points.map((p) => ({ key: p.pointCode, label: `${p.pointName} (${p.pointCode})` }));
+      const userOptions = notifyUsers.map((u) => ({ key: u.id, label: `${u.name}（${u.phone}）` }));
+      const updateField = isNew
+        ? (changes: Partial<DraftRow>) => updateDraft(row._key, changes)
+        : (changes: Partial<DraftRow>) => updateRuleField(row._key, changes);
+      return (
+        <TableRow key={row._key} className={isDel ? 'opacity-50' : ''}>
+          <TableCell>
+            <Input size="sm" variant="bordered" placeholder="规则名称"
+              value={row.ruleName} isDisabled={isDel}
+              onValueChange={(v) => updateField({ ruleName: v })}
+              classNames={{ inputWrapper: 'h-8 min-h-0' }} />
+          </TableCell>
+          <TableCell>
+            <Select size="sm" variant="bordered" aria-label="点位" placeholder="选择点位"
+              isDisabled={isDel}
+              selectedKeys={row.pointCode ? [row.pointCode] : []}
+              onSelectionChange={(keys) => updateField({ pointCode: Array.from(keys)[0] as string })}
+              className="min-w-32">
+              {pointOptions.map((opt) => (
+                <SelectItem key={opt.key} textValue={opt.label}>{opt.label}</SelectItem>
+              ))}
+            </Select>
+          </TableCell>
+          <TableCell>
+            <Select size="sm" variant="bordered" aria-label="条件"
+              isDisabled={isDel}
+              selectedKeys={[row.conditionType]}
+              onSelectionChange={(keys) => updateField({ conditionType: Array.from(keys)[0] as AlarmConditionType })}
+              className="min-w-32">
+              {CONDITION_OPTIONS.map((c) => (
+                <SelectItem key={c} textValue={`${CONDITION_DEFAULT_LABELS[c]}`}>
+                  {CONDITION_DEFAULT_LABELS[c]})
+                </SelectItem>
+              ))}
+            </Select>
+          </TableCell>
+          <TableCell>
+            <div className="flex flex-wrap items-center gap-1">
+              <Input size="sm" variant="bordered" type="number" placeholder="阈值" className="w-20"
+                isDisabled={isDel}
+                value={row.threshold}
+                onValueChange={(v) => updateField({ threshold: v })} />
+              {row.conditionType === 'BETWEEN' && (
+                <>
+                  <span className="text-foreground-400">~</span>
+                  <Input size="sm" variant="bordered" type="number" placeholder="上限" className="w-20"
                     isDisabled={isDel}
-                    onValueChange={(v) => updateField({ ruleName: v })}
-                    classNames={{ inputWrapper: 'bg-transparent h-7 min-h-0' }}
-                  />
-                }
-                subtitle={point ? `${point.pointName} (${point.pointCode})` : '未选择点位'}
-                badge={
-                  <div className="flex flex-col items-end gap-1">
-                    <Chip size="sm" variant="flat" color={LEVEL_COLORS[row.level] ?? 'default'}>
-                      {LEVEL_LABELS[row.level] ?? row.level}
-                    </Chip>
-                    {isNew && <Chip size="sm" variant="flat" color="primary">新增</Chip>}
-                    {isExistingDirty && <Chip size="sm" variant="flat" color="warning">未保存</Chip>}
-                    {isDel && <Chip size="sm" variant="flat" color="danger">待删除</Chip>}
-                    {!row.enabled && !isDel && <Chip size="sm" variant="flat">已禁用</Chip>}
-                  </div>
-                }
-                actions={
-                  isNew ? (
-                    <>
-                      <Tooltip content="保存此条">
-                        <Button size="sm" variant="flat" color="success" startContent={<CheckCircleIcon className="h-4 w-4" />}
-                          isDisabled={!row.pointCode.trim() || !row.threshold.trim()
-                            || (row.conditionType === 'BETWEEN' && !row.thresholdHigh.trim())}
-                          onPress={async () => {
-                            try {
-                              await saveAlarmMutation.mutateAsync({
-                                deviceId,
-                                pointCode: row.pointCode.trim(),
-                                conditionType: row.conditionType,
-                                conditionName: row.conditionName.trim() || undefined,
-                                threshold: row.threshold.trim(),
-                                thresholdHigh:
-                                  row.conditionType === 'BETWEEN' ? row.thresholdHigh.trim() : undefined,
-                                level: row.level,
-                                enabled: row.enabled,
-                                notifyUserIds: row.notifyUserIds,
-                                ruleName: row.ruleName.trim() || undefined,
-                              });
-                              addToast({ title: '规则已保存', color: 'success' });
-                              removeDraft(row._key);
-                              queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
-                            } catch (e) {
-                              const msg = e instanceof Error ? e.message : String(e);
-                              addToast({ title: `保存失败：${msg}`, color: 'danger' });
-                            }
-                          }}>保存</Button>
-                      </Tooltip>
-                      <Tooltip content="复制此行">
-                        <Button size="sm" variant="flat" color="primary" startContent={<DocumentDuplicateIcon className="h-4 w-4" />}
-                          onPress={() => copyRule(row)}>复制</Button>
-                      </Tooltip>
-                      <Tooltip content="移除">
-                        <Button size="sm" variant="flat" color="danger" startContent={<XMarkIcon className="h-4 w-4" />}
-                          onPress={() => removeDraft(row._key)}>移除</Button>
-                      </Tooltip>
-                    </>
-                  ) : isExistingDirty ? (
-                    <>
-                      <Tooltip content="保存修改">
-                        <Button size="sm" variant="flat" color="success" startContent={<CheckCircleIcon className="h-4 w-4" />}
-                          isLoading={saveAlarmMutation.isPending}
-                          onPress={async () => {
-                            const r = alarmRules.find((x) => x.id === row._key)!;
-                            const eff = getEffective(r);
-                            try {
-                              await saveAlarmMutation.mutateAsync({
-                                id: r.id, deviceId,
-                                pointCode: eff.pointCode.trim(),
-                                conditionType: eff.conditionType,
-                                conditionName: eff.conditionName.trim() || undefined,
-                                threshold: eff.threshold.trim(),
-                                thresholdHigh:
-                                  eff.conditionType === 'BETWEEN' ? eff.thresholdHigh.trim() : undefined,
-                                level: eff.level,
-                                enabled: eff.enabled,
-                                notifyUserIds: eff.notifyUserIds,
-                                ruleName: eff.ruleName.trim() || undefined,
-                              });
-                              addToast({ title: '规则已更新', color: 'success' });
-                              discardRule(r.id);
-                              queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
-                            } catch (e) {
-                              const msg = e instanceof Error ? e.message : String(e);
-                              addToast({ title: `更新失败：${msg}`, color: 'danger' });
-                            }
-                          }}>保存</Button>
-                      </Tooltip>
-                      <Tooltip content="撤销修改">
-                        <Button size="sm" variant="flat" startContent={<XMarkIcon className="h-4 w-4" />}
-                          onPress={() => discardRule(row._key)}>撤销</Button>
-                      </Tooltip>
-                    </>
-                  ) : (
-                    <>
-                      <Tooltip content="复制此规则">
-                        <Button size="sm" variant="flat" color="primary" startContent={<DocumentDuplicateIcon className="h-4 w-4" />}
-                          onPress={() => copyRule(row)}>复制</Button>
-                      </Tooltip>
-                      <Tooltip content="删除">
-                        <Button size="sm" variant="flat" color="danger" startContent={<TrashIcon className="h-4 w-4" />}
-                          onPress={() => markDeleted(row._key)}>删除</Button>
-                      </Tooltip>
-                    </>
-                  )
-                }
-              >
-                <div className={isDel ? 'pointer-events-none opacity-60' : ''}>
-                  <FieldRow label="点位" value={
-                    <Select size="sm" variant="flat" aria-label="点位" placeholder="选择点位"
-                      isDisabled={isDel}
-                      selectedKeys={row.pointCode ? [row.pointCode] : []}
-                      onSelectionChange={(keys) => updateField({ pointCode: Array.from(keys)[0] as string })}
-                      items={pointOptions}
-                      classNames={{ trigger: 'bg-transparent min-h-8', value: 'text-xs' }}>
-                      {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
-                    </Select>
-                  } />
-                  <FieldRow label="条件" value={
-                    <div className="flex flex-col gap-1">
-                      <Select size="sm" variant="flat" aria-label="条件"
-                        isDisabled={isDel}
-                        selectedKeys={[row.conditionType]}
-                        onSelectionChange={(keys) => updateField({ conditionType: Array.from(keys)[0] as ConditionType })}
-                        classNames={{ trigger: 'bg-transparent min-h-8', value: 'text-xs' }}>
-                        {CONDITION_OPTIONS.map((c) => (
-                          <SelectItem key={c}>
-                            {CONDITION_DEFAULT_LABELS[c]} ({CONDITION_SYMBOLS[c]})
-                          </SelectItem>
-                        ))}
-                      </Select>
-                      <Input size="sm" variant="bordered" placeholder="条件名称（可选）"
-                        value={row.conditionName}
-                        isDisabled={isDel}
-                        onValueChange={(v) => updateField({ conditionName: v })}
-                        classNames={{ inputWrapper: 'h-7 min-h-0' }} />
-                    </div>
-                  } />
-                  <FieldRow label="阈值" value={
-                    <div className="flex flex-wrap items-center gap-1">
-                      <Input size="sm" variant="flat" type="number" placeholder="下限" className="w-20"
-                        isDisabled={isDel}
-                        value={row.threshold}
-                        onValueChange={(v) => updateField({ threshold: v })}
-                        classNames={{ inputWrapper: 'bg-transparent' }} />
-                      {row.conditionType === 'BETWEEN' && (
-                        <>
-                          <span className="text-foreground-400">~</span>
-                          <Input size="sm" variant="flat" type="number" placeholder="上限" className="w-20"
-                            isDisabled={isDel}
-                            value={row.thresholdHigh}
-                            onValueChange={(v) => updateField({ thresholdHigh: v })}
-                            classNames={{ inputWrapper: 'bg-transparent' }} />
-                        </>
-                      )}
-                    </div>
-                  } />
-                  <FieldRow label="级别" value={
-                    <Select size="sm" variant="flat" aria-label="级别"
-                      isDisabled={isDel}
-                      selectedKeys={[row.level]}
-                      onSelectionChange={(keys) => updateField({ level: Array.from(keys)[0] as AlarmLevel })}
-                      classNames={{ trigger: 'bg-transparent min-h-8', value: 'text-xs' }}>
-                      {LEVEL_OPTIONS.map((l) => (
-                        <SelectItem key={l}>{LEVEL_LABELS[l] ?? l}</SelectItem>
-                      ))}
-                    </Select>
-                  } />
-                  <FieldRow label="启用" value={
-                    <Switch size="sm" isSelected={row.enabled} isDisabled={isDel}
-                      onValueChange={(v) => updateField({ enabled: v })} />
-                  } />
-                  <FieldRow label="通知人" value={
-                    <Select size="sm" variant="flat" aria-label="通知人"
-                      selectionMode="multiple" placeholder="选择接收人"
-                      isDisabled={isDel}
-                      selectedKeys={new Set(row.notifyUserIds)}
-                      onSelectionChange={(keys) => updateField({ notifyUserIds: Array.from(keys) as string[] })}
-                      items={userOptions}
-                      classNames={{ trigger: 'bg-transparent min-h-8', value: 'text-xs' }}>
-                      {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
-                    </Select>
-                  } />
-                </div>
-              </EntityCard>
-            );
-          })}
-        </div>
+                    value={row.thresholdHigh}
+                    onValueChange={(v) => updateField({ thresholdHigh: v })} />
+                </>
+              )}
+            </div>
+          </TableCell>
+          <TableCell>
+            <Select size="sm" variant="bordered" aria-label="级别"
+              isDisabled={isDel}
+              selectedKeys={[row.level]}
+              onSelectionChange={(keys) => updateField({ level: Array.from(keys)[0] as AlarmLevel })}
+              className="min-w-20">
+              {LEVEL_OPTIONS.map((l) => (
+                <SelectItem key={l} textValue={LEVEL_LABELS[l] ?? l}>{LEVEL_LABELS[l] ?? l}</SelectItem>
+              ))}
+            </Select>
+          </TableCell>
+          <TableCell>
+            <Select size="sm" variant="bordered" aria-label="通知人"
+              selectionMode="multiple" placeholder="选择接收人"
+              isDisabled={isDel}
+              selectedKeys={row.notifyUserIds}
+              onSelectionChange={(keys) => updateField({ notifyUserIds: Array.from(keys) as string[] })}
+              className="min-w-32">
+              {userOptions.map((opt) => (
+                <SelectItem key={opt.key} textValue={opt.label}>{opt.label}</SelectItem>
+              ))}
+            </Select>
+          </TableCell>
+          <TableCell className="hidden md:table-cell">
+            <Input size="sm" variant="bordered" placeholder="条件名称"
+              isDisabled={isDel}
+              value={row.conditionName}
+              onValueChange={(v) => updateField({ conditionName: v })}
+              classNames={{ inputWrapper: 'h-8 min-h-0' }} />
+          </TableCell>
+          <TableCell>
+            <Switch size="sm" isSelected={row.enabled} isDisabled={isDel}
+              onValueChange={(v) => updateField({ enabled: v })} />
+          </TableCell>
+          <TableCell>
+            <div className="flex flex-wrap gap-1">
+              <Chip size="sm" variant="flat" color={LEVEL_COLORS[row.level] ?? 'default'}>
+                {LEVEL_LABELS[row.level] ?? row.level}
+              </Chip>
+              {isNew && <Chip size="sm" variant="flat" color="primary">新增</Chip>}
+              {isExistingDirty && <Chip size="sm" variant="flat" color="warning">未保存</Chip>}
+              {isDel && <Chip size="sm" variant="flat" color="danger">待删除</Chip>}
+              {!row.enabled && !isDel && <Chip size="sm" variant="flat">已禁用</Chip>}
+            </div>
+          </TableCell><TableCell>
+            <div className="flex gap-1">
+              {isNew ? (
+                <>
+                  <Tooltip content="保存">
+                    <Button size="sm" variant="flat" color="success" isIconOnly
+                      isDisabled={!row.pointCode.trim() || !row.threshold.trim()
+                        || (row.conditionType === 'BETWEEN' && !row.thresholdHigh.trim())}
+                      onPress={async () => {
+                        try {
+                          await saveAlarmMutation.mutateAsync({
+                            deviceId, pointCode: row.pointCode.trim(),
+                            conditionType: row.conditionType,
+                            conditionName: row.conditionName.trim() || undefined,
+                            threshold: row.threshold.trim(),
+                            thresholdHigh: row.conditionType === 'BETWEEN' ? row.thresholdHigh.trim() : undefined,
+                            level: row.level, enabled: row.enabled,
+                            notifyUserIds: row.notifyUserIds,
+                            ruleName: row.ruleName.trim() || undefined,
+                          });
+                          addToast({ title: '规则已保存', color: 'success' });
+                          removeDraft(row._key);
+                          queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
+                        } catch (e) { addToast({ title: `保存失败：${e instanceof Error ? e.message : String(e)}`, color: 'danger' }); }
+                      }}>
+                      <CheckCircleIcon className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="复制">
+                    <Button size="sm" variant="light" color="primary" isIconOnly onPress={() => copyRule(row)}>
+                      <DocumentDuplicateIcon className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="移除">
+                    <Button size="sm" variant="light" color="danger" isIconOnly onPress={() => removeDraft(row._key)}>
+                      <XMarkIcon className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                </>
+              ) : isExistingDirty ? (
+                <>
+                  <Tooltip content="保存修改">
+                    <Button size="sm" variant="flat" color="success" isIconOnly
+                      isLoading={saveAlarmMutation.isPending}
+                      onPress={async () => {
+                        const r = alarmRules.find((x) => x.id === row._key)!;
+                        const eff = getEffective(r);
+                        try {
+                          await saveAlarmMutation.mutateAsync({
+                            id: r.id, deviceId, pointCode: eff.pointCode.trim(),
+                            conditionType: eff.conditionType,
+                            conditionName: eff.conditionName.trim() || undefined,
+                            threshold: eff.threshold.trim(),
+                            thresholdHigh: eff.conditionType === 'BETWEEN' ? eff.thresholdHigh.trim() : undefined,
+                            level: eff.level, enabled: eff.enabled,
+                            notifyUserIds: eff.notifyUserIds,
+                            ruleName: eff.ruleName.trim() || undefined,
+                          });
+                          addToast({ title: '规则已更新', color: 'success' });
+                          discardRule(r.id);
+                          queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
+                        } catch (e) { addToast({ title: `更新失败：${e instanceof Error ? e.message : String(e)}`, color: 'danger' }); }
+                      }}>
+                      <CheckCircleIcon className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="撤销">
+                    <Button size="sm" variant="light" isIconOnly onPress={() => discardRule(row._key)}>
+                      <XMarkIcon className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                </>
+              ) : (
+                <>
+                  <Tooltip content="复制">
+                    <Button size="sm" variant="light" color="primary" isIconOnly onPress={() => copyRule(row)}>
+                      <DocumentDuplicateIcon className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="删除">
+                    <Button size="sm" variant="light" color="danger" isIconOnly onPress={() => markDeleted(row._key)}>
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                </>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+    })}
+  </TableBody>
+</Table>
       )}
 
       {/* 全部放弃二次确认 */}
@@ -702,6 +716,6 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
         onClose={() => setProgressOpen(false)}
         onComplete={onBatchComplete}
       />
-    </section>
+    </EditableSectionLayout>
   );
 }

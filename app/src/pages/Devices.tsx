@@ -35,7 +35,7 @@ import { useApiMutation } from '@/hooks/useApiMutation';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { EntityCard, FieldRow } from '@/components/EntityCard';
 import SearchFilterBar from '@/components/list/SearchFilterBar';
-import type { FilterGroupSpec } from '@/components/list/SearchFilterBar';
+import type { DateRangeValue, FilterGroupSpec } from '@/components/list/SearchFilterBar';
 import { formatDateTime } from '@/lib/format';
 import type { Device, Predicate, PredicateItem, QueryBody } from '@/types/api';
 
@@ -49,6 +49,7 @@ export default function Devices() {
   const [keyword, setKeyword] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterEnabled, setFilterEnabled] = useState('ALL');
+  const [dateRange, setDateRange] = useState<DateRangeValue>({ start: null, end: null });
   /** 排序字段:default=数据库自然序,name=设备名称,code=设备编码,tag=三级标签(客户端) */
   const [sortField, setSortField] = useState<DeviceSortField>('name');
   /** 排序方向 */
@@ -81,8 +82,17 @@ export default function Devices() {
       items.push({ condition: { field: 'online', op: 'eq' as const, value: filterStatus } });
     if (filterEnabled !== 'ALL')
       items.push({ condition: { field: 'enabled', op: 'eq' as const, value: filterEnabled === 'true' } });
+    // 时间范围：按 createdAt 筛选（gte / lte）
+    if (dateRange.start) {
+      items.push({ condition: { field: 'createdAt', op: 'gte' as const, value: dateRange.start.toString() } });
+    }
+    if (dateRange.end) {
+      // end 为闭区间：转为次日0点前
+      const endExclusive = dateRange.end.add({ days: 1 }).toString();
+      items.push({ condition: { field: 'createdAt', op: 'lt' as const, value: endExclusive } });
+    }
     return items.length > 0 ? { and: items } : undefined;
-  }, [debouncedKeyword, filterStatus, filterEnabled]);
+  }, [debouncedKeyword, filterStatus, filterEnabled, dateRange]);
 
   // 排序:数据库能处理的字段(name)直接走 order;tag 是合并字段,客户端排序
   const defaultOrder = useMemo<QueryBody['order']>(() => {
@@ -146,6 +156,7 @@ export default function Devices() {
     setView(next);
     setKeyword('');
     setFilterStatus('ALL'); setFilterEnabled('ALL');
+    setDateRange({ start: null, end: null });
     setDebouncedKeyword('');
     setSortField('name'); setSortDir('ASC');
     setPage(0);
@@ -251,9 +262,18 @@ export default function Devices() {
             onChange: setFilterEnabled,
           },
         ] satisfies FilterGroupSpec[]}
+        dateRange={{
+          label: '创建时间',
+          value: dateRange,
+          onChange: (r) => {
+            setDateRange(r);
+            setPage(0);
+          },
+        }}
         onReset={() => {
           setKeyword('');
           setFilterStatus('ALL'); setFilterEnabled('ALL');
+          setDateRange({ start: null, end: null });
           setDebouncedKeyword('');
           setSortField('name'); setSortDir('ASC');
         }}
@@ -282,7 +302,7 @@ export default function Devices() {
                 title={device.deviceName}
                 // subtitle={device.level1Tag || device.level2Tag || device.level3Tag || undefined}
                 badge={
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="items-end gap-1">
                     <Chip size="sm" variant="flat" color={device.online === 'ONLINE' ? 'success' : 'danger'}>
                       {device.online === 'ONLINE' ? '在线' : '离线'}
                     </Chip>

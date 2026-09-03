@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Outlet,
   NavLink,
@@ -33,19 +33,23 @@ import {
   SunIcon,
   UsersIcon,
   GlobeAltIcon,
+  BuildingOfficeIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 import { useViewModeStore, type ViewMode } from '@/stores/viewMode';
 import { APP_TITLE, OFFICIAL_URL } from '@/lib/env';
-import { isAdmin } from '@/lib/perm';
+import { isAdmin, isSuperAdmin } from '@/lib/perm';
 import { BrandLogo } from '@/components/BrandLogo';
+import TenantSwitcher from '@/components/TenantSwitcher';
 
 interface NavItem {
   to: string;
   label: string;
   icon: typeof ChartBarIcon;
-  adminOnly?: boolean;
+  /** true: 任何 ADMIN; 'super': 仅 SUPER_ADMIN */
+  adminOnly?: boolean | 'super';
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -53,6 +57,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/devices', label: '设备管理', icon: CpuChipIcon },
   { to: '/alarms/events', label: '警告信息', icon: BellIcon },
   { to: '/notify-users', label: '通知', icon: UsersIcon },
+  // 仅 SUPER_ADMIN 可见的菜单 — 后端 @PreAuthorize 二次把关
+  { to: '/admin/accounts', label: '账户管理', icon: UsersIcon, adminOnly: 'super' },
+  { to: '/admin/tenants', label: '租户管理', icon: BuildingOfficeIcon, adminOnly: 'super' },
 ];
 
 export default function AppShell() {
@@ -61,6 +68,7 @@ export default function AppShell() {
   const { theme, toggle } = useThemeStore();
   const viewMode = useViewModeStore((s) => s.viewMode);
   const setViewMode = useViewModeStore((s) => s.setViewMode);
+  const [tenantSwitcherOpen, setTenantSwitcherOpen] = useState(false);
 
   useEffect(() => {
     document.title = APP_TITLE;
@@ -200,6 +208,14 @@ export default function AppShell() {
                     ))}
                   </div>
                 </DropdownItem>
+                <DropdownItem
+                  key="switch-tenant"
+                  startContent={<ArrowPathIcon className="h-4 w-4" />}
+                  onPress={() => setTenantSwitcherOpen(true)}
+                  description={user?.tenantId ? `当前租户:${user.tenantId}` : '点击切换'}
+                >
+                  切换租户
+                </DropdownItem>
                 <DropdownItem key="logout" color="danger" startContent={<PowerIcon className="h-4 w-4" />} onPress={handleLogout}>
                   退出登录
                 </DropdownItem>
@@ -209,11 +225,21 @@ export default function AppShell() {
         </NavbarContent>
       </Navbar>
 
+      {/* 切换租户弹框 */}
+      <TenantSwitcher
+        isOpen={tenantSwitcherOpen}
+        onOpenChange={setTenantSwitcherOpen}
+      />
+
       <div className="flex min-h-0 flex-1">
         {/* 侧边栏:桌面端显示,移动端改为底部导航 */}
         <aside className="hidden w-56 shrink-0 border-r border-divider bg-content1 p-3 md:block">
           <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.filter((it) => !it.adminOnly || isAdmin(user?.roles)).map((it) => {
+            {NAV_ITEMS.filter((it) => {
+              if (!it.adminOnly) return true;
+              if (it.adminOnly === 'super') return isSuperAdmin(user?.roles);
+              return isAdmin(user?.roles);
+            }).map((it) => {
               const Icon = it.icon;
               return (
                 <NavLink
@@ -245,7 +271,11 @@ export default function AppShell() {
       {/* 移动端底部 Tab Bar */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-divider bg-content1 md:hidden">
         <ul className="grid grid-cols-4">
-          {NAV_ITEMS.filter((it) => !it.adminOnly).map((it) => {
+          {NAV_ITEMS.filter((it) => {
+            if (!it.adminOnly) return true;
+            if (it.adminOnly === 'super') return isSuperAdmin(user?.roles);
+            return isAdmin(user?.roles);
+          }).map((it) => {
             const Icon = it.icon;
             return (
               <li key={it.to}>

@@ -13,8 +13,9 @@ import {
   TableRow,
 } from '@heroui/react';
 import { queryAlarmEvents } from '@/api/alarms';
-import { queryActiveDevices, countActiveDevices, getDevicePoints } from '@/api/devices';
+import { queryActiveDevices, countActiveDevices, getDevicePoints, getPanelConfig } from '@/api/devices';
 import { useEventStream } from '@/hooks/useEventStream';
+import { onRealtimePoint } from '@/services/deviceData';
 import { useQueryList, chainToPromise } from '@/hooks/useQueryList';
 import { formatDateTime } from '@/lib/format';
 import type { AlarmEvent, RealtimePointValue, Device, PointDefinition } from '@/types/api';
@@ -62,8 +63,12 @@ export default function Dashboard() {
   // 取原始 allDevices(未过滤)的所有 ID,保证搜索期间已选设备的心跳不被清空
   const { heartbeatMap } = useDeviceHeartbeats(allDevices.map(d => d.id));
 
-  const draftKey = selectedDeviceId ? `panel.draft.${selectedDeviceId}` : null;
-  const config = draftKey ? parsePanelConfig(localStorage.getItem(draftKey)) : null;
+  const panelQuery = useQuery({
+    queryKey: ['device.panel-config', selectedDeviceId],
+    queryFn: () => chainToPromise(getPanelConfig(selectedDeviceId!)),
+    enabled: !!selectedDeviceId,
+  });
+  const config = panelQuery.data ? parsePanelConfig(panelQuery.data.panelConfig) : null;
 
   const pointsQuery = useQuery({
     queryKey: ['device.points', selectedDeviceId],
@@ -78,14 +83,16 @@ export default function Dashboard() {
   });
 
   const [realtimePoints, setRealtimePoints] = useState<RealtimePointValue[]>([]);
-  const handlePointUpdate = useCallback((e: MessageEvent) => {
-    try {
-      const data = JSON.parse(e.data) as RealtimePointValue;
-      setRealtimePoints((prev) => {
-        const next = [data, ...prev.filter((p) => p.pointCode !== data.pointCode)];
-        return next.slice(0, 20);
-      });
-    } catch { /* ignore */ }
+  const handlePointUpdate = useCallback((payload: unknown) => {
+    const data = payload as RealtimePointValue;
+    if (!data?.pointCode) return;
+    // 写入全局 service 缓存（面板 widget 读取）
+    onRealtimePoint(data);
+    // 更新本地 state（Dashboard 实时点位卡片）
+    setRealtimePoints((prev) => {
+      const next = [data, ...prev.filter((p) => p.pointCode !== data.pointCode)];
+      return next.slice(0, 20);
+    });
   }, []);
   useEventStream({ 'point.realtime': handlePointUpdate });
 

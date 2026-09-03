@@ -17,15 +17,15 @@ export function EntityCard({ title, subtitle, badge, children, actions }: Entity
     <Card shadow="sm" className="break-inside-avoid mb-3 bg-content1">
       {(title || badge) && (
         <CardHeader className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            {title && <div className="truncate text-sm font-semibold text-foreground">{title}</div>}
+          <div className="min-w-0 flex-1">
+            {title && <div className="text-sm font-semibold text-foreground" style={{ wordBreak: 'break-word', fontSize: '1.5rem' }}>{title}</div>}
             {subtitle && <div className="truncate text-xs text-foreground-500">{subtitle}</div>}
           </div>
           {badge && <div className="shrink-0">{badge}</div>}
         </CardHeader>
       )}
       <CardBody className="gap-2 pt-0 text-sm">
-        <div className="flex flex-col gap-1.5">{children}</div>
+        <div className="flex flex-col gap-2">{children}</div>
         {actions && <div className="mt-2 flex flex-wrap gap-2 border-t border-divider pt-2">{actions}</div>}
       </CardBody>
     </Card>
@@ -40,9 +40,9 @@ interface FieldRowProps {
 /** 卡片内的"标签 : 值"行 */
 export function FieldRow({ label, value }: FieldRowProps) {
   return (
-    <div className="flex items-start gap-2 text-xs">
-      <span className="w-16 shrink-0 text-foreground-400">{label}</span>
-      <span className="min-w-0 flex-1 break-all text-foreground">{value}</span>
+    <div className="grid grid-cols-[5rem_1fr] items-center gap-3 text-xs">
+      <span className="text-right text-foreground-400">{label}</span>
+      <div className="min-w-0 text-foreground">{value}</div>
     </div>
   );
 }

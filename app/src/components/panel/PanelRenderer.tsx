@@ -24,7 +24,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import type { PointDefinition } from '@/types/api';
-import type { DataSource, PanelConfig, PluginKind, WidgetInstance } from './types';
+import type { BadgeColor, DataSource, PanelConfig, PluginKind, WidgetInstance } from './types';
+import { PLUGIN_META } from './types';
 import {
   useRealtimePoint,
   useRealtimeSeries,
@@ -67,10 +68,13 @@ export interface PanelRendererProps {
   onRequestEdit?: () => void;
 }
 
-/** widget 显示标签：自定义标题 > 点位名 > 设备属性名 */
+/** widget 显示标签：自定义标题 > 点位名 > 设备属性名 > 插件类型名 */
 function widgetLabel(widget: WidgetInstance, pointDef?: PointDefinition): string {
-  if (widget.title) return widget.title;
+  // 自定义标题（用户手动改过的才算）
+  if (widget.title && widget.title !== PLUGIN_META[widget.plugin]?.label) return widget.title;
+  // 点位名
   if (widget.binding.kind === 'point' && pointDef) return pointDef.pointName ?? '';
+  // 设备属性
   if (widget.binding.kind === 'device') {
     const names: Record<string, string> = {
       online: '在线状态',
@@ -79,7 +83,8 @@ function widgetLabel(widget: WidgetInstance, pointDef?: PointDefinition): string
     };
     return names[widget.binding.field] ?? '设备属性';
   }
-  return '';
+  // 兜底：插件类型名
+  return PLUGIN_META[widget.plugin]?.label ?? '';
 }
 
 function WidgetSkeleton() {
@@ -165,6 +170,7 @@ function DeviceWidgetBody({
   field: 'online' | 'enabled' | 'lastHeartbeatAt';
   plugin: PluginKind;
   deviceId: string;
+  /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
 }) {
   const { data: device, isLoading, isError } = useDevicePanelStatus(deviceId);
@@ -173,14 +179,16 @@ function DeviceWidgetBody({
 
   if (field === 'online') {
     const value = device ? device.online === 'ONLINE' : undefined;
+    const color: BadgeColor = value === undefined ? 'default' : value ? 'success' : 'danger';
     if (plugin === 'switch-light') {
-      return <SwitchLightView label={label} value={value} />;
+      return <SwitchLightView label={label} value={value} color={color} />;
     }
     return (
       <StatusBadgeView
         label={label}
         value={value === undefined ? undefined : value ? '在线' : '离线'}
-        color={value === undefined ? 'default' : value ? 'success' : 'danger'}
+        color={color}
+        noDataText="等待数据"
       />
     );
   }
@@ -191,6 +199,7 @@ function DeviceWidgetBody({
         label={label}
         value={value === undefined ? undefined : value ? '启用' : '禁用'}
         color={value === undefined ? 'default' : value ? 'success' : 'warning'}
+        noDataText="等待数据"
       />
     );
   }
@@ -198,6 +207,7 @@ function DeviceWidgetBody({
     <StatusBadgeView
       label={label}
       color="default"
+      noDataText="等待数据"
       value={device?.lastHeartbeatAt ? new Date(device.lastHeartbeatAt).toLocaleString('zh-CN', { hour12: false }) : undefined}
     />
   );
@@ -216,22 +226,23 @@ function PointWidgetBody({
   deviceId: string;
   pointCode: string;
   pointDef?: PointDefinition;
+  /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
   editable: boolean;
 }) {
   switch (widget.plugin) {
     case 'switch-light':
     case 'status-badge':
-    case 'metric-value':
       return (
         <RealtimeValueBody
           widget={widget}
           deviceId={deviceId}
           pointCode={pointCode}
-          pointDef={pointDef}
           label={label}
         />
       );
+    case 'metric-value':
+      return <MetricBody widget={widget} deviceId={deviceId} pointCode={pointCode} pointDef={pointDef} label={label} />;
     case 'control-switch':
       return (
         <ControlSwitchBody
@@ -252,18 +263,17 @@ function PointWidgetBody({
   }
 }
 
-/** 实时值类插件（开关灯/徽章/数值卡共用一次 realtime 订阅） */
+/** 实时值类插件（开关灯/徽章共用一次 realtime 订阅；数值卡已独立到 MetricBody） */
 function RealtimeValueBody({
   widget,
   deviceId,
   pointCode,
-  pointDef,
   label,
 }: {
   widget: WidgetInstance;
   deviceId: string;
   pointCode: string;
-  pointDef?: PointDefinition;
+  /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
 }) {
   const { point, isLoading, isError } = useRealtimePoint(deviceId, pointCode);
@@ -283,15 +293,6 @@ function RealtimeValueBody({
           noDataColor={widget.props.noDataColor}
         />
       );
-    case 'metric-value':
-      return (
-        <MetricValueView
-          label={label}
-          value={point?.value ?? point?.rawValue}
-          unit={pointDef?.unit}
-          showUnit={widget.props.showUnit !== false}
-        />
-      );
     default:
       return null;
   }
@@ -309,6 +310,7 @@ function ControlSwitchBody({
   deviceId: string;
   pointCode: string;
   pointDef?: PointDefinition;
+  /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
   editable: boolean;
   /** 等待设备上报超时（秒），默认 10s；实际约等于设备上报周期 */
@@ -403,6 +405,7 @@ const LINE_BODIES: Record<DataSource, React.FC<SeriesBodyProps>> = {
 };
 
 function HistoryLineChartBody({ deviceId, pointCode, label, range, limit }: SeriesBodyProps) {
+  // label 由外层保证是实体名；为空时由 LineChartView 展示占位文案
   const windowed = range === '1h' || range === '6h' || range === '24h' ? range : undefined;
   const { series, isLoading, isError } = useHistorySeries(deviceId, pointCode, limit, windowed);
   if (isLoading) return <WidgetSkeleton />;
@@ -411,6 +414,7 @@ function HistoryLineChartBody({ deviceId, pointCode, label, range, limit }: Seri
 }
 
 function RealtimeLineChartBody({ deviceId, pointCode, label }: SeriesBodyProps) {
+  // label 由外层保证是实体名；为空时由 LineChartView 展示占位文案
   const { series } = useRealtimeSeries(deviceId, pointCode);
   return <LineChartView label={label} series={series} />;
 }
@@ -426,6 +430,7 @@ function LineChartBody({
   deviceId: string;
   pointCode: string;
   pointDef?: PointDefinition;
+  /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
 }) {
   const Body = LINE_BODIES[widget.source];
@@ -448,6 +453,7 @@ const GAUGE_BODIES: Record<DataSource, React.FC<SeriesBodyProps>> = {
 };
 
 function RealtimeGaugeBody({ deviceId, pointCode, label, min, max, unit }: SeriesBodyProps) {
+  // label 由外层保证是实体名；为空时由 GaugeView 展示占位文案
   const { point, isLoading, isError } = useRealtimePoint(deviceId, pointCode);
   if (isLoading) return <WidgetSkeleton />;
   if (isError) return <WidgetError />;
@@ -458,6 +464,7 @@ function RealtimeGaugeBody({ deviceId, pointCode, label, min, max, unit }: Serie
 }
 
 function HistoryGaugeBody({ deviceId, pointCode, label, min, max, unit }: SeriesBodyProps) {
+  // label 由外层保证是实体名；为空时由 GaugeView 展示占位文案
   const { series, isLoading, isError } = useHistorySeries(deviceId, pointCode, 1);
   if (isLoading) return <WidgetSkeleton />;
   if (isError) return <WidgetError />;
@@ -475,6 +482,7 @@ function GaugeBody({
   deviceId: string;
   pointCode: string;
   pointDef?: PointDefinition;
+  /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
 }) {
   const Body = GAUGE_BODIES[widget.source];
@@ -487,6 +495,60 @@ function GaugeBody({
       limit={widget.props.limit ?? 1}
       min={widget.props.min}
       max={widget.props.max}
+      unit={pointDef?.unit}
+    />
+  );
+}
+
+/** 数值卡片：source → 专用取数组件注册表 */
+const METRIC_BODIES: Record<DataSource, React.FC<SeriesBodyProps>> = {
+  history: HistoryMetricBody,
+  realtime: RealtimeMetricBody,
+};
+
+function HistoryMetricBody({ deviceId, pointCode, label, range, limit, unit }: SeriesBodyProps) {
+  const { series, isLoading, isError } = useHistorySeries(deviceId, pointCode, limit, range === '1h' || range === '6h' || range === '24h' ? range : undefined);
+  if (isLoading) return <WidgetSkeleton />;
+  if (isError) return <WidgetError />;
+  const last = series[series.length - 1]?.value;
+  return (
+    <MetricValueView label={label} value={last != null ? String(last) : undefined} unit={unit} showUnit />
+  );
+}
+
+function RealtimeMetricBody({ deviceId, pointCode, label, unit }: SeriesBodyProps) {
+  const { point, isLoading, isError } = useRealtimePoint(deviceId, pointCode);
+  if (isLoading) return <WidgetSkeleton />;
+  if (isError) return <WidgetError />;
+  return (
+    <MetricValueView label={label} value={point?.rawValue ?? point?.value} unit={unit} showUnit />
+  );
+}
+
+function MetricBody({
+  widget,
+  deviceId,
+  pointCode,
+  pointDef,
+  label,
+}: {
+  widget: WidgetInstance;
+  deviceId: string;
+  pointCode: string;
+  pointDef?: PointDefinition;
+  /** 实体名；为空时使用占位文案，避免只看到插件名 */
+  label: string;
+}) {
+  // 读取 pointDef.unit 透传给 MetricValueView（避免在函数签名中解构未读字段导致 TS6133）
+  void pointDef;
+  const Body = METRIC_BODIES[widget.source];
+  return (
+    <Body
+      deviceId={deviceId}
+      pointCode={pointCode}
+      label={label}
+      range={widget.props.range ?? '24h'}
+      limit={widget.props.limit ?? 1}
       unit={pointDef?.unit}
     />
   );

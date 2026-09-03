@@ -52,7 +52,7 @@ const PLUGIN_SOURCE_COMPAT: Record<PluginKind, DataSource[]> = {
   'switch-light': ['realtime'],
   'control-switch': ['realtime'],
   'status-badge': ['realtime'],
-  'metric-value': ['realtime'],
+  'metric-value': ['history', 'realtime'],
   'line-chart': ['history', 'realtime'],
   gauge: ['realtime', 'history'],
 };
@@ -144,24 +144,21 @@ export type WidgetInstance = z.infer<typeof widgetInstanceSchema>;
 export type PanelConfig = z.infer<typeof panelConfigSchema>;
 
 /** 解析后端 JSON 字符串：整体失败时逐个抢救合法 widget，而非清空面板 */
-export function parsePanelConfig(raw: string | null | undefined): PanelConfig {
-  if (!raw) return { version: 1, widgets: [] };
+export function parsePanelConfig(raw: unknown): PanelConfig {
+  if (!raw || typeof raw !== 'object') return { version: 1, widgets: [] };
+  const obj = raw as { widgets?: unknown };
   try {
-    return panelConfigSchema.parse(JSON.parse(raw));
+    return panelConfigSchema.parse(obj);
   } catch {
     // 整体不合法 → 元素级抢救
-    try {
-      const { widgets } = JSON.parse(raw) as { widgets?: unknown[] };
-      return {
-        version: 1,
-        widgets: (widgets ?? [])
-          .map((w) => widgetInstanceSchema.safeParse(w))
-          .filter((r) => r.success)
-          .map((r) => r.data),
-      };
-    } catch {
-      return { version: 1, widgets: [] };
-    }
+    const widgets = (obj as { widgets?: unknown[] }).widgets ?? [];
+    return {
+      version: 1,
+      widgets: (widgets as unknown[])
+        .map((w) => widgetInstanceSchema.safeParse(w))
+        .filter((r) => r.success)
+        .map((r) => r.data),
+    };
   }
 }
 
@@ -194,7 +191,7 @@ export function createWidgetInstance(plugin: PluginKind, existingCount: number):
   const { w, h } = defaultSize[plugin];
   return {
     id: genWidgetId(),
-    title: PLUGIN_META[plugin].label,
+    title: '',
     layout: { x: (existingCount * 3) % 12, y: 999, w, h },
     binding: { kind: 'point', pointCode: '' },
     plugin,

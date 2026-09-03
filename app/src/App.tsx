@@ -9,6 +9,8 @@ import DeviceCreate from '@/pages/DeviceCreate';
 import DeviceEdit from '@/pages/DeviceEdit';
 import PointAlarmEvents from '@/pages/PointAlarmEvents';
 import NotifyUsers from '@/pages/NotifyUsers';
+import AdminAccounts from '@/pages/AdminAccounts';
+import AdminTenants from '@/pages/AdminTenants';
 
 export default function App() {
   return (
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="/devices/:id" element={<DeviceDetail />} />
         <Route path="/alarms/events" element={<PointAlarmEvents />} />
         <Route path="/notify-users" element={<NotifyUsers />} />
+        <Route path="/admin/accounts" element={<AdminAccounts />} />
+        <Route path="/admin/tenants" element={<AdminTenants />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

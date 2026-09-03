@@ -92,20 +92,29 @@ export function inCondition(field: string, values: unknown[]): PredicateItem {
  * Auth
  * ──────────────────────────────────────────────────────────────────────── */
 
-/** 字符串别名 — 与 openapi LoginReq.loginType enum 同值 */
-export type LoginType = 'ADMIN' | 'USER';
+/** 字符串别名 — 与后端 LoginType 枚举同值 */
+export type LoginType = 'ADMIN' | 'USER' | 'REFRESH';
 
-/** 登录请求 */
+/** 登录 / 换发 token 统一请求。
+ *
+ * 字段填写约定(按 loginType):
+ * - ADMIN   : username 必填,challenge=占位,signature=动态码
+ * - USER    : username 必填,challenge=密码明文,signature=占位
+ * - REFRESH : refreshToken 必填,username/challenge/signature 可空;
+ *             targetTenantId 非空时切换租户,空时维持原租户(纯续命)
+ */
 export interface LoginReq {
-  username: string;
+  username?: string;
   loginType: LoginType;
-  /** USER 模式 = 经 salt+window 签名后的密码;ADMIN 模式 = 任意占位(后端忽略) */
   challenge: string;
-  /** ADMIN 模式 = 6 位 TOTP 动态码;USER 模式 = 任意占位(后端忽略) */
   signature: string;
+  /** REFRESH 类型必填 */
+  refreshToken?: string;
+  /** REFRESH 类型可选:切换到目标租户 */
+  targetTenantId?: string;
 }
 
-/** 令牌对(POST /api/auth/login 与 /api/auth/refresh 响应 data) */
+/** 令牌对(POST /api/auth/login 响应 data) */
 export interface TokenPairResp {
   accessToken: string;
   refreshToken: string;
@@ -132,9 +141,41 @@ export interface CurrentUserResponse {
   roles: string[];
 }
 
-/** POST /api/auth/refresh 请求 */
-export interface TokenRefreshReq {
-  refreshToken: string;
+/* ────────────────────────────────────────────────────────────────────────
+ * Identity: 账号 + 租户 (SUPER_ADMIN 后台管理)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/** 账号实体 — GET /api/admin/accounts/{id} 与 /api/admin/accounts */
+export interface Account extends BaseEntity {
+  id: string;
+  username: string;
+  displayName?: string;
+  roles?: string[];
+  enabled?: boolean;
+  lastLoginAt?: string;
+}
+
+/** 租户实体 — GET /api/admin/tenants/{id} */
+export interface Tenant extends BaseEntity {
+  id: string;
+  /** 短代码，唯一 */
+  code: string;
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+}
+
+/** 租户详情响应 — GET /api/admin/tenants/{id}/detail */
+export interface TenantDetail {
+  tenant: Tenant;
+  accounts: Account[];
+}
+
+/** 账号详情响应 — GET /api/admin/accounts/{id} */
+export interface AccountDetail {
+  account: Account;
+  /** 该账号在多租户表中关联到的所有租户 */
+  linkedTenants: Tenant[];
 }
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -208,7 +249,14 @@ export interface DataRecord extends BaseEntity {
   id: string;
   deviceId: string;
   deviceName?: string;
+  /** 点位编码（业务标识，设备内唯一） */
+  pointCode?: string;
+  /** 点位编码（历史兼容字段，与 pointCode 同值） */
   pointId: string;
+  /** 点位名称 */
+  pointName?: string;
+  /** 单位 */
+  unit?: string;
   dataType: DataType;
   intValue?: number;
   doubleValue?: number;
@@ -455,8 +503,6 @@ export interface NotifyRecord extends BaseEntity {
 
 /** @deprecated 用 KeyInfoResponse */
 export type AuthKeyInfo = KeyInfoResponse;
-/** @deprecated 用 TokenRefreshReq */
-export type RefreshReq = TokenRefreshReq;
 /** @deprecated 用 AlarmConditionType */
 export type ConditionType = AlarmConditionType;
 /** @deprecated 用 NotifyChannel(通知模板类型) */

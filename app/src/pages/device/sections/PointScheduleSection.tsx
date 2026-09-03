@@ -1,31 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { EditableSectionLayout } from '@/components/common/EditableSectionLayout';
+import { PointScheduleCard } from './cards/PointScheduleCard';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Button,
-  Chip,
-  Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Select,
-  SelectItem,
-  Switch,
-  Textarea,
-  Tooltip,
   addToast,
 } from '@heroui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  CheckCircleIcon,
   ClockIcon,
-  DocumentDuplicateIcon,
-  PlusIcon,
-  TrashIcon,
-  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import {
   listDeviceSchedules,
@@ -39,29 +26,12 @@ import { BatchProgressModal, type BatchTask } from '@/components/common/BatchPro
 import type {
   DataType,
   DeviceSchedule,
-  DeviceScheduleAction,
   DeviceScheduleDetail,
   PointDefinition,
 } from '@/types/api';
 
-// ── Cron 预设 ───────────────────────────────────────────
-const CRON_PRESETS: { key: string; label: string; cron: string; description: string }[] = [
-  { key: 'minutely',  label: '每分钟',     cron: '0 * * * * ?',     description: '触发频率最高' },
-  { key: 'hourly',    label: '每小时整点',  cron: '0 0 * * * ?',     description: '每小时 0 分' },
-  { key: 'daily8',    label: '每天 8 点',   cron: '0 0 8 * * ?',     description: '日常开机' },
-  { key: 'daily18',   label: '每天 18 点',  cron: '0 0 18 * * ?',    description: '日常关机' },
-  { key: 'weekly1',   label: '每周一 9 点', cron: '0 0 9 ? * MON',   description: '工作日巡检' },
-  { key: 'monthly1',  label: '每月 1 号 0 点', cron: '0 0 0 1 * ?',  description: '月度任务' },
-];
-
-function cronToText(cron: string): string {
-  const p = CRON_PRESETS.find((c) => c.cron === cron);
-  if (p) return p.label;
-  return cron;
-}
-
 // ── Action 草稿（与点位设置对齐的 _key 本地唯一标识） ──
-type ActionDraft = {
+export type ActionDraft = {
   _key: string;
   pointId: string;
   pointCode: string;
@@ -131,6 +101,7 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
     () => scheduleItems.map((it) => it.schedule),
     [scheduleItems],
   );
+
   const { data: points = [] } = useQuery<PointDefinition[]>({
     queryKey: ['points', deviceId],
     queryFn: () => chainToPromise(getDevicePoints(deviceId)),
@@ -156,15 +127,25 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
   /** 合并草稿得到单条规则的最终视图 */
   const getEffective = useCallback((s: DeviceSchedule): ScheduleDraft => {
     const c = pendingChanges.get(s.id!) ?? {};
+    // 从 scheduleItems 恢复原始 actions（带 _key）
+    const original = scheduleItems.find((it) => it.schedule.id === s.id);
+    const originalActions: ActionDraft[] = (original?.schedule.actions ?? []).map((a, i) => ({
+      _key: `orig_${s.id}_${i}`,
+      pointId: a.pointId ?? '',
+      pointCode: a.pointCode ?? '',
+      pointName: '',
+      dataType: 'STRING' as const,
+      valueText: a.valueText ?? '',
+    }));
     return {
       id: s.id,
       name: c.name ?? s.name ?? '',
       cron: c.cron ?? s.cron ?? '',
       enabled: c.enabled ?? s.enabled ?? true,
       description: c.description ?? (s.description ?? ''),
-      actions: c.actions ?? [], // 编辑模式从 ServerActions 恢复（见 reloadEffectiveActions）
+      actions: c.actions ?? originalActions,
     };
-  }, [pendingChanges]);
+  }, [pendingChanges, scheduleItems]);
 
   const isSchedDirty = (s: DeviceSchedule) => s.id ? pendingChanges.has(s.id) : false;
 
@@ -242,10 +223,7 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
 
   // 提交相关 mutation
   const saveMutation = useApiMutation({
-    mutationFn: (body: {
-      schedule: Partial<DeviceSchedule>;
-      actions: Array<Omit<DeviceScheduleAction, 'pointName'>>;
-    }) => saveSchedule(body as unknown as Parameters<typeof saveSchedule>[0]),
+    mutationFn: (body: DeviceScheduleDetail) => saveSchedule(body),
   });
   const deleteMutation = useApiMutation({
     mutationFn: (id: string) => deleteSchedule(id),
@@ -268,9 +246,6 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
       const s = schedules.find((x) => x.id === id);
       if (!s) continue;
       const eff = getEffective(s);
-      // 拉取原始 actions（因为 pendingChanges.actions 仅在显式编辑时才存在）
-      // 这里采取简化策略：更新时复用原 actions，不在表内支持 actions 编辑（actions 仍通过弹窗/Drawer 编辑）
-      // 实际项目使用场景：表内只改名称/cron/enabled/description，actions 通过"编辑动作"按钮
       tasks.push({
         key: `upd:${id}`,
         label: `更新 ${eff.name || id}`,
@@ -282,8 +257,13 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
               cron: eff.cron.trim(),
               enabled: eff.enabled,
               description: eff.description.trim() || undefined,
+              actions: eff.actions.map((a, idx) => ({
+                pointId: a.pointId,
+                pointCode: a.pointCode,
+                valueText: a.valueText,
+                sortOrder: idx,
+              })),
             },
-            actions: [], // 留空：不修改 actions
           });
         },
       });
@@ -308,13 +288,13 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
               cron: d.cron.trim(),
               enabled: d.enabled,
               description: d.description.trim() || undefined,
+              actions: d.actions.map((a, idx) => ({
+                pointId: a.pointId,
+                pointCode: a.pointCode,
+                valueText: a.valueText,
+                sortOrder: idx,
+              })),
             },
-            actions: d.actions.map((a, idx) => ({
-              pointId: a.pointId,
-              pointCode: a.pointCode,
-              valueText: a.valueText,
-              sortOrder: idx,
-            })),
           });
         },
       });
@@ -363,17 +343,6 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
     queryClient.invalidateQueries({ queryKey: ['schedules.list.byDevice', deviceId] });
   };
 
-  // 提醒用户离开未保存
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
-
   // 草稿行的 action 编辑
   const addActionToDraft = (draftIdx: number) => {
     setDrafts((prev) => prev.map((d, i) => i === draftIdx
@@ -391,6 +360,35 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
       : d));
   };
 
+  // 现有行的 action 编辑（通过 pendingChanges 追踪）
+  const addActionToExisting = (scheduleId: string) => {
+    setPendingChanges((prev) => {
+      const next = new Map(prev);
+      const old = next.get(scheduleId) ?? {};
+      const existing = (old.actions ?? getEffective(schedules.find((s) => s.id === scheduleId)!).actions);
+      next.set(scheduleId, { ...old, actions: [...existing, newAction()] });
+      return next;
+    });
+  };
+  const updateActionInExisting = (scheduleId: string, actionKey: string, patch: Partial<ActionDraft>) => {
+    setPendingChanges((prev) => {
+      const next = new Map(prev);
+      const old = next.get(scheduleId) ?? {};
+      const existing = (old.actions ?? getEffective(schedules.find((s) => s.id === scheduleId)!).actions);
+      next.set(scheduleId, { ...old, actions: existing.map((a) => a._key === actionKey ? { ...a, ...patch } : a) });
+      return next;
+    });
+  };
+  const removeActionFromExisting = (scheduleId: string, actionKey: string) => {
+    setPendingChanges((prev) => {
+      const next = new Map(prev);
+      const old = next.get(scheduleId) ?? {};
+      const existing = (old.actions ?? getEffective(schedules.find((s) => s.id === scheduleId)!).actions);
+      next.set(scheduleId, { ...old, actions: existing.filter((a) => a._key !== actionKey) });
+      return next;
+    });
+  };
+
   // 整体行 = 现存（合并草稿 + 排除删除）+ 新增草稿
   const allRows: { kind: 'existing' | 'new'; data: ScheduleDraft; id: string; idx?: number }[] = useMemo(() => {
     const ex = visibleSchedules.map((s) => {
@@ -402,272 +400,75 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
   }, [visibleSchedules, drafts, getEffective]);
 
   return (
-    <section ref={sectionRef} className="scroll-mt-20 rounded-2xl bg-content1 p-6">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <ClockIcon className="h-4 w-4 text-foreground-500" />
-        <h2 className="text-base font-medium text-foreground">定时控制</h2>
-        <Chip size="sm" variant="flat">{visibleSchedules.length} 条</Chip>
-        {isDirty && (
-          <Chip size="sm" variant="flat" color="warning">
-            {pendingChanges.size + drafts.length + deletedIds.size} 项未保存
-          </Chip>
-        )}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Popover placement="bottom-end">
-            <PopoverTrigger>
-              <Button size="sm" color="primary" startContent={<PlusIcon className="h-4 w-4" />}>
-                添加规则
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-2">
-              <div className="flex flex-col gap-1">
-                {CRON_PRESETS.map((p) => (
-                  <Button key={p.key} size="sm" variant="flat" className="justify-start"
-                    onPress={() => addDraft(p.cron)}>
-                    <div className="flex flex-col items-start">
-                      <span>{p.label}</span>
-                      <span className="text-xs text-foreground-400">{p.description}</span>
-                    </div>
-                  </Button>
-                ))}
-                <div className="my-1 border-t border-divider" />
-                <Button size="sm" variant="flat" className="justify-start" onPress={() => addDraft()}>
-                  自定义
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          {isDirty && (
-            <>
-              <Button size="sm" variant="flat" color="danger"
-                onPress={() => setConfirm({ kind: 'discard' })}>
-                全部放弃
-              </Button>
-              <Button size="sm" color="primary" onPress={openSaveAll}>
-                全部保存
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
+    <EditableSectionLayout
+      ref={sectionRef}
+      title="定时控制"
+      icon={<ClockIcon className="h-4 w-4 text-foreground-500" />}
+      countLabel={`${visibleSchedules.length} 条`}
+      hasUnsaved={isDirty}
+      unsavedCount={pendingChanges.size + drafts.length + deletedIds.size}
+      onSaveAll={openSaveAll}
+      onDiscardAll={() => setConfirm({ kind: 'discard' })}
+      isSaving={progressOpen}
+      onAddRow={() => addDraft()}
+      addRowLabel="添加规则"
+    >
       {allRows.length === 0 ? (
         <div className="rounded-lg border border-dashed border-divider p-8 text-center text-sm text-foreground-400">
           暂无定时规则，点击「添加规则」开始配置
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 ">
           {allRows.map((row) => {
             const isNew = row.kind === 'new';
             const isDel = !isNew && deletedIds.has(row.id);
             const isExistingDirty = !isNew && isSchedDirty(schedules.find((s) => s.id === row.id)!);
             return (
-              <div key={row.id}
-                className={`rounded-lg border ${isDel ? 'border-divider opacity-50' : isExistingDirty ? 'border-warning' : 'border-divider'} bg-content2 p-3`}>
-                {/* 主行：名称 + cron + 启用 + 操作 */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Input
-                    size="sm" variant="bordered" placeholder="规则名称"
-                    value={row.data.name}
-                    isDisabled={isDel}
-                    onValueChange={(v) => isNew
-                      ? updateDraft(row.idx!, { name: v })
-                      : updateField(row.id, { name: v })}
-                    className="min-w-40 flex-1" />
-                  <Select
-                    size="sm" variant="bordered" placeholder="选择执行周期"
-                    selectedKeys={row.data.cron ? [row.data.cron] : []}
-                    isDisabled={isDel}
-                    onSelectionChange={(keys) => {
-                      const v = Array.from(keys)[0] as string ?? '';
-                      isNew ? updateDraft(row.idx!, { cron: v }) : updateField(row.id, { cron: v });
-                    }}
-                    className="w-48"
-                  >
-                    {CRON_PRESETS.map((p) => (
-                      <SelectItem key={p.cron} description={p.description}>{p.label}</SelectItem>
-                    ))}
-                  </Select>
-                  <Switch size="sm" isSelected={row.data.enabled} isDisabled={isDel}
-                    onValueChange={(v) => isNew
-                      ? updateDraft(row.idx!, { enabled: v })
-                      : updateField(row.id, { enabled: v })} />
-                  <div className="ml-auto flex gap-1">
-                    {isNew ? (
-                      <>
-                        <Tooltip content="保存">
-                          <Button isIconOnly size="sm" variant="flat" color="success"
-                            isDisabled={!row.data.name.trim() || !row.data.cron.trim() || row.data.actions.length === 0}
-                            onPress={async () => {
-                              const d = row.data;
-                              try {
-                                await saveMutation.mutateAsync({
-                                  schedule: {
-                                    deviceId,
-                                    name: d.name.trim(),
-                                    cron: d.cron.trim(),
-                                    enabled: d.enabled,
-                                    description: d.description.trim() || undefined,
-                                  },
-                                  actions: d.actions.map((a, i) => ({
-                                    pointId: a.pointId,
-                                    pointCode: a.pointCode,
-                                    valueText: a.valueText,
-                                    sortOrder: i,
-                                  })),
-                                });
-                                addToast({ title: '规则已保存', color: 'success' });
-                                removeDraftAt(row.idx!);
-                                queryClient.invalidateQueries({ queryKey: ['schedules.list.byDevice', deviceId] });
-                              } catch (e) {
-                                const msg = e instanceof Error ? e.message : String(e);
-                                addToast({ title: `保存失败：${msg}`, color: 'danger' });
-                              }
-                            }}>
-                            <CheckCircleIcon className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip content="复制此规则">
-                          <Button isIconOnly size="sm" variant="light" color="primary"
-                            onPress={() => copySchedule(row.data)}>
-                            <DocumentDuplicateIcon className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip content="移除">
-                          <Button isIconOnly size="sm" variant="light" color="danger"
-                            onPress={() => removeDraftAt(row.idx!)}>
-                            <XMarkIcon className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                      </>
-                    ) : isExistingDirty ? (
-                      <>
-                        <Tooltip content="保存修改">
-                          <Button isIconOnly size="sm" variant="flat" color="success"
-                            onPress={async () => {
-                              const s = schedules.find((x) => x.id === row.id)!;
-                              const eff = getEffective(s);
-                              try {
-                                await saveMutation.mutateAsync({
-                                  schedule: {
-                                    id: s.id, deviceId,
-                                    name: eff.name.trim(),
-                                    cron: eff.cron.trim(),
-                                    enabled: eff.enabled,
-                                    description: eff.description.trim() || undefined,
-                                  },
-                                  actions: [],
-                                });
-                                addToast({ title: '规则已更新', color: 'success' });
-                                discardSched(s.id!);
-                                queryClient.invalidateQueries({ queryKey: ['schedules.list.byDevice', deviceId] });
-                              } catch (e) {
-                                const msg = e instanceof Error ? e.message : String(e);
-                                addToast({ title: `更新失败：${msg}`, color: 'danger' });
-                              }
-                            }}>
-                            <CheckCircleIcon className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip content="撤销修改">
-                          <Button isIconOnly size="sm" variant="light"
-                            onPress={() => discardSched(row.id)}>
-                            <XMarkIcon className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                      </>
-                    ) : (
-                      <>
-                        <Tooltip content="复制此规则">
-                          <Button isIconOnly size="sm" variant="light" color="primary"
-                            onPress={() => copySchedule(row.data)}>
-                            <DocumentDuplicateIcon className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                        <Tooltip content="删除">
-                          <Button isIconOnly size="sm" variant="light" color="danger"
-                            onPress={() => markDeleted(row.id)}>
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        </Tooltip>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* 备注（折叠显示） */}
-                {(row.data.description || isNew) && (
-                  <Textarea
-                    size="sm" variant="bordered" placeholder="备注（可选）" minRows={1}
-                    value={row.data.description}
-                    isDisabled={isDel}
-                    onValueChange={(v) => isNew
-                      ? updateDraft(row.idx!, { description: v })
-                      : updateField(row.id, { description: v })}
-                    className="mt-2" />
-                )}
-
-                {/* Actions 子表 - 只在草稿行展开（新增时编辑）*/}
-                {isNew && (
-                  <div className="mt-2 rounded-lg border border-divider p-2">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium text-foreground-500">
-                        动作（{row.data.actions.length}）
-                      </span>
-                      <Button size="sm" variant="flat" startContent={<PlusIcon className="h-3 w-3" />}
-                        onPress={() => addActionToDraft(row.idx!)}>
-                        添加动作
-                      </Button>
-                    </div>
-                    {row.data.actions.length === 0 ? (
-                      <div className="rounded border border-dashed border-divider py-3 text-center text-xs text-foreground-400">
-                        尚未添加动作
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1.5">
-                        {row.data.actions.map((a, ai) => (
-                          <div key={a._key} className="flex items-end gap-1.5">
-                            <Chip size="sm" variant="flat">{ai + 1}</Chip>
-                            <Select size="sm" variant="bordered" aria-label="点位" placeholder="选择点位"
-                              selectedKeys={a.pointId ? [a.pointId] : []}
-                              onSelectionChange={(keys) => {
-                                const pid = Array.from(keys)[0] as string;
-                                const p = points.find((x) => x.id === pid);
-                                updateActionInDraft(row.idx!, a._key, {
-                                  pointId: pid,
-                                  pointCode: p?.pointCode ?? '',
-                                  pointName: p?.pointName ?? '',
-                                  dataType: p?.dataType ?? 'STRING',
-                                });
-                              }}
-                              items={points.map((p) => ({ key: p.id, label: `${p.pointName} (${p.pointCode})` }))}
-                              className="min-w-0 flex-1">
-                              {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
-                            </Select>
-                            <Input size="sm" variant="bordered" placeholder={a.dataType === 'BOOL' ? 'true / false' : '值'}
-                              value={a.valueText} className="w-28"
-                              onValueChange={(v) => updateActionInDraft(row.idx!, a._key, { valueText: v })} />
-                            <Tooltip content="删除该动作">
-                              <Button isIconOnly size="sm" variant="light" color="danger"
-                                onPress={() => removeActionInDraft(row.idx!, a._key)}>
-                                <TrashIcon className="h-3.5 w-3.5" />
-                              </Button>
-                            </Tooltip>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 现存 schedule 显示动作只读 */}
-                {!isNew && !isDel && (() => {
-                  // 从原始 schedules 列表找 actions（这里 list 接口只返回 DeviceSchedule，没有 actions）
-                  // 由于 listDeviceSchedules 当前只返回 schedule 不含 actions，暂时不可见；
-                  // 提示用户去编辑页查看。
-                  return null;
-                })()}
-              </div>
+              <PointScheduleCard
+                key={row.id}
+                row={row.data}
+                isNew={isNew}
+                isDirty={isNew || isExistingDirty}
+                isSaving={false}
+                isDeleted={isDel}
+                points={points}
+                onChange={(patch) => isNew
+                  ? updateDraft(row.idx!, patch as Partial<ScheduleDraft>)
+                  : updateField(row.id, patch as Partial<ScheduleDraft>)}
+                onAddAction={isNew ? () => addActionToDraft(row.idx!) : () => addActionToExisting(row.id)}
+                onRemoveAction={isNew ? (key) => removeActionInDraft(row.idx!, key) : (key) => removeActionFromExisting(row.id, key)}
+                onUpdateAction={isNew ? (key, patch) => updateActionInDraft(row.idx!, key, patch) : (key, patch) => updateActionInExisting(row.id, key, patch)}
+                onSave={ async () => {
+                  const s = schedules.find((x) => x.id === row.id)!;
+                  const eff = getEffective(s);
+                  try {
+                    await saveMutation.mutateAsync({
+                      schedule: {
+                        id: s.id, deviceId,
+                        name: eff.name.trim(),
+                        cron: eff.cron.trim(),
+                        enabled: eff.enabled,
+                        description: eff.description.trim() || undefined,
+                        actions: eff.actions.map((a, idx) => ({
+                          pointId: a.pointId,
+                          pointCode: a.pointCode,
+                          valueText: a.valueText,
+                          sortOrder: idx,
+                        })),
+                      },
+                    });
+                    addToast({ title: '规则已更新', color: 'success' });
+                    discardSched(s.id!);
+                    queryClient.invalidateQueries({ queryKey: ['schedules.list.byDevice', deviceId] });
+                  } catch (e) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    addToast({ title: `更新失败：${msg}`, color: 'danger' });
+                  }
+                }}
+                onDiscard={() => isNew ? removeDraftAt(row.idx!) : discardSched(row.id)}
+                onCopy={() => copySchedule(row.data)}
+                onDelete={() => isNew ? removeDraftAt(row.idx!) : markDeleted(row.id)}
+              />
             );
           })}
         </div>
@@ -702,6 +503,6 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
         onClose={() => setProgressOpen(false)}
         onComplete={onBatchComplete}
       />
-    </section>
+    </EditableSectionLayout>
   );
 }

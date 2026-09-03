@@ -24,7 +24,6 @@
 import { get, post, del, type RequestChain } from '@/lib/api-client';
 import type {
   DeviceScheduleDetail,
-  DeviceScheduleAction,
 } from '@/types/api';
 
 // ─── 按设备查询定时规则列表 ────────────────────────────────────────
@@ -67,9 +66,9 @@ export function getRawSchedule(
 // 请求体:{ schedule: DeviceSchedule(内嵌 actions) }
 // 响应:DeviceScheduleDetail
 export function saveSchedule(
-  body: DeviceScheduleDetail & { actions?: DeviceScheduleAction[] },
+  body: DeviceScheduleDetail,
 ): RequestChain<DeviceScheduleDetail> {
-  return post<DeviceScheduleDetail>('/schedules', body as DeviceScheduleDetail);
+  return post<DeviceScheduleDetail>('/schedules', body);
 }
 
 // ─── 删除定时规则 ──────────────────────────────────────────────────

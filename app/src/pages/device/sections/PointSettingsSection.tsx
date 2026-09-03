@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Button,
   Chip,
@@ -67,6 +67,37 @@ const toRow = (p: PointDefinition): PointRow => ({
   valueMappings: parseValueMappings(p.valueMappings),
 });
 
+/**
+ * 合并"后端原值 + 用户草稿"为完整 PointDefinition payload,发给后端做全量保存。
+ * - orig: 后端返回的原始点位(为空时只取草稿,避免 undefined 字段炸校验)
+ * - draft: 用户在 UI 上改过的字段(Partial<PointRow>)
+ * - deviceId: 设备 id(批量/单条入口都需带上)
+ */
+const buildUpdatePayload = (
+  orig: PointDefinition | undefined,
+  draft: Partial<PointRow>,
+  deviceId: string,
+): Partial<PointDefinition> => {
+  const merged: PointRow = orig
+    ? ({ ...toRow(orig), ...draft } as PointRow)
+    : (draft as PointRow);
+  return {
+    id: merged._key,
+    deviceId,
+    pointName: merged.pointName,
+    pointCode: merged.pointCode,
+    description: merged.description,
+    unit: merged.unit,
+    dataType: merged.dataType,
+    access: merged.access,
+    groupLabel: merged.groupLabel,
+    valueMappings: serializeValueMappings(merged.valueMappings),
+  };
+};
+
+import { EditableSectionLayout } from '@/components/common/EditableSectionLayout';
+import { PointSettingsCard } from './cards/PointSettingsCard';
+
 // 主组件
 export interface PointSettingsSectionProps {
   deviceId: string;
@@ -88,15 +119,8 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
 
   // 有未保存内容时阻止意外离开页面
   const hasUnsavedPoints = pendingChanges.size > 0 || newRows.length > 0;
-  useEffect(() => {
-    if (!hasUnsavedPoints) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [hasUnsavedPoints]);
+
+  // ...existing logic...
 
   const pointSaveMutation = useApiMutation({ mutationFn: (data: Partial<PointDefinition>) => savePoint(data) });
   const pointDeleteMutation = useApiMutation({ mutationFn: (pointId: string) => deletePoint(pointId) });
@@ -113,9 +137,11 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
   const handleExistingPointSave = useCallback(async (pointId: string) => {
     const changes = pendingChanges.get(pointId);
     if (!changes) return;
+    const orig = existingPoints.find((p) => p.id === pointId);
+    const payload = buildUpdatePayload(orig, changes, deviceId);
     setSavingKeys((prev) => new Set(prev).add(pointId));
     try {
-      const saved = await pointSaveMutation.mutateAsync({ id: pointId, deviceId, ...changes } as Partial<PointDefinition>);
+      const saved = await pointSaveMutation.mutateAsync(payload);
       setPendingChanges((prev) => { const next = new Map(prev); next.delete(pointId); return next; });
       queryClient.setQueryData<PointDefinition[]>(
         ['points', deviceId],
@@ -131,7 +157,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
         return next;
       });
     }
-  }, [pendingChanges, pointSaveMutation, deviceId, queryClient]);
+  }, [pendingChanges, existingPoints, pointSaveMutation, deviceId, queryClient]);
 
   const handleExistingPointDiscard = useCallback((pointId: string) => {
     setPendingChanges((prev) => { const next = new Map(prev); next.delete(pointId); return next; });
@@ -183,7 +209,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
       items.push({
         key: pointId,
         label: orig.pointName ?? '',
-        payload: { id: pointId, deviceId, ...changes } as Partial<PointDefinition>,
+        payload: buildUpdatePayload(orig, changes, deviceId),
       });
     }
     newRows.forEach((row, i) => {
@@ -556,46 +582,58 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
   }, [orderedPoints, pointFilter, pendingChanges]);
 
   return (
-    <section ref={sectionRef} className="scroll-mt-20 rounded-2xl bg-content1 p-6">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <ChartBarIcon className="h-4 w-4 text-foreground-500" />
-        <h2 className="text-base font-medium text-foreground">点位设置</h2>
-        <Chip size="sm" variant="flat">{visibleExisting.length + newRows.length} 个</Chip>
-        {hasUnsavedPoints && (
-          <Chip size="sm" variant="flat" color="warning">
-            {pendingChanges.size + newRows.length} 项未保存
-          </Chip>
-        )}
-        <div className="ml-auto flex flex-wrap items-center gap-1">
-          {hasUnsavedPoints && (
-            <>
-              <Button
-                size="sm"
-                variant="flat"
-                color="default"
-                isDisabled={batchProgress.open}
-                onPress={handleBulkDiscard}
-              >
-                全部放弃
-              </Button>
-              <Button
-                size="sm"
-                color="primary"
-                isDisabled={batchProgress.open}
-                onPress={handleBulkSave}
-              >
-                全部保存（{pendingChanges.size + newRows.length}）
-              </Button>
-            </>
-          )}
-          <PresetAddButtons
-            groups={POINT_PRESET_GROUPS}
-            onAddPreset={addPresetRow}
-            onAddBlank={addNewRow}
-          />
+    <EditableSectionLayout
+      ref={sectionRef}
+      title="点位设置"
+      icon={<ChartBarIcon className="h-4 w-4 text-foreground-500" />}
+      countLabel={`${visibleExisting.length + newRows.length} 个`}
+      hasUnsaved={hasUnsavedPoints}
+      unsavedCount={pendingChanges.size + newRows.length}
+      onSaveAll={handleBulkSave}
+      onDiscardAll={handleBulkDiscard}
+      isSaving={batchProgress.open}
+      extraToolbar={
+        <PresetAddButtons
+          groups={POINT_PRESET_GROUPS}
+          onAddPreset={addPresetRow}
+          onAddBlank={addNewRow}
+        />
+      }
+      renderMobile={() => (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {filteredPoints.map((p) => {
+            const row = getPointFinal(p);
+            const isDirty = pendingChanges.has(p.id);
+            return (
+              <PointSettingsCard
+                key={p.id}
+                row={row}
+                isDirty={isDirty}
+                isSaving={savingKeys.has(p.id)}
+                onChange={(patch) => handleExistingPointChange(p.id, patch as Partial<PointDefinition>)}
+                onSave={() => handleExistingPointSave(p.id)}
+                onDiscard={() => handleExistingPointDiscard(p.id)}
+                onCopy={() => copyPoint(row)}
+                onDelete={() => handleExistingPointDelete(p.id)}
+              />
+            );
+          })}
+          {newRows.map((row) => (
+            <PointSettingsCard
+              key={row._key}
+              row={row}
+              isDirty
+              isSaving={savingKeys.has(row._key)}
+              onChange={(patch) => handleNewPointChange(row._key, patch as Partial<PointDefinition>)}
+              onSave={() => handleBulkSave()}
+              onDiscard={() => removeNewRow(row._key)}
+              onCopy={() => copyPoint(row)}
+              onDelete={() => removeNewRow(row._key)}
+            />
+          ))}
         </div>
-      </div>
-
+      )}
+    >
       {/* 筛选/排序条 */}
       {visibleExisting.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -691,7 +729,7 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
       {/* 现有点位 */}
       {visibleExisting.length > 0 && (
         <div className="mb-4 overflow-auto rounded-lg border border-divider">
-          <Table aria-label="现有点位" removeWrapper>
+          <Table aria-label="现有点位" isStriped classNames={{ wrapper: 'bg-content1 rounded-2xl' }}>
             <TableHeader>
               <TableColumn className="w-10">{''}</TableColumn>
               <TableColumn>名称</TableColumn>
@@ -1041,6 +1079,6 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </section>
+    </EditableSectionLayout>
   );
 }

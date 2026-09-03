@@ -222,7 +222,13 @@ async function refreshAccessToken(): Promise<string | null> {
       return null;
     }
     try {
-      const resp = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken });
+      // 通过 POST /auth/login(loginType=REFRESH) 走 UserRefreshTokenAuthenticationProvider
+      const resp = await axios.post(`${API_BASE}/auth/login`, {
+        loginType: 'REFRESH',
+        refreshToken,
+        challenge: 'placeholder',
+        signature: 'placeholder',
+      });
       const envelope = resp.data as ApiResponse<TokenPairResp>;
       const data = envelope?.data;
       if (data?.accessToken && data?.refreshToken) {

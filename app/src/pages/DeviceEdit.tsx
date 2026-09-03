@@ -13,6 +13,7 @@ import { ArrowLeftIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { getDevice, updateDevice } from '@/api/devices';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { chainToPromise } from '@/hooks/useQueryList';
+import { useBeforeUnload } from '@/hooks/useBeforeUnload';
 import PanelPanelTab from '@/components/panel/PanelPanelTab';
 import type { Device } from '@/types/api';
 import PointSettingsSection from './device/sections/PointSettingsSection';
@@ -73,15 +74,7 @@ export default function DeviceEdit() {
   );
 
   // 设备信息有未保存改动时阻止意外离开页面
-  useEffect(() => {
-    if (!isDeviceDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDeviceDirty]);
+  useBeforeUnload(isDeviceDirty);
 
   const deviceMutation = useApiMutation({ mutationFn: (data: Partial<Device>) => updateDevice(id!, data) });
   const saveDeviceInfo = async () => {

@@ -17,7 +17,10 @@ import type { DataRecord, DataType, QueryBody } from '@/types/api';
 /** 查询点位历史快照 body (点类型 + 时间区间 + 点位集合) */
 export interface DataQueryBody extends QueryBody {
   deviceId?: string;
-  pointId?: string;            // 即 pointCode
+  /** 点位编码（推荐使用） */
+  pointCode?: string;
+  /** 点位编码（历史兼容字段，与 pointCode 同值） */
+  pointId?: string;
   dataType?: DataType;
   fromTimestamp?: string;      // ISO
   toTimestamp?: string;
@@ -87,7 +90,7 @@ export function controlData(req: ControlDataReq): RequestChain<DataRecord> {
   }
   return post<DataRecord>('/data', {
     deviceId: req.deviceId,
-    pointId: req.pointCode,
+    pointCode: req.pointCode,
     intValue,
     doubleValue,
     stringValue,

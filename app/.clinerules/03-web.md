@@ -120,4 +120,5 @@ useEffect(() => setOrder([...]), [setOrder]);
 | 移动端操作按钮只放图标 | 点击区过小 |
 | `total=0` 隐藏 Pagination | 页面闪屏 |
 | `<Select defaultSelectedKeys={...}>` | 非受控,页面进入不回显页大小 |
+| `<SelectItem>{expr} ({other})</SelectItem>` 不带 `textValue` | HeroUI v2 **children 非纯文本时无法回显** + 控制台 `<Item> with non-plain text contents... Please add a textValue prop.` 警告。**所有 SelectItem 必须显式给 `textValue`**,即使 children 看起来是字符串也要写 |
 | `GET /xxx?page=&size=` | 与 `useQueryList` 不兼容 |

@@ -384,7 +384,7 @@ function WidgetConfigDrawer({
         <DrawerHeader className="flex flex-col gap-1">
           <span className="text-base">配置组件</span>
           <span className="text-xs font-normal text-foreground-500">
-            {PLUGIN_META[draft.plugin].description}
+            {PLUGIN_META[draft.plugin]?.description ?? ''}
           </span>
         </DrawerHeader>
         <DrawerBody className="flex flex-col gap-4">

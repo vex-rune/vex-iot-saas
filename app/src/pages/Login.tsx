@@ -161,50 +161,61 @@ export default function Login() {
           setLoading(false);
           return;
         }
-        const { setTokens } = useAuthStore.getState();
+        const { setTokens, parseUserFromToken } = useAuthStore.getState();
         setTokens(data.accessToken, data.refreshToken);
 
-        // 异步拉取当前用户, 失败时主流程放行但显式提示(后续页面权限判断依赖 user.roles)
-        fetchCurrentUser({
-          onSuccess: (data) => {
-            if (data && typeof data === 'object') {
-              useAuthStore.getState().setUser({
-                userId: String(data.userId ?? ''),
-                username: String(data.username ?? ''),
-                nickname: data.nickname ? String(data.nickname) : undefined,
-                roles: Array.isArray(data.roles) ? data.roles : [],
-                tenantId: data.tenantId ? String(data.tenantId) : undefined,
-              });
-            }
-          },
-          onBizError: () => {
-            addToast({
-              title: '用户信息加载失败',
-              description: '部分页面可能受限,请刷新或重新登录',
-              color: 'warning',
-            });
-          },
-          onHttpError: () => {
-            addToast({
-              title: '用户信息加载失败',
-              description: '请检查网络后刷新页面',
-              color: 'warning',
-            });
-          },
-        });
+        // 1) 同步从 token 解析 fallback user,保证跳转后 AppShell 顶部立刻显示用户名(不等 /me)
+        const fallbackUser = parseUserFromToken(data.accessToken);
+        if (fallbackUser) {
+          useAuthStore.getState().setUser(fallbackUser);
+        }
 
         const to = (location.state as LocationState | null)?.from?.pathname ?? '/dashboard';
         addToast({ title: '登录成功', color: 'success' });
         navigate(to, { replace: true });
         setLoading(false);
+
+        // 2) 异步拉取权威 /me 信息(含 nickname),用于覆盖 fallback user
+        //    失败时不影响登录主流程,fallback 已经保证页面正常显示
+        fetchCurrentUser({
+          onSuccess: (me) => {
+            if (me && typeof me === 'object') {
+              useAuthStore.getState().setUser({
+                userId: String(me.userId ?? ''),
+                username: String(me.username ?? ''),
+                nickname: me.nickname ? String(me.nickname) : undefined,
+                roles: Array.isArray(me.roles) ? me.roles : [],
+                tenantId: me.tenantId ? String(me.tenantId) : undefined,
+              });
+            }
+          },
+          onBizError: () => {
+            // /me 失败:fallback 已经设置过 user,这里仅提示
+            addToast({
+              title: '部分用户信息未更新',
+              description: '基础信息已就绪,详情字段可能缺失',
+              color: 'warning',
+            });
+          },
+          onHttpError: () => {
+            addToast({
+              title: '部分用户信息未更新',
+              description: '基础信息已就绪,详情字段可能缺失',
+              color: 'warning',
+            });
+          },
+        });
       };
 
       const onBizError = (err: BizError) => {
         // eslint-disable-next-line no-console
         console.warn('[Login] onBizError fired:', err.envelope);
+        // 安全收敛:不再把后端的 message 渲染到 UI 上,避免暴露
+        // "账号被禁用 / 中间表 enabled / 租户不可用" 等细粒度状态差异。
+        // code 仍保留给开发/排障用。
         addToast({
           title: isAdminMode ? '管理员凭证不正确' : '账号或凭证不正确',
-          description: `${err.envelope.message}  [${err.envelope.code}]`,
+          description: `请检查后重试  [${err.envelope.code}]`,
           color: 'danger',
         });
         setLoading(false);
@@ -448,7 +459,7 @@ export default function Login() {
               <Button
                 type="submit"
                 color="primary"
-                // size="lg"
+                size="md"
                 // variant="bordered"
                 isLoading={loading}
                 className="h-12 border-2 font-medium text-base sm:h-14"

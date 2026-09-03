@@ -41,6 +41,7 @@ declare module '@heroicons/react/24/outline' {
   export const ArrowLeftIcon: IconComponent;
   export const DevicePhoneMobileIcon: IconComponent;
   export const CalendarIcon: IconComponent;
+  export const CalendarDaysIcon: IconComponent;
   export const MapPinIcon: IconComponent;
   export const LinkIcon: IconComponent;
   export const BuildingOfficeIcon: IconComponent;
