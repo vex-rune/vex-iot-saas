@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,18 +17,71 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class SsePusher {
 
-    /** SSE 连接超时：30 分钟 */
-    private static final long EMITTER_TIMEOUT = 1_800_000L;
-
-    /** 租户缺失时的兜底租户 */
+    /**
+     * 租户缺失时的兜底租户
+     */
     static final String DEFAULT_TENANT_FALLBACK = "0";
-
-    /** SSE event.name 命名空间后缀（按项目约定加 {@code ":"} 前缀） */
+    /**
+     * SSE 连接超时：30 分钟
+     */
+    private static final long EMITTER_TIMEOUT = 1_800_000L;
+    /**
+     * SSE event.name 命名空间后缀（按项目约定加 {@code ":"} 前缀）
+     */
     private static final String NAME_SUFFIX = ":";
 
     private final Map<String, Map<String, SseEmitter>> emitters = new ConcurrentHashMap<>();
 
-    /** 注册 SSE 连接 */
+    /**
+     * 解析路由 tenantId；缺失则兜底
+     */
+    private static String resolveTenantId(IEvent.Metadata meta) {
+        String tenantId = meta.tenantId();
+        if (tenantId != null && !tenantId.isBlank()) {
+            return tenantId;
+        }
+        log.warn("事件租户为空，使用默认租户兜底 eventId={} category={}",
+                meta.eventId(), meta.category());
+        return DEFAULT_TENANT_FALLBACK;
+    }
+
+    /**
+     * IEvent -> SSE 数据体（metadata 摘要 + payload）
+     */
+    static Map<String, Object> envelopeOf(IEvent<?> event) {
+        IEvent.Metadata meta = event.getMetadata();
+        Map<String, Object> body = new HashMap<>();
+        if (meta != null) {
+            body.put("eventId", meta.eventId() != null ? meta.eventId() : IdGenerator.snowId());
+            body.put("tenantId", meta.tenantId());
+            body.put("source", meta.source());
+            body.put("occurredAt", meta.occurredAt() != null ? meta.occurredAt() : Instant.now());
+            body.put("deviceId", meta.deviceId());
+            body.put("pointCode", meta.pointCode());
+            body.put("category", meta.category());
+        }
+        body.put("data", event.getPayload());
+        return body;
+    }
+
+    /// category -> SSE event.name 映射（旧的 resolveType 工具，保留供代码内参考）
+    static String resolveType(String category) {
+        if (category == null) return "system";
+        return switch (category) {
+            case "device.created", "device.updated",
+                 "device.deleted", "device.enabled-changed" -> "device";
+            case "device.online.heartbeat", "device.online.offline" -> "device.status";
+            case "point.created", "point.updated",
+                 "point.deleted", "point.sort-changed" -> "point";
+            case "data.update" -> "point";
+            case "alarm" -> "alarm";
+            default -> "system";
+        };
+    }
+
+    /**
+     * 注册 SSE 连接
+     */
     public SseEmitter register(String tenantId, String connectionId) {
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT);
         emitters.computeIfAbsent(tenantId, k -> new ConcurrentHashMap<>()).put(connectionId, emitter);
@@ -39,7 +92,9 @@ public class SsePusher {
         return emitter;
     }
 
-    /** 原子删除连接并清理空桶 */
+    /**
+     * 原子删除连接并清理空桶
+     */
     private void remove(String tenantId, String connectionId) {
         emitters.computeIfPresent(tenantId, (k, inner) -> {
             inner.remove(connectionId);
@@ -76,18 +131,9 @@ public class SsePusher {
         }
     }
 
-    /** 解析路由 tenantId；缺失则兜底 */
-    private static String resolveTenantId(IEvent.Metadata meta) {
-        String tenantId = meta.tenantId();
-        if (tenantId != null && !tenantId.isBlank()) {
-            return tenantId;
-        }
-        log.warn("事件租户为空，使用默认租户兜底 eventId={} category={}",
-                meta.eventId(), meta.category());
-        return DEFAULT_TENANT_FALLBACK;
-    }
-
-    /** 单条推送，失败则清理连接 */
+    /**
+     * 单条推送，失败则清理连接
+     */
     private void sendOne(String tenantId, Map.Entry<String, SseEmitter> entry, String sseName, Object payload) {
         String cid = entry.getKey();
         SseEmitter em = entry.getValue();
@@ -103,37 +149,5 @@ public class SsePusher {
             log.warn("SSE推送异常 tenantId={} cid={}", tenantId, cid, ex);
             remove(tenantId, cid);
         }
-    }
-
-    /** IEvent -> SSE 数据体（metadata 摘要 + payload） */
-    static Map<String, Object> envelopeOf(IEvent<?> event) {
-        IEvent.Metadata meta = event.getMetadata();
-        Map<String, Object> body = new HashMap<>();
-        if (meta != null) {
-            body.put("eventId", meta.eventId() != null ? meta.eventId() : IdGenerator.snowId());
-            body.put("tenantId", meta.tenantId());
-            body.put("source", meta.source());
-            body.put("occurredAt", meta.occurredAt() != null ? meta.occurredAt() : LocalDateTime.now());
-            body.put("deviceId", meta.deviceId());
-            body.put("pointCode", meta.pointCode());
-            body.put("category", meta.category());
-        }
-        body.put("data", event.getPayload());
-        return body;
-    }
-
-    /// category -> SSE event.name 映射（旧的 resolveType 工具，保留供代码内参考）
-    static String resolveType(String category) {
-        if (category == null) return "system";
-        return switch (category) {
-            case "device.created", "device.updated",
-                 "device.deleted", "device.enabled-changed" -> "device";
-            case "device.online.heartbeat", "device.online.offline" -> "device.status";
-            case "point.created", "point.updated",
-                 "point.deleted", "point.sort-changed" -> "point";
-            case "data.update" -> "point";
-            case "alarm" -> "alarm";
-            default -> "system";
-        };
     }
 }

@@ -1,6 +1,7 @@
 package com.vex.iot.app.mqtt.usr;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 /**
@@ -20,7 +21,8 @@ public record DeviceRspReport(
             String id,
             @JsonProperty("r_data")
             List<RwData> rData
-    ) {}
+    ) {
+    }
 
     public record RwData(
             @JsonProperty("name")
@@ -29,5 +31,6 @@ public record DeviceRspReport(
             String value,
             @JsonProperty("err")
             String err
-    ) {}
+    ) {
+    }
 }

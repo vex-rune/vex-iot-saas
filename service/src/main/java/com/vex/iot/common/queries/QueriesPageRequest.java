@@ -1,6 +1,8 @@
 package com.vex.iot.common.queries;
 
 import jakarta.validation.Valid;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -12,35 +14,17 @@ import java.util.List;
  *
  * @author vex
  */
+@Setter
+@Getter
 public class QueriesPageRequest implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @Valid private QueriesPredicate predicate;
-    @Valid private List<QueriesOrder> order;
-    @Valid private QueriesPage page;
+    @Valid
+    private QueriesPredicate predicate;
+    @Valid
+    private List<QueriesOrder> order;
+    @Valid
+    private QueriesPage page;
 
-    public QueriesPredicate getPredicate() {
-        return predicate;
-    }
-
-    public void setPredicate(QueriesPredicate predicate) {
-        this.predicate = predicate;
-    }
-
-    public List<QueriesOrder> getOrder() {
-        return order;
-    }
-
-    public void setOrder(List<QueriesOrder> order) {
-        this.order = order;
-    }
-
-    public QueriesPage getPage() {
-        return page;
-    }
-
-    public void setPage(QueriesPage page) {
-        this.page = page;
-    }
 }

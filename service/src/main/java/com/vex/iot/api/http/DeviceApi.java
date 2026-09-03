@@ -1,18 +1,20 @@
 package com.vex.iot.api.http;
 
 import com.vex.iot.api.http.model.PointSortOrderRequest;
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.common.queries.QueriesPageRequest;
-import jakarta.validation.Valid;
 import com.vex.iot.common.response.Response;
+import com.vex.iot.domain.audit.annotation.AuditLog;
+import com.vex.iot.domain.device.DeviceService;
 import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.device.model.DeviceOnlineResponse;
+import com.vex.iot.domain.device.model.DevicePanelEntity;
 import com.vex.iot.domain.device.model.PointEntity;
-import com.vex.iot.domain.device.DeviceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 设备与点位
@@ -96,8 +98,6 @@ public class DeviceApi {
         return Response.ok(deviceService.setDeviceEnabled(id, body.enabled()));
     }
 
-    public record ToggleEnabledReq(boolean enabled) {}
-
     /**
      * 设备-删除
      *
@@ -122,8 +122,6 @@ public class DeviceApi {
         return Response.ok(deviceService.getDeviceOnlineStatus(id));
     }
 
-    // ==================== 点位 ====================
-
     /**
      * 设备-点位条件查询
      *
@@ -134,6 +132,8 @@ public class DeviceApi {
     public Response<List<PointEntity>> queryPoints(@Valid @RequestBody QueriesPageRequest req) {
         return Response.ok(deviceService.queryPoints(req));
     }
+
+    // ==================== 点位 ====================
 
     /**
      * 设备-点位数量查询
@@ -186,7 +186,7 @@ public class DeviceApi {
      * 设备-点位排序更新
      *
      * @param deviceId 设备ID
-     * @param body 按新顺序排列的点位ID列表
+     * @param body     按新顺序排列的点位ID列表
      * @return 操作结果
      */
     @AuditLog(action = "POINT_SORT", resourceType = "point")
@@ -196,5 +196,56 @@ public class DeviceApi {
             @Valid @RequestBody PointSortOrderRequest body) {
         deviceService.updatePointSortOrder(deviceId, body.pointIds());
         return Response.ok();
+    }
+
+    /**
+     * 获取设备面板配置。
+     *
+     * @param deviceId 设备 ID
+     * @return 面板配置（未配置时返回空对象）
+     */
+    @GetMapping("/api/devices/{deviceId}/panel-config")
+    public Response<DevicePanelEntity> getPanelConfig(@PathVariable String deviceId) {
+        DevicePanelEntity panel = deviceService.getPanelConfig(deviceId);
+        return Response.ok(panel);
+    }
+
+    // ==================== 面板配置 ====================
+
+    /**
+     * 保存设备面板配置。
+     *
+     * @param deviceId 设备 ID
+     * @param body     请求体,包含 panelConfig 对象(Map 形式)
+     * @return 保存后的面板配置
+     */
+    @AuditLog(action = "PANEL_CONFIG_SAVE", resourceType = "panel")
+    @PutMapping("/api/devices/{deviceId}/panel-config")
+    public Response<DevicePanelEntity> savePanelConfig(
+            @PathVariable String deviceId,
+            @Valid @RequestBody SavePanelConfigRequest body) {
+        return Response.ok(deviceService.savePanelConfig(deviceId, body.panelConfig()));
+    }
+
+    /**
+     * 删除设备面板配置。
+     *
+     * @param deviceId 设备 ID
+     * @return 操作结果
+     */
+    @AuditLog(action = "PANEL_CONFIG_DELETE", resourceType = "panel")
+    @DeleteMapping("/api/devices/{deviceId}/panel-config")
+    public Response<Void> deletePanelConfig(@PathVariable String deviceId) {
+        deviceService.deletePanelConfig(deviceId);
+        return Response.ok();
+    }
+
+    public record ToggleEnabledReq(boolean enabled) {
+    }
+
+    /**
+     * 保存面板配置请求体 — panelConfig 是任意 JSON 对象(由前端 PanelConfig schema 定义)。
+     */
+    public record SavePanelConfigRequest(Map<String, Object> panelConfig) {
     }
 }

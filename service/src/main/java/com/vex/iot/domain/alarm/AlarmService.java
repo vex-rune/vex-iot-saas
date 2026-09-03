@@ -5,18 +5,19 @@ import com.vex.iot.common.enums.AlarmConditionType;
 import com.vex.iot.common.enums.AlarmLevel;
 import com.vex.iot.common.enums.EventStatus;
 import com.vex.iot.common.exception.BusinessExceptions.NotFoundException;
-import com.vex.iot.common.model.BaseEntity;
-import com.vex.iot.common.model.CurrentUser;
+import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.common.util.UserContext;
+import com.vex.iot.domain.alarm.event.AlarmMessageFormatter;
 import com.vex.iot.domain.alarm.event.AlarmTriggeredEvent;
 import com.vex.iot.domain.alarm.exception.AlarmRuleNotFoundException;
 import com.vex.iot.domain.alarm.model.AlarmLogEntity;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
 import com.vex.iot.domain.alarm.repository.AlarmLogRepository;
 import com.vex.iot.domain.alarm.repository.AlarmRuleRepository;
+import com.vex.iot.domain.data.model.DataEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -44,10 +44,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AlarmService {
 
+    private static final int SUPPRESS_WINDOW_MINUTES = 5;
     private final AlarmLogRepository eventRepo;
     private final AlarmRuleRepository ruleRepo;
     private final ApplicationEventPublisher applicationEventPublisher;
-
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -55,13 +55,13 @@ public class AlarmService {
      * 保存预警规则。
      */
     public AlarmRuleEntity saveRule(AlarmRuleEntity rule) {
-        LocalDateTime now = LocalDateTime.now();
-        String operator = UserContext.username().orElse(BaseEntity.SYSTEM_USER_ID);
+        Instant now = Instant.now();
+        String operator = UserContext.username().orElse(TenantBaseEntity.SYSTEM_USER_ID);
 
         if (rule.getId() == null || rule.getId().isBlank()) {
             rule.setId(IdGenerator.snowId());
             if (rule.getTenantId() == null || rule.getTenantId().isBlank()) {
-                rule.setTenantId(BaseEntity.DEFAULT_TENANT_ID);
+                rule.setTenantId(TenantBaseEntity.DEFAULT_TENANT_ID);
             }
             rule.stampCreated(operator, now);
         } else {
@@ -137,22 +137,18 @@ public class AlarmService {
                 .orElseThrow(() -> new NotFoundException("预警事件"));
         e.setEventStatus(EventStatus.ACK);
         e.setAcknowledged(AlarmAckStatus.ACK);
-        e.setAcknowledgedAt(LocalDateTime.now());
+        e.setAcknowledgedAt(Instant.now());
         e.setAcknowledgedBy(UserContext.username().orElse(null));
         return eventRepo.save(e);
     }
 
-    /**
-     * 根据ID获取预警事件。
-     */
-    public AlarmLogEntity getEvent(String id) {
-        return eventRepo.findById(id)
-                .orElseThrow(() -> new NotFoundException("预警事件"));
-    }
-
-    public void publishAlarm(AlarmRuleEntity rule, String rawValue, LocalDateTime timestamp) {
+    public void publishAlarm(AlarmRuleEntity rule, String rawValue, DataEntity data) {
         // 报警重复抑制
-        if (isAlarmSuppressed(rule, timestamp)) {
+        if (isAlarmSuppressed(rule, data.getTimestamp())) {
+            return;
+        }
+
+        if (!rule.getEnabled()) {
             return;
         }
 
@@ -168,28 +164,26 @@ public class AlarmService {
                 .message(buildAlarmMessage(rule, rawValue))
                 .triggerValue(rawValue)
                 .acknowledged(AlarmAckStatus.UNACK)
-                .triggeredAt(timestamp)
+                .triggeredAt(data.getTimestamp())
                 .build();
 
         // 插入数据
         eventRepo.save(event);
 
+        // 生成message;
+
         // 发送事件
-        applicationEventPublisher.publishEvent(new AlarmTriggeredEvent(
-                rule.getTenantId(),
-                rule.getDeviceId(),
-                rule.getPointCode(),
-                rule.getLevel(),
-                rule.getMessage(),
-                rule.getNotifyUserIds() == null ? List.of() : rule.getNotifyUserIds(),
-                CurrentUser.ofDevice(rule.getDeviceId(), rule.getTenantId())
-        ));
+        applicationEventPublisher.publishEvent(
+                new AlarmTriggeredEvent(
+                        rule,
+                        data,
+                        AlarmMessageFormatter.format(rule, data)
+                )
+        );
     }
 
-    private static final int SUPPRESS_WINDOW_MINUTES = 5;
-
-    private boolean isAlarmSuppressed(AlarmRuleEntity rule, LocalDateTime timestamp) {
-        LocalDateTime since = timestamp.minusSeconds(SUPPRESS_WINDOW_MINUTES * 60L);
+    private boolean isAlarmSuppressed(AlarmRuleEntity rule, Instant timestamp) {
+        Instant since = timestamp.minusSeconds(SUPPRESS_WINDOW_MINUTES * 60L);
         long recentCount = eventRepo.countByRuleIdAndAcknowledgedAndTriggeredAtAfter(
                 rule.getId(), AlarmAckStatus.UNACK, since);
         if (recentCount > 0) {
@@ -206,7 +200,7 @@ public class AlarmService {
                 AlarmAckStatus.UNACK,
                 EventStatus.RECOVERED,
                 AlarmAckStatus.ACK,
-                LocalDateTime.now()
+                Instant.now()
         );
     }
 

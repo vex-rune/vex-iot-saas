@@ -3,7 +3,6 @@ package com.vex.iot.app.mqtt.usr;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +22,13 @@ import static com.vex.iot.app.mqtt.MqttConnectProperties.*;
 public class MqttUsrMessageHandlerConfig {
 
 
+    private static MqttUsrHeaders getMqttUsrHeaders(Message<?> message) {
+        String topic = message.getHeaders().get("mqtt_receivedTopic", String.class);
+        Integer qos = message.getHeaders().get("mqtt_receivedQos", Integer.class);
+        Long timestamp = message.getHeaders().get("timestamp", Long.class);
+//        UUID id = message.getHeaders().get("id", UUID.class);
+        return new MqttUsrHeaders("id.toString()", topic, qos, timestamp);
+    }
 
     /**
      * 消息消费处理器：处理订阅收到的消息
@@ -61,15 +67,6 @@ public class MqttUsrMessageHandlerConfig {
             }
         };
     }
-
-    private static MqttUsrHeaders getMqttUsrHeaders(Message<?> message) {
-        String topic = message.getHeaders().get("mqtt_receivedTopic", String.class);
-        Integer qos = message.getHeaders().get("mqtt_receivedQos", Integer.class);
-        Long timestamp = message.getHeaders().get("timestamp", Long.class);
-//        UUID id = message.getHeaders().get("id", UUID.class);
-        return new MqttUsrHeaders("id.toString()", topic, qos, timestamp);
-    }
-
 
 
 }

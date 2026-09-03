@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -30,22 +30,22 @@ public interface AlarmLogRepository extends JpaRepository<AlarmLogEntity, String
     long countByEventStatus(EventStatus status);
 
     /// 查询指定规则在指定时间之后的未确认事件数量（用于重复抑制）
-    long countByRuleIdAndAcknowledgedAndTriggeredAtAfter(String ruleId, AlarmAckStatus acknowledged, LocalDateTime triggeredAt);
+    long countByRuleIdAndAcknowledgedAndTriggeredAtAfter(String ruleId, AlarmAckStatus acknowledged, Instant triggeredAt);
 
     @Modifying
     @Query("""
-        update AlarmLogEntity a
-        set a.eventStatus = :newEventStatus,
-            a.acknowledged = :newAckStatus,
-            a.acknowledgedAt = :now
-        where a.ruleId = :ruleId
-        and a.eventStatus = :oldEventStatus
-        and a.acknowledged = :oldAckStatus
-        """)
+            update AlarmLogEntity a
+            set a.eventStatus = :newEventStatus,
+                a.acknowledged = :newAckStatus,
+                a.acknowledgedAt = :now
+            where a.ruleId = :ruleId
+            and a.eventStatus = :oldEventStatus
+            and a.acknowledged = :oldAckStatus
+            """)
     int updateAlarmAckStatus(@Param("ruleId") String ruleId,
                              @Param("oldEventStatus") EventStatus oldEventStatus,
                              @Param("oldAckStatus") AlarmAckStatus oldAckStatus,
                              @Param("newEventStatus") EventStatus newEventStatus,
                              @Param("newAckStatus") AlarmAckStatus newAckStatus,
-                             @Param("now") LocalDateTime now);
+                             @Param("now") Instant now);
 }

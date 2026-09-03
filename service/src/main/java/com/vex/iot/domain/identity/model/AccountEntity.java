@@ -3,19 +3,17 @@ package com.vex.iot.domain.identity.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,9 +24,8 @@ import java.util.Set;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = false)
 @Entity
-@Table(name = "sys_user")
+@Table(name = "sys_account")
 public class AccountEntity extends BaseEntity {
 
     /// 用户ID（雪花算法生成）
@@ -63,8 +60,8 @@ public class AccountEntity extends BaseEntity {
     private String displayName;
 
     /// 角色集合
-    @Column(name = "roles", length = 64, columnDefinition = "TEXT")
-    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "roles", columnDefinition = "jsonb")
     private Set<String> roles = new HashSet<>();
 
     /// 是否启用
@@ -72,7 +69,7 @@ public class AccountEntity extends BaseEntity {
     private boolean enabled = true;
 
     /// 最后登录时间
-    private LocalDateTime lastLoginAt;
+    private Instant lastLoginAt;
 
     public void setPasswordHash(String hash) {
         this.passwordHash = hash;

@@ -3,14 +3,9 @@ package com.vex.iot.domain.audit.model;
 import com.vex.iot.common.enums.OperationAction;
 import com.vex.iot.common.enums.OperationResult;
 import com.vex.iot.common.enums.ResourceType;
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.vex.iot.common.model.TenantBaseEntity;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,19 +13,19 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /// 操作日志
 /// 操作审计日志:仅记录 PRD 明确要求的关键写操作(登录、控制下发)。
 /// CRUD 后续按需扩展。
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "operation_log")
-public class OperationLogEntity extends BaseEntity {
+public class OperationLogEntity extends TenantBaseEntity {
 
     /// 操作日志ID（雪花算法生成）
     @Id
@@ -70,5 +65,5 @@ public class OperationLogEntity extends BaseEntity {
     private String errorMessage;
 
     /// 发生时间
-    private LocalDateTime occurredAt;
+    private Instant occurredAt;
 }

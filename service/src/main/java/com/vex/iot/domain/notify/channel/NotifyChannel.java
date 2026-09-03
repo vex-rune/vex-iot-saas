@@ -1,6 +1,5 @@
 package com.vex.iot.domain.notify.channel;
 
-import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.domain.notify.model.NotifyUserEntity;
 
 /**
@@ -18,5 +17,5 @@ public interface NotifyChannel {
 
     boolean isEnabled(NotifyUserEntity user);
 
-    boolean send(NotifyUserEntity user, String message, CurrentUser trigger);
+    boolean send(NotifyUserEntity user, String message);
 }

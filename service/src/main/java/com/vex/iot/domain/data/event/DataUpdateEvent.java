@@ -5,7 +5,7 @@ import com.vex.iot.domain.data.model.DataEntity;
 import com.vex.iot.domain.event.IEvent;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /// 点位实时数据更新事件 — Data 域唯一事件。
 @Data
@@ -24,7 +24,7 @@ public final class DataUpdateEvent implements DataEvent<DataEntity> {
                 IdGenerator.snowId(),
                 data == null ? null : data.getTenantId(),
                 DOMAIN_SOURCE,
-                data == null || data.getTimestamp() == null ? LocalDateTime.now() : data.getTimestamp(),
+                data == null || data.getTimestamp() == null ? Instant.now() : data.getTimestamp(),
                 data == null ? null : data.getDeviceId(),
                 data == null ? null : data.getPointId(),
                 CATEGORY

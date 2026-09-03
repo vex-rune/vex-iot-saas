@@ -5,8 +5,6 @@ import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.event.IEvent;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 public final class DeviceHeartbeatEvent implements DeviceEvent<DeviceEntity> {
 

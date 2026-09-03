@@ -1,19 +1,19 @@
 package com.vex.iot.domain.audit.aspect;
 
-import com.vex.iot.domain.audit.model.ControlLogEntity;
-import com.vex.iot.domain.audit.model.OperationLogEntity;
-import com.vex.iot.domain.audit.repo.ControlLogRepository;
-import com.vex.iot.domain.audit.repo.OperationLogRepository;
 import com.vex.iot.common.enums.OperationAction;
 import com.vex.iot.common.enums.OperationResult;
 import com.vex.iot.common.enums.ResourceType;
 import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.common.util.UserContext;
+import com.vex.iot.domain.audit.model.ControlLogEntity;
+import com.vex.iot.domain.audit.model.OperationLogEntity;
+import com.vex.iot.domain.audit.repo.ControlLogRepository;
+import com.vex.iot.domain.audit.repo.OperationLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,11 +42,11 @@ public class AuditWriter {
      * 异步保存操作日志
      *
      * @param operator     操作人
-     * @param action      操作类型
+     * @param action       操作类型
      * @param resourceType 资源类型
-     * @param arg         参数
-     * @param status      状态
-     * @param errMsg      错误信息
+     * @param arg          参数
+     * @param status       状态
+     * @param errMsg       错误信息
      */
 //    @Async
     public void saveOperation(CurrentUser operator, OperationAction action, ResourceType resourceType,
@@ -63,7 +63,7 @@ public class AuditWriter {
                     .detail(arg)
                     .status(status)
                     .errorMessage(errMsg)
-                    .occurredAt(LocalDateTime.now())
+                    .occurredAt(Instant.now())
                     .build());
         } catch (Exception ex) {
             log.warn("审计落库失败 action={}", action, ex);
@@ -75,11 +75,11 @@ public class AuditWriter {
      *
      * <p>从 UserContext 抓取调用者上下文，同步落库。仅在希望审计立即可见时使用。
      *
-     * @param action      操作类型
+     * @param action       操作类型
      * @param resourceType 资源类型
-     * @param arg         参数
-     * @param status      状态
-     * @param errMsg      错误信息
+     * @param arg          参数
+     * @param status       状态
+     * @param errMsg       错误信息
      */
     public void saveOperationSync(OperationAction action, ResourceType resourceType, String arg, OperationResult status, String errMsg) {
         Optional<CurrentUser> cu = UserContext.current();
@@ -91,7 +91,7 @@ public class AuditWriter {
                     .tenantId(tenantId).username(username)
                     .action(action).resourceType(resourceType).detail(arg)
                     .status(status).errorMessage(errMsg)
-                    .occurredAt(LocalDateTime.now()).build());
+                    .occurredAt(Instant.now()).build());
         } catch (Exception ex) {
             log.warn("审计落库失败 action={}", action, ex);
         }

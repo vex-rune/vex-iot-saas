@@ -3,14 +3,9 @@ package com.vex.iot.domain.alarm.model;
 import com.vex.iot.common.enums.AlarmAckStatus;
 import com.vex.iot.common.enums.AlarmLevel;
 import com.vex.iot.common.enums.EventStatus;
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.vex.iot.common.model.TenantBaseEntity;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,18 +14,17 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 /// 预警事件
 /// 统一设备级和点位级的预警事件记录
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "alarm_event")
-public class AlarmLogEntity extends BaseEntity {
+public class AlarmLogEntity extends TenantBaseEntity {
 
     /// 预警事件ID
     @Id
@@ -86,19 +80,19 @@ public class AlarmLogEntity extends BaseEntity {
     private AlarmAckStatus acknowledged;
 
     /// 触发时间
-    private LocalDateTime triggeredAt;
+    private Instant triggeredAt;
 
     /// 发生时间（点位级使用）
-    private LocalDateTime occurTime;
+    private Instant occurTime;
 
     /// 恢复时间
-    private LocalDateTime recoveredAt;
+    private Instant recoveredAt;
 
     /// 确认时间
-    private LocalDateTime acknowledgedAt;
+    private Instant acknowledgedAt;
 
     /// 确认时间（点位级使用）
-    private LocalDateTime ackTime;
+    private Instant ackTime;
 
     /// 确认人（设备级使用）
     @Size(max = 64)

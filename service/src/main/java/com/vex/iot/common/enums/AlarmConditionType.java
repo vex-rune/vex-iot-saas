@@ -25,14 +25,19 @@ public enum AlarmConditionType {
         this.symbol = symbol;
     }
 
-    public String getDisplayName() { return displayName; }
-    public String getSymbol() { return symbol; }
-
     public static AlarmConditionType fromCode(String code) {
         if (code == null) return null;
         for (AlarmConditionType v : values()) {
             if (v.name().equalsIgnoreCase(code)) return v;
         }
         return null;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String getSymbol() {
+        return symbol;
     }
 }

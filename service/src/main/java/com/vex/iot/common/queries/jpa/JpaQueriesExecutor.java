@@ -1,21 +1,10 @@
 package com.vex.iot.common.queries.jpa;
 
 import com.vex.iot.common.exception.BusinessExceptions.BadRequestException;
-import com.vex.iot.common.queries.QueriesCondition;
-import com.vex.iot.common.queries.QueriesCriteria;
-import com.vex.iot.common.queries.QueriesOperatorEnum;
-import com.vex.iot.common.queries.QueriesOrder;
-import com.vex.iot.common.queries.QueriesPage;
-import com.vex.iot.common.queries.QueriesPageRequest;
-import com.vex.iot.common.queries.QueriesPredicate;
+import com.vex.iot.common.queries.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Order;
-import jakarta.persistence.criteria.Path;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,12 +30,6 @@ import java.util.stream.Collectors;
  */
 public class JpaQueriesExecutor<E> {
 
-    private final Class<E> entityClass;
-    private final EntityManager entityManager;
-
-    private QueriesPredicate predicate;
-    private List<QueriesOrder> orders;
-
     /**
      * 操作符 -> 谓词构建策略。线程安全,类加载时一次性初始化。
      */
@@ -58,7 +41,10 @@ public class JpaQueriesExecutor<E> {
         }
     }
 
-    private record PredicateContext(CriteriaBuilder builder, Path<?> path, Object value, QueriesOperatorEnum operator) {}
+    private final Class<E> entityClass;
+    private final EntityManager entityManager;
+    private QueriesPredicate predicate;
+    private List<QueriesOrder> orders;
 
     public JpaQueriesExecutor(Class<E> entityClass, EntityManager entityManager) {
         this.entityClass = entityClass;
@@ -68,8 +54,6 @@ public class JpaQueriesExecutor<E> {
     public static <E> JpaQueriesExecutor<E> of(Class<E> entityClass, EntityManager entityManager) {
         return new JpaQueriesExecutor<>(entityClass, entityManager);
     }
-
-    // ====== 策略实现 ======
 
     private static Function<PredicateContext, Predicate> createStrategy(QueriesOperatorEnum op) {
         return switch (op) {
@@ -132,6 +116,8 @@ public class JpaQueriesExecutor<E> {
         };
     }
 
+    // ====== 策略实现 ======
+
     private static void requireComparable(Object value, QueriesOperatorEnum op) {
         if (value == null || !(value instanceof Comparable)) {
             throw new BadRequestException(op + " 操作符需要 Comparable 类型,实际=" + (value == null ? "null" : value.getClass().getName()));
@@ -156,8 +142,6 @@ public class JpaQueriesExecutor<E> {
         }
     }
 
-    // ====== 查询入口 ======
-
     public List<E> page(QueriesPageRequest req) {
         if (req != null) {
             if (req.getPredicate() != null) this.predicate = req.getPredicate();
@@ -166,6 +150,8 @@ public class JpaQueriesExecutor<E> {
         }
         return list();
     }
+
+    // ====== 查询入口 ======
 
     public List<E> page(QueriesPage page) {
         CriteriaBuilder builder = entityManager.getCriteriaBuilder();
@@ -207,8 +193,6 @@ public class JpaQueriesExecutor<E> {
         return count(predicate) > 0;
     }
 
-    // ====== 构建内部 ======
-
     private CriteriaQuery<E> buildSelectQuery(CriteriaBuilder builder) {
         CriteriaQuery<E> query = builder.createQuery(entityClass);
         Root<E> root = query.from(entityClass);
@@ -216,6 +200,8 @@ public class JpaQueriesExecutor<E> {
         applyOrdering(query, root, builder);
         return query;
     }
+
+    // ====== 构建内部 ======
 
     private void applyWhereClause(CriteriaQuery<?> query, Root<?> root, CriteriaBuilder builder) {
         if (isEmptyPredicate(predicate)) {
@@ -281,5 +267,8 @@ public class JpaQueriesExecutor<E> {
         return p == null
                 || ((p.getAnd() == null || p.getAnd().isEmpty())
                 && (p.getOr() == null || p.getOr().isEmpty()));
+    }
+
+    private record PredicateContext(CriteriaBuilder builder, Path<?> path, Object value, QueriesOperatorEnum operator) {
     }
 }

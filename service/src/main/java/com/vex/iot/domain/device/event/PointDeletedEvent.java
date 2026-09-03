@@ -1,37 +1,31 @@
 package com.vex.iot.domain.device.event;
 
 import com.vex.iot.common.util.IdGenerator;
+import com.vex.iot.domain.device.model.PointEntity;
 import com.vex.iot.domain.event.IEvent;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.time.Instant;
 
 @Data
-public final class PointDeletedEvent implements DeviceEvent<Map<String, Object>> {
+public final class PointDeletedEvent implements DeviceEvent<PointEntity> {
 
     public static final String CATEGORY = "point.deleted";
 
     private final IEvent.Metadata metadata;
-    private final Map<String, Object> payload;
+    private final PointEntity payload;
 
-    public PointDeletedEvent(String tenantId, String deviceId, String pointId,
-                             String operatorId, LocalDateTime deletedAt) {
+
+    public PointDeletedEvent(PointEntity exist) {
         this.metadata = new IEvent.Metadata(
                 IdGenerator.snowId(),
-                tenantId,
+                exist.getTenantId(),
                 DOMAIN_SOURCE,
-                deletedAt == null ? LocalDateTime.now() : deletedAt,
-                deviceId,
+                Instant.now(),
+                exist.getDeviceId(),
                 null,
                 CATEGORY
         );
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("deviceId", deviceId);
-        m.put("pointId", pointId);
-        m.put("operatorId", operatorId);
-        m.put("deletedAt", deletedAt);
-        this.payload = m;
+        this.payload = exist;
     }
 }

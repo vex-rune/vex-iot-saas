@@ -1,14 +1,14 @@
 package com.vex.iot.app.auth.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vex.iot.app.auth.config.SecurityProperties;
+import com.vex.iot.app.auth.model.LoginUser;
+import com.vex.iot.app.auth.util.JwtHandler;
 import com.vex.iot.common.constants.RoleConstants;
 import com.vex.iot.common.exception.BizException;
 import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.common.response.Response;
 import com.vex.iot.common.util.UserContext;
-import com.vex.iot.app.auth.config.SecurityProperties;
-import com.vex.iot.app.auth.model.LoginUser;
-import com.vex.iot.app.auth.util.JwtHandler;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +38,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest req) {
         String path = req.getRequestURI();
-        return path.startsWith("/api/auth/login");
+        // 只跳过"完全不需要 JWT"的端点:
+        //   - POST /api/auth/login   登录入口(还没 token)
+        //   - GET  /api/auth/key-info 登录前的握手(还没 token)
+        // 其他 /api/auth/** 端点(GET /me、GET /tenants 等)需要 JWT 过滤器正常工作,
+        // 否则 SecurityContext / UserContext 都为空,controller 拿不到当前用户。
+        if ("POST".equalsIgnoreCase(req.getMethod()) && "/api/auth/login".equals(path)) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(req.getMethod()) && "/api/auth/key-info".equals(path)) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -80,7 +91,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private List<SimpleGrantedAuthority> resolveAuthorities(java.util.Set<String> roles) {
         java.util.Set<String> effective = (roles != null && roles.contains(RoleConstants.SUPER_ADMIN))
                 ? java.util.Set.of(RoleConstants.SUPER_ADMIN, RoleConstants.ADMIN,
-                        RoleConstants.OPERATOR, RoleConstants.GUEST)
+                RoleConstants.OPERATOR, RoleConstants.GUEST)
                 : (roles == null ? java.util.Set.of() : roles);
         return effective.stream()
                 .map(r -> new SimpleGrantedAuthority(RoleConstants.ROLE_PREFIX + r))

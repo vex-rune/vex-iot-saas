@@ -3,9 +3,9 @@
 ## 品牌
 
 - **产品名**: Vex 云物联 / Vex IoT
-- **官方网站**: `https://vexrune.top/` ⚠️ 这是营销/产品门户,**不是**控制台
-- **控制台子域名(规划)**: `console.vexrune.top`
-- **后端 API 子域名(规划)**: `api.vexrune.top`
+- **官方网站**: `https://vexrune.top/` ⚠️ 这是营销/产品门户, **不是**控制台
+- **控制台子域名 (规划)**: `console.vexrune.top`
+- **后端 API 子域名 (规划)**: `api.vexrune.top`
 
 ## 品牌常量集中位置
 
@@ -35,22 +35,22 @@ API_BASE       // → '/api'
 ## 前端技术栈
 
 - React 18 + TypeScript 5
-- Vite 5(构建/开发服务器)
+- Vite 5 (构建/开发服务器)
 - **HeroUI**(基于 Tailwind CSS 3) — **唯一 UI 来源**,禁止自造交互组件
 - React Router v6
 - @tanstack/react-query + axios
-- Zustand(轻量状态)
-- Recharts / React Grid Layout(看板可视化)
-- @heroicons/react(若用到的图标必须先在 `src/types/globals.d.ts` 声明)
+- Zustand (轻量状态)
+- Recharts / React Grid Layout (看板可视化)
+- @heroicons/react (若用到的图标必须先在 `src/types/globals.d.ts` 声明)
 
 ## 后端技术栈
 
 - Spring Boot 3 + Java 21
-- MongoDB(数据存储)
-- Redis(缓存)
-- EMQX(MQTT broker,设备接入)
+- MongoDB (数据存储)
+- Redis (缓存)
+- EMQX (MQTT broker,设备接入)
 
-## 设计约束(必须遵守)
+## 设计约束 (必须遵守)
 
 1. **颜色/间距/圆角**一律消费 HeroUI 语义 token,禁止新增自定义 hex 颜色变量。
 2. **外链**必须 `target="_blank" rel="noopener noreferrer"`。

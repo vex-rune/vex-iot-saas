@@ -17,7 +17,8 @@ import java.util.List;
 public class ScheduleActionConverter implements AttributeConverter<List<ScheduleAction>, String> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final TypeReference<List<ScheduleAction>> TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<ScheduleAction>> TYPE = new TypeReference<>() {
+    };
 
     @Override
     public String convertToDatabaseColumn(List<ScheduleAction> attribute) {

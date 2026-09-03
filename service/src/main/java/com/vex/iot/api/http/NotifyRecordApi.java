@@ -1,8 +1,8 @@
 package com.vex.iot.api.http;
 
-import com.vex.iot.domain.notify.NotifyService;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.response.Response;
+import com.vex.iot.domain.notify.NotifyService;
 import com.vex.iot.domain.notify.model.NotifyRecordEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

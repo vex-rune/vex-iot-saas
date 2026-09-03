@@ -1,21 +1,20 @@
 package com.vex.iot.domain.schedule;
 
 import com.vex.iot.common.exception.BusinessExceptions.BadRequestException;
-import com.vex.iot.common.model.BaseEntity;
+import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.common.util.UserContext;
+import com.vex.iot.domain.schedule.exception.DeviceScheduleNotFoundException;
 import com.vex.iot.domain.schedule.model.DeviceScheduleDetail;
 import com.vex.iot.domain.schedule.model.DeviceScheduleEntity;
 import com.vex.iot.domain.schedule.model.DeviceScheduleRequest;
-import com.vex.iot.domain.schedule.exception.DeviceScheduleNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
@@ -61,8 +60,8 @@ public class DeviceScheduleService {
         DeviceScheduleEntity incoming = req.schedule();
         validate(incoming);
 
-        LocalDateTime now = LocalDateTime.now();
-        String operator = UserContext.username().orElse(BaseEntity.SYSTEM_USER_ID);
+        Instant now = Instant.now();
+        String operator = UserContext.username().orElse(TenantBaseEntity.SYSTEM_USER_ID);
         String ruleId;
 
         if (incoming.getId() == null || incoming.getId().isBlank()) {
@@ -70,7 +69,7 @@ public class DeviceScheduleService {
             ruleId = IdGenerator.snowId();
             incoming.setId(ruleId);
             if (incoming.getTenantId() == null || incoming.getTenantId().isBlank()) {
-                incoming.setTenantId(BaseEntity.DEFAULT_TENANT_ID);
+                incoming.setTenantId(TenantBaseEntity.DEFAULT_TENANT_ID);
             }
             incoming.stampCreated(operator, now);
         } else {
@@ -130,16 +129,16 @@ public class DeviceScheduleService {
 
     // ==================== 事件监听 ====================
 
-    /// 监听规则触发事件，执行写操作。
-    @EventListener
-    public void onScheduleFired(ScheduleFiredEvent event) {
-        log.info("收到定时触发事件 scheduleId={} deviceId={}", event.getScheduleId(), event.getDeviceId());
-
-        // TODO: 调用设备下行接口，写入点位值
-        // 1. 按 sortOrder 排序动作（已排序）
-        // 2. 逐个调用下行接口
-        // 3. 更新 lastFireAt
-    }
+//    /// 监听规则触发事件，执行写操作。
+//    @EventListener
+//    public void onScheduleFired(ScheduleFiredEvent event) {
+//        log.info("收到定时触发事件 scheduleId={} deviceId={}", event.getScheduleId(), event.getDeviceId());
+//
+//        // TODO: 调用设备下行接口，写入点位值
+//        // 1. 按 sortOrder 排序动作（已排序）
+//        // 2. 逐个调用下行接口
+//        // 3. 更新 lastFireAt
+//    }
 
     // ==================== 内部方法 ====================
 

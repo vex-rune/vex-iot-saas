@@ -1,7 +1,7 @@
 package com.vex.iot.domain.notify.model;
 
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
+import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -15,14 +15,14 @@ import lombok.experimental.SuperBuilder;
 
 /// 通知用户
 /// 记录报警通知用户信息，包括联系方式、通知渠道等
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "notify_user")
-public class NotifyUserEntity extends BaseEntity {
+public class NotifyUserEntity extends TenantBaseEntity {
 
     /// 通知用户ID（雪花算法生成）
     @Id

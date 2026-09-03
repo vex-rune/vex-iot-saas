@@ -1,29 +1,30 @@
 package com.vex.iot.domain.device.event;
 
 import com.vex.iot.common.util.IdGenerator;
+import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.event.IEvent;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
-public final class DeviceDeletedEvent implements DeviceEvent<String> {
+public final class DeviceDeletedEvent implements DeviceEvent<DeviceEntity> {
 
     public static final String CATEGORY = "device.deleted";
 
     private final IEvent.Metadata metadata;
-    private final String payload;
+    private final DeviceEntity payload;
 
-    public DeviceDeletedEvent(String tenantId, String deviceId, String operatorId, LocalDateTime deletedAt) {
+    public DeviceDeletedEvent(DeviceEntity saved) {
         this.metadata = new IEvent.Metadata(
                 IdGenerator.snowId(),
-                tenantId,
+                saved.getTenantId(),
                 DOMAIN_SOURCE,
-                deletedAt == null ? LocalDateTime.now() : deletedAt,
-                deviceId,
+                Instant.now(),
+                saved.getId(),
                 null,
                 CATEGORY
         );
-        this.payload = deviceId;
+        this.payload = saved;
     }
 }

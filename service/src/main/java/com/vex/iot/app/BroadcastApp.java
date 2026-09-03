@@ -11,13 +11,16 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.Objects;
 
-/// 广播应用 — 采集 Data/Device/Alarm 域 IEvent，直接转发到 SsePusher。
+/// 广播应用 — 采集 Data / Device / Alarm 三个域的 {@link IEvent}，统一通过
+/// {@link SsePusher} 推送 SSE 到前端连接。
 ///
-/// <p>采用 {@link Optional} 表达"事件可能为空"的语义，
-/// {@link #broadcast} 入口接收 {@link Optional} 容器，
-/// 内部统一以 {@code isPresent() / orElseThrow()} 流程处理。
+/// <p>{@link #onDataEvent} / {@link #onDeviceEvent} / {@link #onAlarmEvent} 三个监听器都用
+/// {@link Async} 异步执行；广播链路任何异常都不会反向影响原业务。
+///
+/// <p>事件载荷：{@link IEvent#getPayload()}；租户路由：{@link IEvent.Metadata#tenantId()}；
+/// SSE 事件名由调用方提供（项目约定加 {@code ":"} 后缀）。
 ///
 /// @author Vex
 /// @since 1.0
@@ -28,48 +31,34 @@ public class BroadcastApp {
 
     private final SsePusher ssePusher;
 
+    /// Data 域事件入口 — 异步监听所有 {@link DataEvent} 子类。
     @Async
     @EventListener
     public void onDataEvent(DataEvent<?> event) {
-        broadcast(Optional.ofNullable(event));
+        if (Objects.isNull(event)) {
+            log.error("DataEvent is null ");
+        }
+        ssePusher.push("broadcast", event);
     }
 
+    /// Device 域事件入口 — 异步监听所有 {@link DeviceEvent} 子类。
     @Async
     @EventListener
     public void onDeviceEvent(DeviceEvent<?> event) {
-        broadcast(Optional.ofNullable(event));
+        if (Objects.isNull(event)) {
+            log.error("DeviceEvent is null ");
+        }
+        ssePusher.push("broadcast", event);
     }
 
+    /// Alarm 域事件入口 — 异步监听 {@link AlarmTriggeredEvent}。
     @Async
     @EventListener
     public void onAlarmEvent(AlarmTriggeredEvent event) {
-        broadcast(Optional.ofNullable(event));
-    }
-
-    /// 统一广播入口：接收 {@link Optional} 容器，自动跳过空事件。
-    void broadcast(Optional<IEvent<?>> ievent) {
-        ievent
-                .filter(this::shouldBroadcast)
-                .ifPresentOrElse(
-                        this::pushSafely,
-                        () -> log.debug("事件为空或被广播策略过滤，跳过")
-                );
-    }
-
-    /// 内部推送（异常隔离）。
-    private void pushSafely(IEvent<?> event) {
-        try {
-            ssePusher.push("broadcast",event);
-            IEvent.Metadata meta = event.getMetadata();
-            log.info("广播事件已下发 category={} tenantId={} deviceId={} point={}",
-                    meta.category(), meta.tenantId(), meta.deviceId(), meta.pointCode());
-        } catch (Exception ex) {
-            log.error("广播事件处理失败 event={}", event, ex);
+        if (Objects.isNull(event)) {
+            log.error("AlarmTriggeredEvent is null ");
         }
+        ssePusher.push("broadcast", event);
     }
 
-    /// 广播策略钩子 — 屏蔽内部 / 测试事件，按需扩展。
-    protected boolean shouldBroadcast(IEvent<?> ievent) {
-        return ievent != null;
-    }
 }

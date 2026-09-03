@@ -102,7 +102,7 @@ public class AlarmApp {
 
 
         if (!isAbnormal) {
-            alarmService.publishAlarm(rule, rawValue, data.getTimestamp());
+            alarmService.publishAlarm(rule, rawValue, data);
         } else {
             alarmService.recoverAlarm(rule);
         }

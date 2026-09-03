@@ -6,7 +6,7 @@ spring:
   jpa:
     properties:
       hibernate:
-        format_sql: true
+#        format_sql: true
 
 # MQTT 配置
 mqtt:
@@ -19,4 +19,10 @@ mqtt:
 logging:
   level:
     com.vex.iot: DEBUG
-    org.hibernate.SQL: DEBUG
+#    org.hibernate.SQL: DEBUG
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: false

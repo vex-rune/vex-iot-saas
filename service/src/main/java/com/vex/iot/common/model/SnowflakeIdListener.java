@@ -13,23 +13,6 @@ import java.util.Locale;
  */
 public class SnowflakeIdListener {
 
-    @PrePersist
-    public void assignId(Object entity) {
-        try {
-            Field field = findIdField(entity.getClass());
-            if (field == null) return;
-
-            field.setAccessible(true);
-            if (field.get(entity) != null) return;
-
-            String prefix = resolvePrefix(entity);
-            String id = prefix + "_" + IdUtil.getSnowflake(1L, 1L).nextId();
-            field.set(entity, id);
-        } catch (Exception ex) {
-            throw new RuntimeException("SnowflakeIdListener: ID 生成失败", ex);
-        }
-    }
-
     private static Field findIdField(Class<?> clazz) {
         Class<?> current = clazz;
         while (current != null && current != Object.class) {
@@ -52,5 +35,22 @@ public class SnowflakeIdListener {
         return simpleName.length() < 3
                 ? simpleName.toLowerCase(Locale.ROOT)
                 : simpleName.substring(0, 3).toUpperCase(Locale.ROOT);
+    }
+
+    @PrePersist
+    public void assignId(Object entity) {
+        try {
+            Field field = findIdField(entity.getClass());
+            if (field == null) return;
+
+            field.setAccessible(true);
+            if (field.get(entity) != null) return;
+
+            String prefix = resolvePrefix(entity);
+            String id = prefix + "_" + IdUtil.getSnowflake(1L, 1L).nextId();
+            field.set(entity, id);
+        } catch (Exception ex) {
+            throw new RuntimeException("SnowflakeIdListener: ID 生成失败", ex);
+        }
     }
 }

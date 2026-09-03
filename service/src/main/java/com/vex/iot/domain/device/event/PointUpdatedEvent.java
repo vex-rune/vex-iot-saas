@@ -5,7 +5,7 @@ import com.vex.iot.domain.device.model.PointEntity;
 import com.vex.iot.domain.event.IEvent;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 public final class PointUpdatedEvent implements DeviceEvent<PointEntity> {
@@ -20,7 +20,7 @@ public final class PointUpdatedEvent implements DeviceEvent<PointEntity> {
                 IdGenerator.snowId(),
                 point == null ? null : point.getTenantId(),
                 DOMAIN_SOURCE,
-                LocalDateTime.now(),
+                Instant.now(),
                 point == null ? null : point.getDeviceId(),
                 point == null ? null : point.getPointCode(),
                 CATEGORY

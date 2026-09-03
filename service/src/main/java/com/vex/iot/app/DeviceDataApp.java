@@ -19,8 +19,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +38,82 @@ public class DeviceDataApp {
     private final ApplicationEventPublisher eventPublisher;
     private final DataService dataService;
     private final DeviceService deviceService;
+
+    private static ValueResult analysisValue(DeviceEntity device, DeviceUpReport.ReadDataItem item) {
+        if (item.name() == null || item.name().isBlank()) {
+            return new ValueResult(PointDataState.ERROR, null);
+        }
+        if (item.err() != null && !item.err().isBlank() && DeviceUpReport.OK.equals(item.err())) {
+            log.debug("点位数据错误: device={}, pointCode={}, err={}", device, item.name(), item.err());
+            return new ValueResult(PointDataState.ERROR, null);
+        }
+        if (Strings.isBlank(item.value())) {
+            log.debug("点位数据为空: device={}, pointCode={}", device, item.name());
+            return new ValueResult(PointDataState.ERROR, null);
+        }
+        return new ValueResult(PointDataState.NORMAL, item.value());
+    }
+
+    /**
+     * 解析设备上报时间。优先尝试 epoch 毫秒,其次 ISO 本地时间,均失败则返回当前时间。
+     */
+    private static Instant parseDeviceTime(String sysLocalTime) {
+        if (sysLocalTime == null || sysLocalTime.isBlank()) {
+            return Instant.now();
+        }
+        try {
+            long millis = Long.parseLong(sysLocalTime.trim());
+            return Instant.ofEpochMilli(millis);
+        } catch (NumberFormatException ignored) {
+            // 非 epoch 格式,继续尝试 ISO 解析
+        }
+        try {
+            return Instant.parse(sysLocalTime.trim());
+        } catch (DateTimeParseException ignored) {
+            // 无法解析,使用当前时间
+        }
+        return Instant.now();
+    }
+
+    private static PointDataType mapDataType(DataType dataType) {
+        if (dataType == null) {
+            return PointDataType.STRING;
+        }
+        return switch (dataType) {
+            case BOOL -> PointDataType.BOOL;
+            case INT -> PointDataType.INT;
+            case DOUBLE -> PointDataType.DOUBLE;
+            case STRING -> PointDataType.STRING;
+        };
+    }
+
+    private static void setFillTypedValue(@NotNull DataEntity.DataEntityBuilder<?, ?> data, @NotNull DataType dataType, String value) {
+
+        if (Strings.isBlank(value)) {
+            data.stringValue(value);
+            return;
+        }
+
+
+        switch (dataType) {
+            case INT -> {
+                try {
+                    data.intValue(Long.parseLong(value.trim()));
+                } catch (NumberFormatException ignored) {
+                    // 值无法解析为 Long,保留字符串快照
+                    data.stringValue(value);
+                }
+            }
+            case DOUBLE -> {
+                try {
+                    data.doubleValue(Double.parseDouble(value.trim()));
+                } catch (NumberFormatException ignored) {
+                    // 值无法解析为 Double,保留字符串快照
+                }
+            }
+        }
+        data.stringValue(value);
+    }
 
     /**
      * 处理设备心跳:将设备标记为在线并刷新最后心跳时间。
@@ -75,6 +149,8 @@ public class DeviceDataApp {
         }
     }
 
+    // ==================== 内部工具 ====================
+
     private void updateDevice(DeviceEntity device) {
         deviceService.heartByGatewayId(device.getGatewayId());
     }
@@ -88,8 +164,8 @@ public class DeviceDataApp {
         // 按 pointCode 索引该设备下所有点位定义
         List<PointEntity> points = deviceService.queryPointsByDeviceId(device.getId());
 
-        LocalDateTime deviceTime = parseDeviceTime(params.sysLocalTime());
-        LocalDateTime now = LocalDateTime.now();
+        Instant deviceTime = parseDeviceTime(params.sysLocalTime());
+        Instant now = Instant.now();
 
         for (DeviceUpReport.ReadDataItem item : rData) {
             ValueResult valueResult = analysisValue(device, item);
@@ -105,7 +181,10 @@ public class DeviceDataApp {
             DataEntity.DataEntityBuilder<?, ?> builder = DataEntity.builder()
                     .deviceId(device.getId())
                     .deviceName(device.getDeviceName())
-                    .pointId(point.getId())
+                    .pointCode(point.getPointCode())
+                    .pointId(point.getPointCode())  // 兼容：pointId 也填 pointCode
+                    .pointName(point.getPointName())
+                    .unit(point.getUnit())
                     .dataType(mapDataType(point.getDataType()))
                     .timestamp(deviceTime)
                     .ingestedAt(now)
@@ -115,30 +194,19 @@ public class DeviceDataApp {
 
             DataEntity data = builder.build();
 
-            // 测试数据
-            // 随机数
-            double doubleValue = Math.random() * 100;
+            // todo 测试数据 — 基于正弦波 + 小随机扰动
+            // 用 pointCode 的 hashCode 作为相位偏移,让不同点位曲线不同步
+            double t = now.getEpochSecond() / 60.0;
+            double phase = (point.getPointCode().hashCode() & 0xFFFF) / 65536.0 * 2 * Math.PI;
+            double base = 50 + 30 * Math.sin(t * 2 * Math.PI / 60 + phase);
+            double noise = (Math.random() - 0.5) * 6;
+            double doubleValue = Math.max(0, Math.min(100, base + noise));
             data.setDataState(PointDataState.NORMAL);
             data.setDoubleValue(doubleValue);
             data.setStringValue(String.valueOf(doubleValue));
 
             dataService.save(data);
         }
-    }
-
-    private static ValueResult analysisValue(DeviceEntity device, DeviceUpReport.ReadDataItem item) {
-        if (item.name() == null || item.name().isBlank()) {
-            return new ValueResult(PointDataState.ERROR, null);
-        }
-        if (item.err() != null && !item.err().isBlank() && DeviceUpReport.OK.equals(item.err())) {
-            log.debug("点位数据错误: device={}, pointCode={}, err={}", device, item.name(), item.err());
-            return new ValueResult(PointDataState.ERROR, null);
-        }
-        if (Strings.isBlank(item.value())) {
-            log.debug("点位数据为空: device={}, pointCode={}", device, item.name());
-            return new ValueResult(PointDataState.ERROR, null);
-        }
-        return new ValueResult(PointDataState.NORMAL, item.value());
     }
 
     /**
@@ -151,69 +219,6 @@ public class DeviceDataApp {
             return;
         }
         deviceService.willByGatewayId(gatewayId);
-    }
-
-    // ==================== 内部工具 ====================
-
-    /**
-     * 解析设备上报时间。优先尝试 epoch 毫秒,其次 ISO 本地时间,均失败则返回当前时间。
-     */
-    private static LocalDateTime parseDeviceTime(String sysLocalTime) {
-        if (sysLocalTime == null || sysLocalTime.isBlank()) {
-            return LocalDateTime.now();
-        }
-        try {
-            long millis = Long.parseLong(sysLocalTime.trim());
-            return Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDateTime();
-        } catch (NumberFormatException ignored) {
-            // 非 epoch 格式,继续尝试 ISO 解析
-        }
-        try {
-            return LocalDateTime.parse(sysLocalTime.trim());
-        } catch (DateTimeParseException ignored) {
-            // 无法解析,使用当前时间
-        }
-        return LocalDateTime.now();
-    }
-
-    private static PointDataType mapDataType(DataType dataType) {
-        if (dataType == null) {
-            return PointDataType.STRING;
-        }
-        return switch (dataType) {
-            case BOOL -> PointDataType.BOOL;
-            case LONG -> PointDataType.INT;
-            case DOUBLE -> PointDataType.DOUBLE;
-            case STRING -> PointDataType.STRING;
-        };
-    }
-
-    private static void setFillTypedValue(@NotNull DataEntity.DataEntityBuilder<?, ?> data, @NotNull DataType dataType, String value) {
-
-        if (Strings.isBlank(value)) {
-            data.stringValue(value);
-            return;
-        }
-
-
-        switch (dataType) {
-            case LONG -> {
-                try {
-                    data.intValue(Long.parseLong(value.trim()));
-                } catch (NumberFormatException ignored) {
-                    // 值无法解析为 Long,保留字符串快照
-                    data.stringValue(value);
-                }
-            }
-            case DOUBLE -> {
-                try {
-                    data.doubleValue(Double.parseDouble(value.trim()));
-                } catch (NumberFormatException ignored) {
-                    // 值无法解析为 Double,保留字符串快照
-                }
-            }
-        }
-        data.stringValue(value);
     }
 
     private record ValueResult(

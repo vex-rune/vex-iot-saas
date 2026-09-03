@@ -1,6 +1,6 @@
 package com.vex.iot.domain.event;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 领域事件统一接口 — 所有继承此接口的事件都会自动被 {@code BroadcastApp} 采集并广播。
@@ -58,7 +58,7 @@ public interface IEvent<T> {
             String eventId,
             String tenantId,
             String source,
-            LocalDateTime occurredAt,
+            Instant occurredAt,
             String deviceId,
             String pointCode,
             String category

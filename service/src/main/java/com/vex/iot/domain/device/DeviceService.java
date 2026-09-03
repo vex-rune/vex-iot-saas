@@ -4,25 +4,18 @@ import com.vex.iot.common.config.DeviceCacheConfig;
 import com.vex.iot.common.enums.DeviceOnline;
 import com.vex.iot.common.exception.BusinessExceptions.ConflictException;
 import com.vex.iot.common.exception.BusinessExceptions.NotFoundException;
-import com.vex.iot.common.model.BaseEntity;
+import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.common.util.UserContext;
-import com.vex.iot.domain.device.event.DeviceCreatedEvent;
-import com.vex.iot.domain.device.event.DeviceDeletedEvent;
-import com.vex.iot.domain.device.event.DeviceEnabledChangedEvent;
-import com.vex.iot.domain.device.event.DeviceHeartbeatEvent;
-import com.vex.iot.domain.device.event.DeviceOfflineEvent;
-import com.vex.iot.domain.device.event.DeviceUpdatedEvent;
-import com.vex.iot.domain.device.event.PointCreatedEvent;
-import com.vex.iot.domain.device.event.PointDeletedEvent;
-import com.vex.iot.domain.device.event.PointSortOrderChangedEvent;
-import com.vex.iot.domain.device.event.PointUpdatedEvent;
+import com.vex.iot.domain.device.event.*;
 import com.vex.iot.domain.device.exception.DeviceNotFoundException;
 import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.device.model.DeviceOnlineResponse;
+import com.vex.iot.domain.device.model.DevicePanelEntity;
 import com.vex.iot.domain.device.model.PointEntity;
+import com.vex.iot.domain.device.repository.DevicePanelRepository;
 import com.vex.iot.domain.device.repository.DeviceRepository;
 import com.vex.iot.domain.device.repository.PointDefinitionRepository;
 import jakarta.persistence.EntityManager;
@@ -38,8 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +50,7 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final PointDefinitionRepository pointRepository;
+    private final DevicePanelRepository panelRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final org.springframework.cache.CacheManager cacheManager;
 
@@ -66,6 +58,10 @@ public class DeviceService {
     private EntityManager entityManager;
 
     // ==================== 设备 ====================
+
+    private static String resolveCreatorId(String requested) {
+        return (requested == null || requested.isBlank()) ? TenantBaseEntity.SYSTEM_USER_ID : requested;
+    }
 
     public List<DeviceEntity> queryDevices(QueriesPageRequest req) {
         return JpaQueriesExecutor.of(DeviceEntity.class, entityManager).page(req);
@@ -85,11 +81,11 @@ public class DeviceService {
     }
 
     public DeviceEntity createDevice(DeviceEntity device) {
-        LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+        Instant now = Instant.now();
         device.setId(IdGenerator.snowId());
         device.setOnline(DeviceOnline.OFFLINE);
         if (device.getTenantId() == null || device.getTenantId().isBlank()) {
-            device.setTenantId(BaseEntity.DEFAULT_TENANT_ID);
+            device.setTenantId(TenantBaseEntity.DEFAULT_TENANT_ID);
         }
         device.stampCreated(resolveCreatorId(device.getCreateId()), now);
         DeviceEntity saved = deviceRepository.save(device);
@@ -106,7 +102,7 @@ public class DeviceService {
         exist.setLevel1Tag(device.getLevel1Tag());
         exist.setLevel2Tag(device.getLevel2Tag());
         exist.setLevel3Tag(device.getLevel3Tag());
-        LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+        Instant now = Instant.now();
         exist.stampUpdated(resolveCreatorId(device.getUpdateId()), now);
         DeviceEntity saved = deviceRepository.save(exist);
         // 发送"设备更新"事件
@@ -117,12 +113,11 @@ public class DeviceService {
     @CacheEvict(key = "#id")
     public void deleteDevice(String id) {
         DeviceEntity exist = getDevice(id);
-        LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+        Instant now = Instant.now();
         exist.markDeleted(resolveCreatorId(null), now);
         DeviceEntity saved = deviceRepository.save(exist);
         // 发送"设备删除"事件
-        applicationEventPublisher.publishEvent(new DeviceDeletedEvent(
-                saved.getTenantId(), saved.getId(), saved.getUpdateId(), now));
+        applicationEventPublisher.publishEvent(new DeviceDeletedEvent(saved));
     }
 
     /**
@@ -137,6 +132,8 @@ public class DeviceService {
         applicationEventPublisher.publishEvent(new DeviceEnabledChangedEvent(saved, enabled));
         return saved;
     }
+
+    // ==================== 点位定义 ====================
 
     /**
      * 获取设备在线状态
@@ -156,8 +153,6 @@ public class DeviceService {
         );
     }
 
-    // ==================== 点位定义 ====================
-
     public List<PointEntity> queryPoints(QueriesPageRequest req) {
         return JpaQueriesExecutor.of(PointEntity.class, entityManager).page(req);
     }
@@ -172,8 +167,8 @@ public class DeviceService {
     }
 
     public PointEntity savePoint(PointEntity def) {
-        LocalDateTime now = LocalDateTime.now();
-        String operator = UserContext.username().orElse(BaseEntity.SYSTEM_USER_ID);
+        Instant now = Instant.now();
+        String operator = UserContext.username().orElse(TenantBaseEntity.SYSTEM_USER_ID);
 
         // 校验 deviceId 和 pointCode
         if (def.getDeviceId() == null || def.getDeviceId().isBlank()) {
@@ -189,7 +184,7 @@ public class DeviceService {
         if (isNew) {
             def.setId(expectedId);
             if (def.getTenantId() == null || def.getTenantId().isBlank()) {
-                def.setTenantId(BaseEntity.DEFAULT_TENANT_ID);
+                def.setTenantId(TenantBaseEntity.DEFAULT_TENANT_ID);
             }
             def.stampCreated(operator, now);
         } else {
@@ -228,16 +223,13 @@ public class DeviceService {
         PointEntity exist = pointRepository.findById(id).orElse(null);
         pointRepository.deleteById(id);
         if (exist != null) {
-            String operator = UserContext.username().orElse(BaseEntity.SYSTEM_USER_ID);
+            String operator = UserContext.username().orElse(TenantBaseEntity.SYSTEM_USER_ID);
             // 发送"点位删除"事件
-            applicationEventPublisher.publishEvent(new PointDeletedEvent(
-                    exist.getTenantId(),
-                    exist.getDeviceId(),
-                    exist.getId(),
-                    operator,
-                    LocalDateTime.now()));
+            applicationEventPublisher.publishEvent(new PointDeletedEvent(exist));
         }
     }
+
+    // ==================== 内部 ====================
 
     /**
      * 批量更新设备下点位的排序
@@ -252,8 +244,8 @@ public class DeviceService {
         // 索引化以便按顺序赋 sortOrder
         Map<String, PointEntity> byId = new HashMap<>();
         for (PointEntity p : points) byId.put(p.getId(), p);
-        String operator = UserContext.username().orElse(BaseEntity.SYSTEM_USER_ID);
-        LocalDateTime now = LocalDateTime.now();
+        String operator = UserContext.username().orElse(TenantBaseEntity.SYSTEM_USER_ID);
+        Instant now = Instant.now();
         for (int i = 0; i < pointIds.size(); i++) {
             PointEntity p = byId.get(pointIds.get(i));
             if (p == null) {
@@ -266,24 +258,11 @@ public class DeviceService {
             p.stampUpdated(operator, now);
         }
         pointRepository.saveAll(points);
-
-        // 推送"点位排序变更"事件 — BroadcastApp 按 tenantId 通过 SSE 广播
-        final String tenantId = points.isEmpty()
-                ? getDevice(deviceId).getTenantId()
-                : points.get(0).getTenantId();
-        applicationEventPublisher.publishEvent(new PointSortOrderChangedEvent(
-                tenantId, deviceId, pointIds, operator));
-    }
-
-    // ==================== 内部 ====================
-
-    private static String resolveCreatorId(String requested) {
-        return (requested == null || requested.isBlank()) ? BaseEntity.SYSTEM_USER_ID : requested;
     }
 
     public void heartByGatewayId(String gatewayId) {
         deviceRepository.findByGatewayId(gatewayId).forEach(device -> {
-            LocalDateTime now = LocalDateTime.now();
+            Instant now = Instant.now();
             device.setOnline(DeviceOnline.ONLINE);
             device.setLastHeartbeatAt(now);
             DeviceEntity saved = deviceRepository.save(device);
@@ -300,14 +279,69 @@ public class DeviceService {
 
     public void willByGatewayId(String gatewayId) {
         deviceRepository.findByGatewayId(gatewayId).forEach(device -> {
-            LocalDateTime now = LocalDateTime.now();
             device.setOnline(DeviceOnline.OFFLINE);
             DeviceEntity saved = deviceRepository.save(device);
             // 发送"设备离线"事件（携带 tenantId）— BroadcastApp 按 tenantId 通过 SSE 广播
-            applicationEventPublisher.publishEvent(new DeviceOfflineEvent(
-                    saved.getTenantId(), saved.getId(), now));
+            applicationEventPublisher.publishEvent(new DeviceOfflineEvent(saved));
             log.debug("设备离线: {}", gatewayId);
         });
+    }
+
+    // ==================== 面板配置 ====================
+
+    /**
+     * 获取设备面板配置。
+     *
+     * @param deviceId 设备 ID
+     * @return 面板配置实体（若未配置则返回 null）
+     */
+    public DevicePanelEntity getPanelConfig(String deviceId) {
+        return panelRepository.findByDeviceId(deviceId).orElse(null);
+    }
+
+    /**
+     * 保存设备面板配置。
+     * <p>若设备已有配置则更新，否则新建。
+     *
+     * @param deviceId    设备 ID
+     * @param panelConfig 面板配置(Map 形式;由 Hibernate 自动持久化为 JSONB)
+     * @return 保存后的面板配置实体
+     */
+    @Transactional
+    public DevicePanelEntity savePanelConfig(String deviceId, Map<String, Object> panelConfig) {
+        // 确保设备存在
+        if (!deviceRepository.existsById(deviceId)) {
+            throw new DeviceNotFoundException();
+        }
+
+        String operator = UserContext.username().orElse(TenantBaseEntity.SYSTEM_USER_ID);
+        Instant now = Instant.now();
+
+        DevicePanelEntity panel = panelRepository.findByDeviceId(deviceId)
+                .orElseGet(() -> DevicePanelEntity.builder()
+                        .deviceId(deviceId)
+                        .build());
+
+        // 深拷贝避免与调用方共享引用,防止脏读
+        panel.setPanelConfig(panelConfig == null ? null : new java.util.LinkedHashMap<>(panelConfig));
+
+        if (panel.getId() == null) {
+            panel.stampCreated(operator, now);
+        } else {
+            panel.stampUpdated(operator, now);
+        }
+
+        return panelRepository.save(panel);
+    }
+
+    /**
+     * 删除设备面板配置。
+     *
+     * @param deviceId 设备 ID
+     */
+    @Transactional
+    public void deletePanelConfig(String deviceId) {
+        panelRepository.deleteByDeviceId(deviceId);
     }
 
     /// 清除设备在线状态缓存

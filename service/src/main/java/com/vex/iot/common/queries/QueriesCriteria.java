@@ -18,12 +18,14 @@ public class QueriesCriteria implements Serializable {
     /**
      * 叶子条件
      */
-    @Valid private QueriesCondition condition;
+    @Valid
+    private QueriesCondition condition;
 
     /**
      * 嵌套谓词
      */
-    @Valid private QueriesPredicate predicate;
+    @Valid
+    private QueriesPredicate predicate;
 
     /**
      * 获取叶子条件

@@ -1,30 +1,25 @@
 package com.vex.iot.domain.device.model;
 
 import com.vex.iot.common.enums.DeviceOnline;
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.vex.iot.common.model.TenantBaseEntity;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /// 设备
 /// 记录设备基本信息，包括设备编码、名称、MQTT主题、心跳状态等
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "device")
-public class DeviceEntity extends BaseEntity {
+public class DeviceEntity extends TenantBaseEntity {
 
     /// 设备ID（雪花算法生成）
     @Id
@@ -66,5 +61,5 @@ public class DeviceEntity extends BaseEntity {
     private String level3Tag;
 
     /// 最后心跳时间
-    private LocalDateTime lastHeartbeatAt;
+    private Instant lastHeartbeatAt;
 }

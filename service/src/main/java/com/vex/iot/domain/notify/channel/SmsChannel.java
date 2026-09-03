@@ -4,7 +4,6 @@ import com.aliyun.dysmsapi20170525.Client;
 import com.aliyun.dysmsapi20170525.models.SendSmsRequest;
 import com.aliyun.dysmsapi20170525.models.SendSmsResponse;
 import com.aliyun.teaopenapi.models.Config;
-import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.domain.notify.config.AliyunSmsProperties;
 import com.vex.iot.domain.notify.model.NotifyUserEntity;
 import jakarta.annotation.PostConstruct;
@@ -60,7 +59,7 @@ public class SmsChannel implements NotifyChannel {
     }
 
     @Override
-    public boolean send(NotifyUserEntity user, String message, CurrentUser trigger) {
+    public boolean send(NotifyUserEntity user, String message) {
         if (client == null) {
             log.warn("[SMS-DISABLED] user={} msg={}", user.getId(), message);
             return false;

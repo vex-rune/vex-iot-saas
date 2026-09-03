@@ -15,8 +15,10 @@ public class QueriesPredicate implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @Valid private List<QueriesCriteria> and;
-    @Valid private List<QueriesCriteria> or;
+    @Valid
+    private List<QueriesCriteria> and;
+    @Valid
+    private List<QueriesCriteria> or;
 
     public List<QueriesCriteria> getAnd() {
         return and;

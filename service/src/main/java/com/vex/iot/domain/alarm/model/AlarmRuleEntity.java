@@ -2,14 +2,9 @@ package com.vex.iot.domain.alarm.model;
 
 import com.vex.iot.common.enums.AlarmConditionType;
 import com.vex.iot.common.enums.AlarmLevel;
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.vex.iot.common.model.TenantBaseEntity;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,21 +12,19 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /// 预警规则
 /// 统一设备级和点位级的预警规则，通过 source 字段区分来源
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "alarm_rule")
-public class AlarmRuleEntity extends BaseEntity {
+public class AlarmRuleEntity extends TenantBaseEntity {
 
     /// 预警规则ID
     @Id
@@ -97,7 +90,7 @@ public class AlarmRuleEntity extends BaseEntity {
 
     /// 屏蔽到期时间，null 代表永久屏蔽
     @Column(name = "mask_expire_time")
-    private LocalDateTime maskExpireTime;
+    private Instant maskExpireTime;
 
     /// 通知用户ID列表
     private List<String> notifyUserIds;

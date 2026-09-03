@@ -30,8 +30,8 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
     /**
      * 认证请求构造器
      *
-     * @param username   用户名
-     * @param challenge  待校验密码明文
+     * @param username  用户名
+     * @param challenge 待校验密码明文
      * @param signature 动态秘钥签名
      */
     public JwtAuthenticationToken(String username, String challenge, String signature) {
@@ -45,7 +45,7 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
     /**
      * 认证成功构造器
      *
-     * @param username   用户名
+     * @param username    用户名
      * @param authorities 权限集合
      */
     public JwtAuthenticationToken(String username, Collection<? extends GrantedAuthority> authorities) {

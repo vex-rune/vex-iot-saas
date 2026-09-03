@@ -7,6 +7,11 @@ import java.util.List;
 public record DeviceUpReport(
         @JsonProperty("params") DeviceUpParams params
 ) {
+    // 错误码 0 表示有效数据
+    public static final String OK = "0";
+    // 错误码 1 表示无效数据
+    public static final String ERR_INVALID = "1";
+
     // params内部对象
     public record DeviceUpParams(
             @JsonProperty("dir") String dir,
@@ -24,10 +29,5 @@ public record DeviceUpReport(
             @JsonProperty("value") String value  //上报有值的时候会携带value
     ) {
     }
-
-    // 错误码 0 表示有效数据
-    public static final String OK = "0";
-    // 错误码 1 表示无效数据
-    public static final String ERR_INVALID = "1";
 
 }

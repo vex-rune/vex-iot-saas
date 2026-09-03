@@ -2,8 +2,8 @@ package com.vex.iot.domain.device.model;
 
 import com.vex.iot.common.enums.AccessType;
 import com.vex.iot.common.enums.DataType;
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
+import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -14,8 +14,8 @@ import lombok.experimental.SuperBuilder;
 
 /// 点位定义
 /// 定义设备上的一个监控点，包含点位地址、数据类型、读写权限、报警阈值等配置信息。
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,7 +26,7 @@ import lombok.experimental.SuperBuilder;
                         name = "uk_point_def_device_code",
                         columnNames = {"deviceId", "pointCode"})
         })
-public class PointEntity extends BaseEntity {
+public class PointEntity extends TenantBaseEntity {
 
     /// 点位ID（雪花算法生成）
     @Id

@@ -1,6 +1,5 @@
 package com.vex.iot.domain.notify.channel;
 
-import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.domain.notify.model.NotifyUserEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,10 +22,9 @@ public class LogChannel implements NotifyChannel {
     }
 
     @Override
-    public boolean send(NotifyUserEntity user, String message, CurrentUser trigger) {
-        log.info("[NOTIFY-LOG] user={} phone={} msg={} trigger={}",
-                user.getId(), user.getPhone(), message,
-                trigger == null ? null : trigger.username());
+    public boolean send(NotifyUserEntity user, String message) {
+        log.info("[NOTIFY-LOG] user={} phone={} msg={}",
+                user.getId(), user.getPhone(), message);
         return true;
     }
 }

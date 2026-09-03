@@ -2,18 +2,9 @@ package com.vex.iot.domain.notify.model;
 
 import com.vex.iot.common.enums.NotifyChannelType;
 import com.vex.iot.common.enums.NotifyRecordStatus;
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Table;
+import com.vex.iot.common.model.TenantBaseEntity;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,19 +12,19 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /// 通知记录
 /// 每次通知发送的结果存档(成功/失败/发送中)
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "notify_record")
-public class NotifyRecordEntity extends BaseEntity {
+public class NotifyRecordEntity extends TenantBaseEntity {
 
     /// 记录ID(雪花算法生成)
     @Id
@@ -41,7 +32,7 @@ public class NotifyRecordEntity extends BaseEntity {
     private String id;
 
     /// 通知发送时间
-    private LocalDateTime time;
+    private Instant time;
 
     /// 触发事件描述,如 "设备 a11 温度过高告警"
     @Size(max = 256)
@@ -64,8 +55,13 @@ public class NotifyRecordEntity extends BaseEntity {
 
     /// 实际发送内容(脱敏/截断后)
     @Size(max = 4000)
-    @Column( columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String content;
+
+    /// 参数列表 Map json
+    @Size(max = 4000)
+    @Column(columnDefinition = "TEXT")
+    private String params;
 
     /// 失败时的错误信息
     @Size(max = 512)

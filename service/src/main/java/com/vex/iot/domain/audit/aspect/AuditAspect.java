@@ -1,11 +1,11 @@
 package com.vex.iot.domain.audit.aspect;
 
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.common.enums.OperationAction;
 import com.vex.iot.common.enums.OperationResult;
 import com.vex.iot.common.enums.ResourceType;
 import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.common.util.UserContext;
+import com.vex.iot.domain.audit.annotation.AuditLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -25,7 +25,8 @@ public class AuditAspect {
     private final AuditWriter writer;
 
     /// 环绕通知：拦截带 @AuditLog 注解的方法
-    /// @param pjp 切入点
+    ///
+    /// @param pjp   切入点
     /// @param audit 审计日志注解
     /// @return 方法执行结果
     /// @throws Throwable 执行异常

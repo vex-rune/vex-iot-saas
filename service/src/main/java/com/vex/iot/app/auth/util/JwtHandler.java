@@ -1,8 +1,8 @@
 package com.vex.iot.app.auth.util;
 
+import com.vex.iot.app.auth.config.SecurityProperties;
 import com.vex.iot.app.auth.exception.TokenExpiredException;
 import com.vex.iot.app.auth.exception.TokenInvalidException;
-import com.vex.iot.app.auth.config.SecurityProperties;
 import com.vex.iot.app.auth.model.LoginUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -27,35 +27,6 @@ import java.util.Set;
 public class JwtHandler {
 
     private static final int MIN_SECRET_BYTES = 32;
-
-    /**
-     * Token 类型
-     */
-    public enum TokenType {
-        /** 业务令牌 */
-        ACCESS,
-        /** 刷新令牌 */
-        REFRESH
-    }
-
-    /**
-     * Token 有效期配置（秒）
-     */
-    @Getter
-    public enum TokenExpire {
-        /** 业务令牌有效期：24小时 */
-        ACCESS(24 * 60 * 60),
-        /** 刷新令牌有效期：15天 */
-        REFRESH(15 * 24 * 60 * 60);
-
-        private final int seconds;
-
-        TokenExpire(int seconds) {
-            this.seconds = seconds;
-        }
-
-    }
-
     private final SecurityProperties props;
     private final SecretKey key;
 
@@ -155,7 +126,7 @@ public class JwtHandler {
     /**
      * 检查 Token 是否即将过期
      *
-     * @param token JWT令牌
+     * @param token            JWT令牌
      * @param thresholdSeconds 阈值（秒），小于此时间则认为即将过期
      * @return 是否即将过期
      */
@@ -186,5 +157,41 @@ public class JwtHandler {
         } catch (JwtException e) {
             return -1;
         }
+    }
+
+    /**
+     * Token 类型
+     */
+    public enum TokenType {
+        /**
+         * 业务令牌
+         */
+        ACCESS,
+        /**
+         * 刷新令牌
+         */
+        REFRESH
+    }
+
+    /**
+     * Token 有效期配置（秒）
+     */
+    @Getter
+    public enum TokenExpire {
+        /**
+         * 业务令牌有效期：24小时
+         */
+        ACCESS(24 * 60 * 60),
+        /**
+         * 刷新令牌有效期：15天
+         */
+        REFRESH(15 * 24 * 60 * 60);
+
+        private final int seconds;
+
+        TokenExpire(int seconds) {
+            this.seconds = seconds;
+        }
+
     }
 }

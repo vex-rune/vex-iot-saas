@@ -1,16 +1,18 @@
 package com.vex.iot.domain.schedule.model;
 
-import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.model.SnowflakeId;
-import jakarta.persistence.*;
+import com.vex.iot.common.model.TenantBaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,14 +20,14 @@ import java.util.List;
  * 设备定时控制规则。
  * <p>一条规则在 cron 触发时，会按顺序执行其下所有动作。
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
-@EqualsAndHashCode(callSuper = false)
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "device_schedule")
-public class DeviceScheduleEntity extends BaseEntity {
+public class DeviceScheduleEntity extends TenantBaseEntity {
 
     /// 规则ID（雪花算法生成）
     @Id
@@ -58,7 +60,7 @@ public class DeviceScheduleEntity extends BaseEntity {
 
     /// 最近一次触发时间（仅记录用，不参与计算）
     @Column(name = "last_fire_at")
-    private LocalDateTime lastFireAt;
+    private Instant lastFireAt;
 
     /// 动作列表（JSON 存储）
     @Column(name = "actions", columnDefinition = "jsonb")

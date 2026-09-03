@@ -1,19 +1,23 @@
 package com.vex.iot.api.http;
 
-import com.vex.iot.api.http.model.TokenRefreshReq;
 import com.vex.iot.app.AuthApp;
 import com.vex.iot.app.auth.model.CurrentUserResponse;
 import com.vex.iot.app.auth.model.KeyInfoResponse;
 import com.vex.iot.app.auth.model.LoginType;
 import com.vex.iot.app.auth.model.TokenPairResp;
+import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.common.response.Response;
+import com.vex.iot.common.util.UserContext;
 import com.vex.iot.domain.audit.annotation.AuditLog;
+import com.vex.iot.domain.identity.model.TenantEntity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 认证
@@ -31,37 +35,22 @@ public class AuthApi {
     private final AuthApp authServer;
 
     /**
-     * 登录请求
-     *
-     * @param username   用户名
-     * @param loginType  登录类型：ADMIN 走 JwtAuthenticationToken + 动态码；USER 走 UsernamePasswordAuthenticationToken + 账密
-     * @param challenge  USER 类型=密码明文；ADMIN 类型=任意占位（后端忽略）
-     * @param signature ADMIN 类型=动态码；USER 类型=任意占位（后端忽略）
-     */
-    public record LoginReq(
-        @NotBlank String username,
-        @NotNull   LoginType loginType,
-        @NotBlank String challenge,
-        @NotBlank String signature
-    ) {}
-
-    /**
-     * 登录
-     *
-     * @param req 登录请求
-     * @return 登录响应（包含业务令牌和刷新令牌）
+     * 登录 / 换发 token 统一端点。
      */
     @AuditLog(action = "LOGIN", resourceType = "user")
     @PostMapping("/api/auth/login")
     public Response<TokenPairResp> login(@Valid @RequestBody LoginReq req) {
-        return Response.ok(authServer.login(req.loginType(), req.username(), req.challenge(), req.signature()));
+        return Response.ok(authServer.login(
+                req.loginType(),
+                req.username(),
+                req.challenge(),
+                req.signature(),
+                req.refreshToken(),
+                req.targetTenantId()));
     }
 
     /**
      * 密钥信息
-     *
-     * @param username 用户名
-     * @return 密钥信息
      */
     @GetMapping("/api/auth/key-info")
     public Response<KeyInfoResponse> keyInfo(@RequestParam @NotBlank String username) {
@@ -70,8 +59,6 @@ public class AuthApi {
 
     /**
      * 当前用户
-     *
-     * @return 当前用户信息
      */
     @GetMapping("/api/auth/me")
     public Response<CurrentUserResponse> me() {
@@ -79,24 +66,74 @@ public class AuthApi {
     }
 
     /**
-     * 刷新Token
-     *
-     * @param req 刷新请求（包含刷新令牌）
-     * @return 新的业务令牌和刷新令牌
+     * 当前账号可切换的租户列表 — 用于右上角"切换租户"弹框。
      */
-    @PostMapping("/api/auth/refresh")
-    public Response<TokenPairResp> refresh(@Valid @RequestBody TokenRefreshReq req) {
-        return Response.ok(authServer.refreshToken(req.refreshToken()));
+    @GetMapping("/api/auth/tenants")
+    public Response<List<AvailableTenantResp>> availableTenants() {
+        CurrentUser cu = UserContext.current().orElse(null);
+        if (cu == null || cu.userId() == null || cu.userId().isBlank()) {
+            return Response.ok(List.of());
+        }
+
+        List<TenantEntity> tenants = authServer.findTenantByUser(cu.userId());
+
+
+        List<AvailableTenantResp> resp = tenants.stream()
+                .filter(t -> !t.isDeleted() && !t.isDeleted())
+                .map(t -> new AvailableTenantResp(
+                        t.getId(),
+                        t.getCode(),
+                        t.getName(),
+                        cu.tenantId() != null && cu.tenantId().equals(t.getId())))
+                .toList();
+        return Response.ok(resp);
     }
 
     /**
      * 登出
-     *
-     * @return 操作结果
      */
     @AuditLog(action = "LOGOUT", resourceType = "user")
     @PostMapping("/api/auth/logout")
     public Response<Void> logout() {
         return Response.ok();
+    }
+
+    /**
+     * 登录请求(同时支持切换租户 / 续命)。
+     *
+     * <p>按 {@link #loginType} 路由:
+     * <ul>
+     *   <li>{@code ADMIN}   — 走 {@code AdminAuthenticationProvider};</li>
+     *   <li>{@code USER}    — 走 {@code UserAuthenticationProvider};</li>
+     *   <li>{@code REFRESH} — 走 {@code UserRefreshTokenAuthenticationProvider},
+     *       用 {@link #refreshToken} 换发新 token,带 {@link #targetTenantId} 时切换租户。</li>
+     * </ul>
+     *
+     * <p>字段填写约定:
+     * <table>
+     *   <tr><th>字段</th><th>ADMIN</th><th>USER</th><th>REFRESH</th></tr>
+     *   <tr><td>username</td><td>必填</td><td>必填</td><td>可空</td></tr>
+     *   <tr><td>challenge</td><td>占位</td><td>密码明文</td><td>占位</td></tr>
+     *   <tr><td>signature</td><td>动态码</td><td>占位</td><td>占位</td></tr>
+     *   <tr><td>refreshToken</td><td>可空</td><td>可空</td><td>必填</td></tr>
+     *   <tr><td>targetTenantId</td><td>可空</td><td>可空</td><td>续命=空;切换=目标租户</td></tr>
+     * </table>
+     */
+    public record LoginReq(
+            String username,
+            @NotNull LoginType loginType,
+            @NotBlank String challenge,
+            @NotBlank String signature,
+            String refreshToken,
+            String targetTenantId
+    ) {
+    }
+
+    public record AvailableTenantResp(
+            String id,
+            String code,
+            String name,
+            boolean current
+    ) {
     }
 }

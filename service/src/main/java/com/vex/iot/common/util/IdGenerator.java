@@ -10,22 +10,30 @@ public final class IdGenerator {
     private IdGenerator() {
     }
 
-    /** Mongo ObjectId(24位 hex)。新代码请用 {@link #snowId()}。 */
+    /**
+     * Mongo ObjectId(24位 hex)。新代码请用 {@link #snowId()}。
+     */
     public static String objectId() {
         return cn.hutool.core.util.IdUtil.objectId();
     }
 
-    /** 雪花 long。 */
+    /**
+     * 雪花 long。
+     */
     public static long snowflake() {
         return cn.hutool.core.util.IdUtil.getSnowflake(1L, 1L).nextId();
     }
 
-    /** 雪花 long → String。 */
+    /**
+     * 雪花 long → String。
+     */
     public static String snowflakeStr() {
         return String.valueOf(snowflake());
     }
 
-    /** 业务前缀 + 雪花号,形如 {@code "P_1820..."}"。 */
+    /**
+     * 业务前缀 + 雪花号,形如 {@code "P_1820..."}"。
+     */
     public static String snowId() {
         return snowId("");
     }

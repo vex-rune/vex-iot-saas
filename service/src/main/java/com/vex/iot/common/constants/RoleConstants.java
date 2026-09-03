@@ -6,6 +6,7 @@ public final class RoleConstants {
     public static final String OPERATOR = "OPERATOR";
     public static final String GUEST = "GUEST";
     public static final String ROLE_PREFIX = "ROLE_";
+
     private RoleConstants() {
     }
 }

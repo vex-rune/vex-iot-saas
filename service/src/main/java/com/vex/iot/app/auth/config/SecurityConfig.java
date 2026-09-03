@@ -14,7 +14,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
@@ -22,7 +21,8 @@ import java.util.List;
 /**
  * Spring Security 配置
  *
- * <p>CORS：默认全部放开（{@code allowedOriginPatterns="*"}），开发期方便联调；
+ * <p>
+ * CORS：默认全部放开（{@code allowedOriginPatterns="*"}），开发期方便联调；
  * 生产可由 {@code application.yml} 维护具体 origin 列表进行收口。
  */
 @Configuration
@@ -33,7 +33,8 @@ public class SecurityConfig {
     /**
      * CORS 配置 — {@code allowAll()} 形态：任意来源、常用方法、所有请求头、跨域凭据关闭。
      *
-     * <p>与 {@link SecurityConfig#filterChain(HttpSecurity, JwtAuthenticationFilter, RestAuthHandlers)}
+     * <p>
+     * 与
      * 中的 {@code http.cors(c -> {})} 配合启用 Spring Security 的 CORS 过滤器。
      */
     @Bean
@@ -58,8 +59,12 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(
             AdminAuthenticationProvider adminAuthenticationProvider,
-            UserAuthenticationProvider userAuthenticationProvider) {
-        return new ProviderManager(List.of(adminAuthenticationProvider, userAuthenticationProvider));
+            UserAuthenticationProvider userAuthenticationProvider,
+            UserRefreshTokenAuthenticationProvider userRefreshTokenAuthenticationProvider) {
+        return new ProviderManager(List.of(
+                adminAuthenticationProvider,
+                userAuthenticationProvider,
+                userRefreshTokenAuthenticationProvider));
     }
 
     @Bean
@@ -76,8 +81,9 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(handlers).accessDeniedHandler(handlers))
                 .authorizeHttpRequests(reg -> reg
                         .requestMatchers(
-                                "/api/auth/login"
-                        ).permitAll()
+                                "/api/auth/login",
+                                "/api/auth/key-info")
+                        .permitAll()
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

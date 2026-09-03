@@ -5,7 +5,7 @@ import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.event.IEvent;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 public final class DeviceCreatedEvent implements DeviceEvent<DeviceEntity> {
@@ -20,7 +20,7 @@ public final class DeviceCreatedEvent implements DeviceEvent<DeviceEntity> {
                 IdGenerator.snowId(),
                 device == null ? null : device.getTenantId(),
                 DOMAIN_SOURCE,
-                LocalDateTime.now(),
+                Instant.now(),
                 device == null ? null : device.getId(),
                 null,
                 CATEGORY

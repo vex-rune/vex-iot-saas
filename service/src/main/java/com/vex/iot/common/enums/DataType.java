@@ -5,7 +5,7 @@ public enum DataType {
     /// 布尔
     BOOL,
     /// 长整型
-    LONG,
+    INT,
     /// 字符串
     STRING,
     /// 双精度浮点

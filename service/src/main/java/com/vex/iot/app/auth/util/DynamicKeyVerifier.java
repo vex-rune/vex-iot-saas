@@ -11,14 +11,13 @@ import org.jboss.aerogear.security.otp.Totp;
 public final class DynamicKeyVerifier {
 
     /**
-     * 固定秘钥
-     */
-    private static final String SECRET_KEY = "vexrune";
-
-    /**
      * 默认时间窗秒数
      */
     public static final int DEFAULT_WINDOW_SECONDS = 30;
+    /**
+     * 固定秘钥
+     */
+    private static final String SECRET_KEY = "vexrune";
 
     private DynamicKeyVerifier() {
     }

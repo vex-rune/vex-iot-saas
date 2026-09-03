@@ -8,6 +8,7 @@ package com.vex.iot.common.constants;
 public final class DataState {
     public static final int NORMAL = 0;
     public static final int DELETED = -1;
+
     private DataState() {
     }
 }
