@@ -277,6 +277,8 @@ public class DeviceService {
         return pointRepository.findByDeviceId(id);
     }
 
+
+    @Transactional
     public void willByGatewayId(String gatewayId) {
         deviceRepository.findByGatewayId(gatewayId).forEach(device -> {
             device.setOnline(DeviceOnline.OFFLINE);

@@ -84,4 +84,15 @@ public class PointEntity extends TenantBaseEntity {
     /// 主要用于 BOOL/STRING 类型点位；NULL 表示未配置（前端回退到原始值）
     @Column(name = "value_mappings", columnDefinition = "text")
     private String valueMappings;
+
+    /// 数据精度：小数位数（仅 FLOAT/DOUBLE 类型有效）。
+    /// 例如 2 表示保留两位小数（3.14），3 表示保留三位（3.142）。
+    /// null 或 0 表示不截断（保留原始精度）。
+    @Column(name = "precision")
+    private Integer precision = 0;
+
+
+    public Integer getPrecision() {
+        return precision == null ? 0 : precision;
+    }
 }

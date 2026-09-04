@@ -1,13 +1,15 @@
 package com.vex.iot.common.enums;
 
-/// 点位数据类型（统一对外抽象）
+/// 点位历史快照数据类型
 public enum DataType {
-    /// 布尔
+    /// 布尔，存0/1
     BOOL,
     /// 长整型
     INT,
-    /// 字符串
-    STRING,
+    /// 单精度浮点
+    FLOAT,
     /// 双精度浮点
-    DOUBLE
+    DOUBLE,
+    /// 字符串状态
+    STRING
 }

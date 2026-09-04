@@ -49,7 +49,6 @@ public class DevicePanelEntity extends TenantBaseEntity {
      * 面板配置(JSON 对象)。
      *
      * <p>Java 侧以 {@code Map<String, Object>} 承载;DB 侧存为 PostgreSQL {@code JSONB}。
-     * Hibernate 通过 {@link JdbcTypeCode(SqlTypes.JSON)} 负责序列化/反序列化。</p>
      *
      * <p>格式示例:
      * <pre>{@code

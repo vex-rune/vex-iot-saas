@@ -4,7 +4,6 @@ import com.vex.iot.app.mqtt.usr.DeviceUpReport;
 import com.vex.iot.app.mqtt.usr.MqttUsrUpdateMessage;
 import com.vex.iot.app.mqtt.usr.MqttUsrWillMessage;
 import com.vex.iot.common.enums.DataType;
-import com.vex.iot.common.enums.PointDataType;
 import com.vex.iot.domain.data.DataService;
 import com.vex.iot.domain.data.model.DataEntity;
 import com.vex.iot.domain.data.model.PointDataState;
@@ -15,11 +14,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,67 +30,43 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DeviceDataApp {
 
-    private static final int MAX_HISTORY_POINTS = 5000;
-
-    private final ApplicationEventPublisher eventPublisher;
     private final DataService dataService;
     private final DeviceService deviceService;
 
-    private static ValueResult analysisValue(DeviceEntity device, DeviceUpReport.ReadDataItem item) {
+    private static ValueResult analysisValue(DeviceUpReport.ReadDataItem item) {
         if (item.name() == null || item.name().isBlank()) {
-            return new ValueResult(PointDataState.ERROR, null);
+            return new ValueResult(PointDataState.ERROR, null, item.name(), Instant.now());
         }
         if (item.err() != null && !item.err().isBlank() && DeviceUpReport.OK.equals(item.err())) {
-            log.debug("点位数据错误: device={}, pointCode={}, err={}", device, item.name(), item.err());
-            return new ValueResult(PointDataState.ERROR, null);
+            return new ValueResult(PointDataState.ERROR, null, item.name(), Instant.now());
         }
         if (Strings.isBlank(item.value())) {
-            log.debug("点位数据为空: device={}, pointCode={}", device, item.name());
-            return new ValueResult(PointDataState.ERROR, null);
+            return new ValueResult(PointDataState.ERROR, null, item.name(), Instant.now());
         }
-        return new ValueResult(PointDataState.NORMAL, item.value());
+        return new ValueResult(PointDataState.NORMAL, item.value(), item.name(), Instant.now());
     }
 
-    /**
-     * 解析设备上报时间。优先尝试 epoch 毫秒,其次 ISO 本地时间,均失败则返回当前时间。
-     */
-    private static Instant parseDeviceTime(String sysLocalTime) {
-        if (sysLocalTime == null || sysLocalTime.isBlank()) {
-            return Instant.now();
-        }
-        try {
-            long millis = Long.parseLong(sysLocalTime.trim());
-            return Instant.ofEpochMilli(millis);
-        } catch (NumberFormatException ignored) {
-            // 非 epoch 格式,继续尝试 ISO 解析
-        }
-        try {
-            return Instant.parse(sysLocalTime.trim());
-        } catch (DateTimeParseException ignored) {
-            // 无法解析,使用当前时间
-        }
-        return Instant.now();
+    private static ValueResult mockAnalysisValue(DeviceUpReport.ReadDataItem readDataItem) {
+        // todo 测试数据 — 基于正弦波 + 小随机扰动
+        // 用 pointCode 的 hashCode 作为相位偏移,让不同点位曲线不同步
+        Instant now = Instant.now();
+        double t = now.getEpochSecond() / 60.0;
+        double phase = (readDataItem.name().hashCode() & 0xFFFF) / 65536.0 * 2 * Math.PI;
+        double base = 50 + 30 * Math.sin(t * 2 * Math.PI / 60 + phase);
+        double noise = (Math.random() - 0.5) * 6;
+        double doubleValue = Math.max(0, Math.min(100, base + noise));
+        return new ValueResult(PointDataState.NORMAL, String.valueOf(doubleValue), readDataItem.name(), now);
     }
 
-    private static PointDataType mapDataType(DataType dataType) {
-        if (dataType == null) {
-            return PointDataType.STRING;
-        }
-        return switch (dataType) {
-            case BOOL -> PointDataType.BOOL;
-            case INT -> PointDataType.INT;
-            case DOUBLE -> PointDataType.DOUBLE;
-            case STRING -> PointDataType.STRING;
-        };
-    }
 
-    private static void setFillTypedValue(@NotNull DataEntity.DataEntityBuilder<?, ?> data, @NotNull DataType dataType, String value) {
+    private static void setFillTypedValue(@NotNull DataEntity.DataEntityBuilder<?, ?> data, @NotNull PointEntity point, String value) {
 
         if (Strings.isBlank(value)) {
             data.stringValue(value);
             return;
         }
 
+        DataType dataType = point.getDataType();
 
         switch (dataType) {
             case INT -> {
@@ -106,7 +79,14 @@ public class DeviceDataApp {
             }
             case DOUBLE -> {
                 try {
-                    data.doubleValue(Double.parseDouble(value.trim()));
+                    double doubleValue = Double.parseDouble(value.trim());
+
+                    // 根据精度处理
+                    double rounded =
+                            Math.round(doubleValue * Math.pow(10, point.getPrecision())) / Math.pow(10, point.getPrecision());
+
+                    data.doubleValue(rounded);
+
                 } catch (NumberFormatException ignored) {
                     // 值无法解析为 Double,保留字符串快照
                 }
@@ -130,7 +110,8 @@ public class DeviceDataApp {
      * 处理设备数据上报:逐条匹配点位定义并持久化历史快照。
      */
     public void update(MqttUsrUpdateMessage event) {
-        DeviceUpReport.DeviceUpParams params = event.payload().payload().params();
+        DeviceUpReport report = event.payload().report();
+        DeviceUpReport.DeviceUpParams params = report.params();
         if (params == null || params.gatewayId() == null || params.gatewayId().isBlank()) {
             log.warn("数据上报消息缺少设备标识，忽略");
             return;
@@ -143,11 +124,17 @@ public class DeviceDataApp {
             return;
         }
 
+        List<ValueResult> resultList = params.data().stream()
+//                .map(DeviceDataApp::analysisValue)
+                .map(DeviceDataApp::mockAnalysisValue)
+                .toList();
+
         for (DeviceEntity device : devices) {
-            updateData(params, device);
+            updateData(resultList, device);
             updateDevice(device);
         }
     }
+
 
     // ==================== 内部工具 ====================
 
@@ -155,8 +142,8 @@ public class DeviceDataApp {
         deviceService.heartByGatewayId(device.getGatewayId());
     }
 
-    private void updateData(DeviceUpReport.DeviceUpParams params, DeviceEntity device) {
-        List<DeviceUpReport.ReadDataItem> rData = params.data();
+    private void updateData(List<ValueResult> resultList, DeviceEntity device) {
+        List<ValueResult> rData = resultList;
         if (rData == null || rData.isEmpty()) {
             return;
         }
@@ -164,49 +151,36 @@ public class DeviceDataApp {
         // 按 pointCode 索引该设备下所有点位定义
         List<PointEntity> points = deviceService.queryPointsByDeviceId(device.getId());
 
-        Instant deviceTime = parseDeviceTime(params.sysLocalTime());
-        Instant now = Instant.now();
 
-        for (DeviceUpReport.ReadDataItem item : rData) {
-            ValueResult valueResult = analysisValue(device, item);
-
-            Optional<PointEntity> pointDefOpt = points.stream().filter(p -> p.getPointCode().equals(item.name())).findFirst();
-            if (pointDefOpt.isEmpty()) {
-                log.debug("未找到点位定义: device={}, pointCode={}", device, item.name());
-                continue;
-            }
-            PointEntity point = pointDefOpt.get();
-
-
-            DataEntity.DataEntityBuilder<?, ?> builder = DataEntity.builder()
-                    .deviceId(device.getId())
-                    .deviceName(device.getDeviceName())
-                    .pointCode(point.getPointCode())
-                    .pointId(point.getPointCode())  // 兼容：pointId 也填 pointCode
-                    .pointName(point.getPointName())
-                    .unit(point.getUnit())
-                    .dataType(mapDataType(point.getDataType()))
-                    .timestamp(deviceTime)
-                    .ingestedAt(now)
-                    .dataState(valueResult.state());
-
-            setFillTypedValue(builder, point.getDataType(), item.value());
-
-            DataEntity data = builder.build();
-
-            // todo 测试数据 — 基于正弦波 + 小随机扰动
-            // 用 pointCode 的 hashCode 作为相位偏移,让不同点位曲线不同步
-            double t = now.getEpochSecond() / 60.0;
-            double phase = (point.getPointCode().hashCode() & 0xFFFF) / 65536.0 * 2 * Math.PI;
-            double base = 50 + 30 * Math.sin(t * 2 * Math.PI / 60 + phase);
-            double noise = (Math.random() - 0.5) * 6;
-            double doubleValue = Math.max(0, Math.min(100, base + noise));
-            data.setDataState(PointDataState.NORMAL);
-            data.setDoubleValue(doubleValue);
-            data.setStringValue(String.valueOf(doubleValue));
-
-            dataService.save(data);
+        for (ValueResult valueResult : resultList) {
+            points.stream()
+                    .filter(p -> p.getPointCode().equals(valueResult.name()))
+                    .findFirst()
+                    .flatMap(point -> buildData(device, point, valueResult)).ifPresent(dataService::save);
         }
+
+    }
+
+
+    private static Optional<DataEntity> buildData(DeviceEntity device, PointEntity point, ValueResult valueResult) {
+
+        DataEntity.DataEntityBuilder<?, ?> builder = DataEntity.builder()
+                .deviceId(device.getId())
+                .deviceName(device.getDeviceName())
+                .pointCode(point.getPointCode())
+                .pointId(point.getPointCode())  // 兼容：pointId 也填 pointCode
+                .pointName(point.getPointName())
+                .unit(point.getUnit())
+                .dataType(point.getDataType())
+                .timestamp(valueResult.timestamp())
+                .ingestedAt(Instant.now())
+                .dataState(valueResult.state());
+
+        setFillTypedValue(builder, point, valueResult.value()); // todo 测试数据
+
+        DataEntity data = builder.build();
+
+        return Optional.of(data);
     }
 
     /**
@@ -223,7 +197,9 @@ public class DeviceDataApp {
 
     private record ValueResult(
             PointDataState state,
-            String value
+            String value,
+            String name,
+            Instant timestamp
     ) {
     }
 }

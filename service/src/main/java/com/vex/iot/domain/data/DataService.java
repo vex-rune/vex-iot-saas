@@ -1,5 +1,6 @@
 package com.vex.iot.domain.data;
 
+import com.vex.iot.common.enums.DataType;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.domain.data.event.DataUpdateEvent;
@@ -11,12 +12,14 @@ import jakarta.persistence.EntityManager;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -51,6 +54,7 @@ public class DataService {
     /**
      * 更新点位最新数据表（point_data_latest）。
      * 每个点位（deviceId + pointId）仅保留一条最新记录。
+     * 数值对比：值相同则跳过更新，减少无效写入。
      */
     private void updatePointDataLatest(DataEntity data) {
         Optional<RealtimeDataEntity> existingOpt =
@@ -58,8 +62,11 @@ public class DataService {
 
         RealtimeDataEntity latest;
         if (existingOpt.isPresent()) {
-            // 更新现有记录
             latest = existingOpt.get();
+            // 数值对比：值相同则跳过更新
+            if (isSameValue(latest, data)) {
+                return;
+            }
             latest.setPointName(data.getPointName());
             latest.setUnit(data.getUnit());
             latest.setDataType(data.getDataType());
@@ -71,7 +78,6 @@ public class DataService {
             latest.setDataState(data.getDataState());
             latest.stampUpdated(RealtimeDataEntity.SYSTEM_USER_ID, Instant.now());
         } else {
-            // 创建新记录
             latest = RealtimeDataEntity.builder()
                     .deviceId(data.getDeviceId())
                     .pointId(data.getPointId())
@@ -90,6 +96,27 @@ public class DataService {
         pointDataLatestRepository.save(latest);
     }
 
+    /**
+     * 判断最新值与新值是否相同（按数据类型分别比较）。
+     * 值相同 + 状态相同 → true（跳过更新）
+     */
+    private boolean isSameValue(RealtimeDataEntity existing, DataEntity incoming) {
+        // 状态不同（如 NORMAL → ERROR）始终更新
+        if (existing.getDataState() != incoming.getDataState()) {
+            return false;
+        }
+        // 按数据类型比较值
+        DataType type = incoming.getDataType();
+        if (type == null) type = existing.getDataType();
+        if (type == null) return Objects.equals(existing.getStringValue(), incoming.getStringValue());
+
+        return switch (type) {
+            case BOOL, INT -> Objects.equals(existing.getIntValue(), incoming.getIntValue());
+            case FLOAT, DOUBLE -> Objects.equals(existing.getDoubleValue(), incoming.getDoubleValue());
+            case STRING -> Objects.equals(existing.getStringValue(), incoming.getStringValue());
+        };
+    }
+
     public DataEntity getLatestData(String pointId) {
         return historyRepository.findFirstByPointIdOrderByTimestampDesc(pointId);
     }
@@ -101,4 +128,5 @@ public class DataService {
     public List<DataEntity> query(@Valid QueriesPageRequest req) {
         return JpaQueriesExecutor.of(DataEntity.class, entityManager).page(req);
     }
+
 }

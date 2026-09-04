@@ -1,6 +1,6 @@
 package com.vex.iot.domain.data.model;
 
-import com.vex.iot.common.enums.PointDataType;
+import com.vex.iot.common.enums.DataType;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.*;
@@ -61,7 +61,7 @@ public class DataEntity extends TenantBaseEntity {
 
     /// 本条快照数据类型，快照复制点位配置
     @Enumerated(EnumType.STRING)
-    private PointDataType dataType;
+    private DataType dataType;
 
     /// 仅dataType=BOOL/INT使用；bool存0/1；其余填null
     @Column(name = "int_value")
