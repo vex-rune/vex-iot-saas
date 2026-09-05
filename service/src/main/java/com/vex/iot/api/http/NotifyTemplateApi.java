@@ -6,6 +6,7 @@ import com.vex.iot.domain.notify.NotifyService;
 import com.vex.iot.domain.notify.model.NotifyTemplateEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,6 +41,7 @@ public class NotifyTemplateApi {
     /**
      * 保存
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @PostMapping("/api/notify-templates")
     public Response<NotifyTemplateEntity> save(@Valid @RequestBody NotifyTemplateEntity entity) {
         return Response.ok(notifyService.saveTemplate(entity));
@@ -48,6 +50,7 @@ public class NotifyTemplateApi {
     /**
      * 删除(软删)
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/notify-templates/{id}")
     public Response<Void> delete(@PathVariable String id) {
         notifyService.deleteTemplate(id);

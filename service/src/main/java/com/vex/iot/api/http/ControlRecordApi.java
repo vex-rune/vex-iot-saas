@@ -6,6 +6,7 @@ import com.vex.iot.domain.device.ControlRecordService;
 import com.vex.iot.domain.device.model.ControlRecordEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,6 +59,7 @@ public class ControlRecordApi {
      * @param record 控制记录信息
      * @return 创建后的控制记录
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/control-records")
     public Response<ControlRecordEntity> create(@Valid @RequestBody ControlRecordEntity record) {
         return Response.ok(controlRecordService.save(record));
@@ -69,6 +71,7 @@ public class ControlRecordApi {
      * @param id 控制记录ID
      * @return 操作结果
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/control-records/{id}")
     public Response<Void> delete(@PathVariable String id) {
         controlRecordService.delete(id);

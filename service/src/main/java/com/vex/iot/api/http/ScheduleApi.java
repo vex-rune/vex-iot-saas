@@ -6,6 +6,7 @@ import com.vex.iot.domain.schedule.model.DeviceScheduleDetail;
 import com.vex.iot.domain.schedule.model.DeviceScheduleRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,6 +39,7 @@ public class ScheduleApi {
     /**
      * 创建或更新一条规则（含其下动作）
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/schedules")
     public Response<DeviceScheduleDetail> save(@Valid @RequestBody DeviceScheduleRequest body) {
         return Response.ok(scheduleService.save(body));
@@ -46,6 +48,7 @@ public class ScheduleApi {
     /**
      * 删除规则
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/schedules/{id}")
     public Response<Void> delete(@PathVariable String id) {
         scheduleService.deleteRule(id);
@@ -55,6 +58,7 @@ public class ScheduleApi {
     /**
      * 启用/禁用规则
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/schedules/{id}/enabled")
     public Response<Void> setEnabled(@PathVariable String id, @RequestParam boolean enabled) {
         scheduleService.setEnabled(id, enabled);

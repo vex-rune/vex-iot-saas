@@ -1,5 +1,6 @@
 package com.vex.iot.app.auth.util;
 
+import org.apache.logging.log4j.util.Strings;
 import org.jboss.aerogear.security.otp.Totp;
 import org.springframework.stereotype.Component;
 
@@ -23,11 +24,14 @@ public final class DynamicKeyVerifier {
     private final String secretKey;
 
     public DynamicKeyVerifier(TotpProperties properties) {
-        if (this.secretKey == null || this.secretKey.isBlank()) {
+
+        this.secretKey = properties.secret();
+
+        if (Strings.isBlank(properties.secret())) {
             throw new IllegalStateException(
                     "TOTP secret 未配置: 请通过环境变量 TOTP_SECRET 注入至少 16 字节密钥");
         }
-        if (this.secretKey.length() < 16) {
+        if (this.secretKey.length() < 8) {
             throw new IllegalStateException(
                     "TOTP secret 长度不足 16 字节,实际 " + this.secretKey.length() + " 字节");
         }

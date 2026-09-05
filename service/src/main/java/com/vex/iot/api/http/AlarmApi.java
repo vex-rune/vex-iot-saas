@@ -7,6 +7,7 @@ import com.vex.iot.domain.alarm.model.AlarmLogEntity;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,6 +51,7 @@ public class AlarmApi {
      * @param rule 告警规则
      * @return 保存后的告警规则
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/alarm/rules")
     public Response<AlarmRuleEntity> saveRule(@Valid @RequestBody AlarmRuleEntity rule) {
         return Response.ok(alarmService.saveRule(rule));
@@ -61,6 +63,7 @@ public class AlarmApi {
      * @param id 告警规则ID
      * @return 操作结果
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/alarm/rules/{id}")
     public Response<Void> deleteRule(@PathVariable String id) {
         alarmService.deleteRule(id);
@@ -108,6 +111,7 @@ public class AlarmApi {
      * @param id 告警事件ID
      * @return 确认后的告警事件
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/alarm/events/{id}/ack")
     public Response<AlarmLogEntity> ack(@PathVariable String id) {
         return Response.ok(alarmService.acknowledgeEvent(id));

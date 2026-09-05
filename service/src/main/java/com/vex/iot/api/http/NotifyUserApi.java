@@ -6,6 +6,7 @@ import com.vex.iot.domain.notify.NotifyService;
 import com.vex.iot.domain.notify.model.NotifyUserEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -52,6 +53,7 @@ public class NotifyUserApi {
      * @param user 通知用户
      * @return 保存后的通知用户
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/notify-users")
     public Response<NotifyUserEntity> save(@Valid @RequestBody NotifyUserEntity user) {
         return Response.ok(notifyService.saveUser(user));
@@ -63,6 +65,7 @@ public class NotifyUserApi {
      * @param id 通知用户ID
      * @return 操作结果
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/notify-users/{id}")
     public Response<Void> delete(@PathVariable String id) {
         notifyService.deleteUser(id);

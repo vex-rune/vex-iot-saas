@@ -10,6 +10,7 @@ import com.vex.iot.domain.device.model.DevicePanelEntity;
 import com.vex.iot.domain.device.model.PointEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -70,6 +71,7 @@ public class DeviceApi {
      * @param device 设备信息
      * @return 创建后的设备
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/devices")
     public Response<DeviceEntity> createDevice(@Valid @RequestBody DeviceEntity device) {
         return Response.ok(deviceService.createDevice(device));
@@ -82,6 +84,7 @@ public class DeviceApi {
      * @param device 设备信息
      * @return 更新后的设备
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PutMapping("/api/devices/{id}")
     public Response<DeviceEntity> updateDevice(@PathVariable String id, @Valid @RequestBody DeviceEntity device) {
         return Response.ok(deviceService.updateDevice(id, device));
@@ -91,6 +94,7 @@ public class DeviceApi {
      * 设备-启用/停用
      * 仅切换 enabled 字段，不影响其他属性
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PutMapping("/api/devices/{id}/enabled")
     public Response<DeviceEntity> toggleDeviceEnabled(@PathVariable String id, @RequestBody ToggleEnabledReq body) {
         return Response.ok(deviceService.setDeviceEnabled(id, body.enabled()));
@@ -102,6 +106,7 @@ public class DeviceApi {
      * @param id 设备ID
      * @return 操作结果
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/devices/{id}")
     public Response<Void> deleteDevice(@PathVariable String id) {
         deviceService.deleteDevice(id);
@@ -162,6 +167,7 @@ public class DeviceApi {
      * @param def 点位定义
      * @return 保存后的点位定义
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PostMapping("/api/devices/points")
     public Response<PointEntity> savePoint(@Valid @RequestBody PointEntity def) {
         return Response.ok(deviceService.savePoint(def));
@@ -173,6 +179,7 @@ public class DeviceApi {
      * @param id 点位定义ID
      * @return 操作结果
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/devices/points/{id}")
     public Response<Void> deletePoint(@PathVariable String id) {
         deviceService.deletePoint(id);
@@ -186,6 +193,7 @@ public class DeviceApi {
      * @param body     按新顺序排列的点位ID列表
      * @return 操作结果
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PutMapping("/api/devices/{deviceId}/points/sort")
     public Response<Void> updatePointSortOrder(
             @PathVariable String deviceId,
@@ -215,6 +223,7 @@ public class DeviceApi {
      * @param body     请求体,包含 panelConfig 对象(Map 形式)
      * @return 保存后的面板配置
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','OPERATOR')")
     @PutMapping("/api/devices/{deviceId}/panel-config")
     public Response<DevicePanelEntity> savePanelConfig(
             @PathVariable String deviceId,
@@ -228,6 +237,7 @@ public class DeviceApi {
      * @param deviceId 设备 ID
      * @return 操作结果
      */
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @DeleteMapping("/api/devices/{deviceId}/panel-config")
     public Response<Void> deletePanelConfig(@PathVariable String deviceId) {
         deviceService.deletePanelConfig(deviceId);
