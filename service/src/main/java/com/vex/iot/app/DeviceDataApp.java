@@ -3,12 +3,11 @@ package com.vex.iot.app;
 import com.vex.iot.app.mqtt.usr.DeviceUpReport;
 import com.vex.iot.app.mqtt.usr.MqttUsrUpdateMessage;
 import com.vex.iot.app.mqtt.usr.MqttUsrWillMessage;
-import com.vex.iot.common.enums.DataType;
-import com.vex.iot.domain.data.DataService;
-import com.vex.iot.domain.data.model.DataEntity;
-import com.vex.iot.domain.data.model.PointDataState;
+import com.vex.iot.domain.device.DataService;
 import com.vex.iot.domain.device.DeviceService;
+import com.vex.iot.domain.device.model.DataEntity;
 import com.vex.iot.domain.device.model.DeviceEntity;
+import com.vex.iot.domain.device.model.PointDataState;
 import com.vex.iot.domain.device.model.PointEntity;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +16,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,7 +37,7 @@ public class DeviceDataApp {
         if (item.name() == null || item.name().isBlank()) {
             return new ValueResult(PointDataState.ERROR, null, item.name(), Instant.now());
         }
-        if (item.err() != null && !item.err().isBlank() && DeviceUpReport.OK.equals(item.err())) {
+        if (item.err() != null && !item.err().isBlank() && !DeviceUpReport.OK.equals(item.err())) {
             return new ValueResult(PointDataState.ERROR, null, item.name(), Instant.now());
         }
         if (Strings.isBlank(item.value())) {
@@ -46,53 +46,22 @@ public class DeviceDataApp {
         return new ValueResult(PointDataState.NORMAL, item.value(), item.name(), Instant.now());
     }
 
-    private static ValueResult mockAnalysisValue(DeviceUpReport.ReadDataItem readDataItem) {
-        // todo 测试数据 — 基于正弦波 + 小随机扰动
-        // 用 pointCode 的 hashCode 作为相位偏移,让不同点位曲线不同步
-        Instant now = Instant.now();
-        double t = now.getEpochSecond() / 60.0;
-        double phase = (readDataItem.name().hashCode() & 0xFFFF) / 65536.0 * 2 * Math.PI;
-        double base = 50 + 30 * Math.sin(t * 2 * Math.PI / 60 + phase);
-        double noise = (Math.random() - 0.5) * 6;
-        double doubleValue = Math.max(0, Math.min(100, base + noise));
-        return new ValueResult(PointDataState.NORMAL, String.valueOf(doubleValue), readDataItem.name(), now);
-    }
-
 
     private static void setFillTypedValue(@NotNull DataEntity.DataEntityBuilder<?, ?> data, @NotNull PointEntity point, String value) {
-
         if (Strings.isBlank(value)) {
             data.stringValue(value);
             return;
         }
-
-        DataType dataType = point.getDataType();
-
-        switch (dataType) {
-            case INT -> {
-                try {
-                    data.intValue(Long.parseLong(value.trim()));
-                } catch (NumberFormatException ignored) {
-                    // 值无法解析为 Long,保留字符串快照
-                    data.stringValue(value);
-                }
-            }
-            case DOUBLE -> {
-                try {
-                    double doubleValue = Double.parseDouble(value.trim());
-
-                    // 根据精度处理
-                    double rounded =
-                            Math.round(doubleValue * Math.pow(10, point.getPrecision())) / Math.pow(10, point.getPrecision());
-
-                    data.doubleValue(rounded);
-
-                } catch (NumberFormatException ignored) {
-                    // 值无法解析为 Double,保留字符串快照
-                }
-            }
+        try {
+            double doubleValue = Double.parseDouble(value.trim());
+            Double rounded = Math.round(doubleValue * Math.pow(10, point.getPrecision())) / Math.pow(10, point.getPrecision());
+            data.doubleValue(rounded);
+            data.intValue(rounded.longValue());
+            data.stringValue(String.valueOf(rounded));
+        } catch (NumberFormatException e) {
+            data.stringValue(value);
+            log.error("值无法解析为 Double,保留字符串快照: {}", value);
         }
-        data.stringValue(value);
     }
 
     /**
@@ -125,8 +94,7 @@ public class DeviceDataApp {
         }
 
         List<ValueResult> resultList = params.data().stream()
-//                .map(DeviceDataApp::analysisValue)
-                .map(DeviceDataApp::mockAnalysisValue)
+                .map(DeviceDataApp::analysisValue)
                 .toList();
 
         for (DeviceEntity device : devices) {
@@ -152,11 +120,24 @@ public class DeviceDataApp {
         List<PointEntity> points = deviceService.queryPointsByDeviceId(device.getId());
 
 
+        List<DataEntity> datas = new ArrayList<>();
+
         for (ValueResult valueResult : resultList) {
-            points.stream()
+            List<DataEntity> list = points.stream()
                     .filter(p -> p.getPointCode().equals(valueResult.name()))
                     .findFirst()
-                    .flatMap(point -> buildData(device, point, valueResult)).ifPresent(dataService::save);
+                    .map(point -> buildData(device, point, valueResult))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .stream()
+                    .toList();
+
+            datas.addAll(list);
+
+            for (DataEntity dataEntity : list) {
+                log.debug("保存数据: {}", dataEntity);
+                dataService.save(dataEntity);
+            }
         }
 
     }
@@ -168,7 +149,7 @@ public class DeviceDataApp {
                 .deviceId(device.getId())
                 .deviceName(device.getDeviceName())
                 .pointCode(point.getPointCode())
-                .pointId(point.getPointCode())  // 兼容：pointId 也填 pointCode
+                .pointId(point.getId())  // 兼容：pointId 也填 pointCode
                 .pointName(point.getPointName())
                 .unit(point.getUnit())
                 .dataType(point.getDataType())
@@ -176,7 +157,7 @@ public class DeviceDataApp {
                 .ingestedAt(Instant.now())
                 .dataState(valueResult.state());
 
-        setFillTypedValue(builder, point, valueResult.value()); // todo 测试数据
+        setFillTypedValue(builder, point, valueResult.value());
 
         DataEntity data = builder.build();
 
@@ -187,6 +168,10 @@ public class DeviceDataApp {
      * 处理设备离线(Will 消息):将设备标记为离线。
      */
     public void will(MqttUsrWillMessage event) {
+        if (event == null || event.gatewayId() == null) {
+            log.warn("离线消息 payload 为空，忽略");
+            return;
+        }
         String gatewayId = event.gatewayId().trim();
         if (gatewayId.isEmpty()) {
             log.warn("离线消息 payload 为空，忽略");

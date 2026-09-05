@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
@@ -11,9 +11,9 @@ import {
   addToast,
 } from '@heroui/react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
-import { getDevicePoints, getPanelConfig, savePanelConfig } from '@/api/devices';
-import { chainToPromise } from '@/hooks/useQueryList';
-import { useBeforeUnload } from '@/hooks/useBeforeUnload';
+import { getDevicePoints, getPanelConfig, savePanelConfig } from '@/services/device';
+import { chainToPromise } from '@/hooks/common/useQueryList';
+import { useBeforeUnload } from '@/hooks/common/useBeforeUnload';
 import type { PointDefinition } from '@/types/api';
 import PanelRenderer from './PanelRenderer';
 import PanelEditor from './PanelEditor';
@@ -33,10 +33,15 @@ export default function PanelPanelTab({
   deviceId,
   editing,
   onEditingChange,
+  fromSeconds,
+  toSeconds,
 }: {
   deviceId: string;
   editing: boolean;
   onEditingChange: (editing: boolean) => void;
+  /** 历史曲线时间区间(可选,默认全量) */
+  fromSeconds?: number;
+  toSeconds?: number;
 }) {
   const queryClient = useQueryClient();
   const [config, setConfig] = useState<PanelConfig>({ version: 1, widgets: [] });
@@ -187,6 +192,8 @@ export default function PanelPanelTab({
         config={config}
         deviceId={deviceId}
         points={points}
+        fromSeconds={fromSeconds}
+        toSeconds={toSeconds}
         onRequestEdit={() => onEditingChange(true)}
       />
     </div>

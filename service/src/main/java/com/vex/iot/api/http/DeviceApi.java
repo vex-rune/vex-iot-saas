@@ -3,7 +3,6 @@ package com.vex.iot.api.http;
 import com.vex.iot.api.http.model.PointSortOrderRequest;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.response.Response;
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.domain.device.DeviceService;
 import com.vex.iot.domain.device.model.DeviceEntity;
 import com.vex.iot.domain.device.model.DeviceOnlineResponse;
@@ -38,6 +37,7 @@ public class DeviceApi {
      */
     @PostMapping("/api/devices/query")
     public Response<List<DeviceEntity>> queryDevices(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(deviceService.queryDevices(req));
     }
 
@@ -49,6 +49,7 @@ public class DeviceApi {
      */
     @PostMapping("/api/devices/count")
     public Response<Long> countDevices(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(deviceService.countDevices(req));
     }
 
@@ -69,7 +70,6 @@ public class DeviceApi {
      * @param device 设备信息
      * @return 创建后的设备
      */
-    @AuditLog(action = "DEVICE_CREATE", resourceType = "device")
     @PostMapping("/api/devices")
     public Response<DeviceEntity> createDevice(@Valid @RequestBody DeviceEntity device) {
         return Response.ok(deviceService.createDevice(device));
@@ -82,7 +82,6 @@ public class DeviceApi {
      * @param device 设备信息
      * @return 更新后的设备
      */
-    @AuditLog(action = "DEVICE_UPDATE", resourceType = "device")
     @PutMapping("/api/devices/{id}")
     public Response<DeviceEntity> updateDevice(@PathVariable String id, @Valid @RequestBody DeviceEntity device) {
         return Response.ok(deviceService.updateDevice(id, device));
@@ -92,7 +91,6 @@ public class DeviceApi {
      * 设备-启用/停用
      * 仅切换 enabled 字段，不影响其他属性
      */
-    @AuditLog(action = "DEVICE_TOGGLE_ENABLED", resourceType = "device")
     @PutMapping("/api/devices/{id}/enabled")
     public Response<DeviceEntity> toggleDeviceEnabled(@PathVariable String id, @RequestBody ToggleEnabledReq body) {
         return Response.ok(deviceService.setDeviceEnabled(id, body.enabled()));
@@ -104,7 +102,6 @@ public class DeviceApi {
      * @param id 设备ID
      * @return 操作结果
      */
-    @AuditLog(action = "DEVICE_DELETE", resourceType = "device")
     @DeleteMapping("/api/devices/{id}")
     public Response<Void> deleteDevice(@PathVariable String id) {
         deviceService.deleteDevice(id);
@@ -130,6 +127,7 @@ public class DeviceApi {
      */
     @PostMapping("/api/devices/points/query")
     public Response<List<PointEntity>> queryPoints(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(deviceService.queryPoints(req));
     }
 
@@ -143,6 +141,7 @@ public class DeviceApi {
      */
     @PostMapping("/api/devices/points/count")
     public Response<Long> countPoints(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(deviceService.countPoints(req));
     }
 
@@ -163,7 +162,6 @@ public class DeviceApi {
      * @param def 点位定义
      * @return 保存后的点位定义
      */
-    @AuditLog(action = "POINT_SAVE", resourceType = "point")
     @PostMapping("/api/devices/points")
     public Response<PointEntity> savePoint(@Valid @RequestBody PointEntity def) {
         return Response.ok(deviceService.savePoint(def));
@@ -175,7 +173,6 @@ public class DeviceApi {
      * @param id 点位定义ID
      * @return 操作结果
      */
-    @AuditLog(action = "POINT_DELETE", resourceType = "point")
     @DeleteMapping("/api/devices/points/{id}")
     public Response<Void> deletePoint(@PathVariable String id) {
         deviceService.deletePoint(id);
@@ -189,7 +186,6 @@ public class DeviceApi {
      * @param body     按新顺序排列的点位ID列表
      * @return 操作结果
      */
-    @AuditLog(action = "POINT_SORT", resourceType = "point")
     @PutMapping("/api/devices/{deviceId}/points/sort")
     public Response<Void> updatePointSortOrder(
             @PathVariable String deviceId,
@@ -219,7 +215,6 @@ public class DeviceApi {
      * @param body     请求体,包含 panelConfig 对象(Map 形式)
      * @return 保存后的面板配置
      */
-    @AuditLog(action = "PANEL_CONFIG_SAVE", resourceType = "panel")
     @PutMapping("/api/devices/{deviceId}/panel-config")
     public Response<DevicePanelEntity> savePanelConfig(
             @PathVariable String deviceId,
@@ -233,7 +228,6 @@ public class DeviceApi {
      * @param deviceId 设备 ID
      * @return 操作结果
      */
-    @AuditLog(action = "PANEL_CONFIG_DELETE", resourceType = "panel")
     @DeleteMapping("/api/devices/{deviceId}/panel-config")
     public Response<Void> deletePanelConfig(@PathVariable String deviceId) {
         deviceService.deletePanelConfig(deviceId);

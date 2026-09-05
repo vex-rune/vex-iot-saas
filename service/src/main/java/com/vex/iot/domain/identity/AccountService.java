@@ -2,13 +2,12 @@ package com.vex.iot.domain.identity;
 
 import com.vex.iot.common.constants.DataState;
 import com.vex.iot.common.constants.RoleConstants;
-import com.vex.iot.common.exception.BusinessExceptions.NotFoundException;
+import com.vex.iot.common.exception.NotFoundException;
 import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.common.security.PasswordHasher;
 import com.vex.iot.common.util.UserContext;
-import com.vex.iot.domain.data.model.DataEntity;
 import com.vex.iot.domain.identity.exception.InvalidCredentialException;
 import com.vex.iot.domain.identity.model.AccountEntity;
 import com.vex.iot.domain.identity.model.SysTenantAccountEntity;
@@ -215,7 +214,7 @@ public class AccountService {
     }
 
     public Long count(@Valid QueriesPageRequest req) {
-        return JpaQueriesExecutor.of(DataEntity.class, entityManager).count(req.getPredicate());
+        return JpaQueriesExecutor.of(AccountEntity.class, entityManager).count(req.getPredicate());
     }
 
 

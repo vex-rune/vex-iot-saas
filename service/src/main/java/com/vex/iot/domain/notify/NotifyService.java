@@ -1,7 +1,7 @@
 package com.vex.iot.domain.notify;
 
-import com.vex.iot.common.enums.NotifyChannelType;
-import com.vex.iot.common.enums.NotifyRecordStatus;
+import com.vex.iot.domain.notify.enums.NotifyChannelType;
+import com.vex.iot.domain.notify.enums.NotifyRecordStatus;
 import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;

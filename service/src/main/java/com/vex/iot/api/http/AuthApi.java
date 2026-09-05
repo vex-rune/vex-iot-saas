@@ -5,11 +5,12 @@ import com.vex.iot.app.auth.model.CurrentUserResponse;
 import com.vex.iot.app.auth.model.KeyInfoResponse;
 import com.vex.iot.app.auth.model.LoginType;
 import com.vex.iot.app.auth.model.TokenPairResp;
+import com.vex.iot.app.auth.util.JwtHandler;
 import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.common.response.Response;
 import com.vex.iot.common.util.UserContext;
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.domain.identity.model.TenantEntity;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -33,11 +35,11 @@ public class AuthApi {
      * 认证服务
      */
     private final AuthApp authServer;
+    private final JwtHandler jwtHandler;
 
     /**
      * 登录 / 换发 token 统一端点。
      */
-    @AuditLog(action = "LOGIN", resourceType = "user")
     @PostMapping("/api/auth/login")
     public Response<TokenPairResp> login(@Valid @RequestBody LoginReq req) {
         return Response.ok(authServer.login(
@@ -79,7 +81,7 @@ public class AuthApi {
 
 
         List<AvailableTenantResp> resp = tenants.stream()
-                .filter(t -> !t.isDeleted() && !t.isDeleted())
+                .filter(t -> !t.isDeleted() && t.isEnabled())
                 .map(t -> new AvailableTenantResp(
                         t.getId(),
                         t.getCode(),
@@ -92,9 +94,8 @@ public class AuthApi {
     /**
      * 登出
      */
-    @AuditLog(action = "LOGOUT", resourceType = "user")
     @PostMapping("/api/auth/logout")
-    public Response<Void> logout() {
+    public Response<Void> logout(HttpServletRequest request) {
         return Response.ok();
     }
 

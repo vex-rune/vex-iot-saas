@@ -2,6 +2,7 @@ package com.vex.iot.app.auth.config;
 
 import com.vex.iot.app.auth.model.LoginUser;
 import com.vex.iot.app.auth.util.DynamicKeyVerifier;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,6 +22,7 @@ import java.util.Set;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AdminAuthenticationProvider implements AuthenticationProvider {
 
     /**
@@ -37,6 +39,8 @@ public class AdminAuthenticationProvider implements AuthenticationProvider {
      * 管理员角色
      */
     private static final String ADMIN_ROLE = "SUPER_ADMIN";
+
+    private final DynamicKeyVerifier dynamicKeyVerifier;
 
     /**
      * 支持的认证令牌类型
@@ -68,7 +72,7 @@ public class AdminAuthenticationProvider implements AuthenticationProvider {
         }
 
         // 验证动态码
-        if (!DynamicKeyVerifier.verify(code)) {
+        if (!dynamicKeyVerifier.verify(code)) {
             throw new BadCredentialsException("动态码验证失败");
         }
 

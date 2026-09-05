@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix = "aliyun.sms")
+@ConfigurationProperties(prefix = "vex.aliyun.sms")
 public class AliyunSmsProperties {
 
     /**

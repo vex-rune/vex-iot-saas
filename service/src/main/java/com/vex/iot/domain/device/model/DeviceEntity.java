@@ -1,6 +1,6 @@
 package com.vex.iot.domain.device.model;
 
-import com.vex.iot.common.enums.DeviceOnline;
+import com.vex.iot.domain.device.enums.DeviceOnline;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.*;
@@ -42,6 +42,7 @@ public class DeviceEntity extends TenantBaseEntity {
 
     /// 在线状态（0-离线，1-在线）
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     @Builder.Default
     private DeviceOnline online = DeviceOnline.OFFLINE;
 

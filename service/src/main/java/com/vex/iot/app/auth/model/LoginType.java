@@ -1,5 +1,7 @@
 package com.vex.iot.app.auth.model;
 
+import com.vex.iot.common.config.IEnum;
+
 /**
  * 登录类型。
  *
@@ -7,7 +9,7 @@ package com.vex.iot.app.auth.model;
  * 入参通过 {@code refreshToken} 与 {@code targetTenantId} 字段传递,
  * 由 {@code UserRefreshTokenAuthenticationProvider} 处理。
  */
-public enum LoginType {
+public enum LoginType implements IEnum {
     /**
      * 管理员动态码登录。
      */
@@ -19,5 +21,14 @@ public enum LoginType {
     /**
      * 用 refresh token 换发(可携带 targetTenantId 切换租户)。
      */
-    REFRESH
+    REFRESH;
+
+    
+
+
+    
+    @Override
+    public String displayName() {
+        return name();
+    }
 }

@@ -26,6 +26,7 @@ public class NotifyRecordApi {
      */
     @PostMapping("/api/notify-records/query")
     public Response<List<NotifyRecordEntity>> query(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(notifyService.recordQuery(req));
     }
 
@@ -34,6 +35,7 @@ public class NotifyRecordApi {
      */
     @PostMapping("/api/notify-records/count")
     public Response<Long> count(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(notifyService.recordCount(req));
     }
 }

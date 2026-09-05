@@ -29,6 +29,22 @@ public class QueriesCondition implements Serializable {
     private Object value;
 
     /**
+     * 快速构建叶子条件。
+     *
+     * @param field 字段名
+     * @param op    操作符
+     * @param value 比较值
+     * @return 叶子条件
+     */
+    public static QueriesCondition of(String field, QueriesOperatorEnum op, Object value) {
+        QueriesCondition c = new QueriesCondition();
+        c.setField(field);
+        c.setOp(op);
+        c.setValue(value);
+        return c;
+    }
+
+    /**
      * 获取字段名
      *
      * @return 字段名

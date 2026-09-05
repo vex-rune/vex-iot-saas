@@ -2,7 +2,7 @@ package com.vex.iot.app.mqtt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "mqtt")
+@ConfigurationProperties(prefix = "vex.mqtt")
 public record MqttConnectProperties(MqttConnection connection) {
 
 

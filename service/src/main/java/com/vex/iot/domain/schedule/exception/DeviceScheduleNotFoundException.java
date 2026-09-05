@@ -1,6 +1,6 @@
 package com.vex.iot.domain.schedule.exception;
 
-import com.vex.iot.common.exception.BusinessExceptions.NotFoundException;
+import com.vex.iot.common.exception.NotFoundException;
 
 /**
  * 设备定时控制规则不存在

@@ -1,6 +1,7 @@
 package com.vex.iot.common.queries;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.vex.iot.common.config.IEnum;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -63,7 +64,7 @@ public class QueriesOrder implements Serializable {
     /**
      * 排序方向枚举
      */
-    public enum QueriesOrderEnum {
+    public enum QueriesOrderEnum implements IEnum {
         /**
          * 升序
          */
@@ -71,6 +72,12 @@ public class QueriesOrder implements Serializable {
         /**
          * 降序
          */
-        DESC
+        DESC;
+
+        
+        @Override
+        public String displayName() {
+            return name();
+        }
     }
 }

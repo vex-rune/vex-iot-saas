@@ -2,9 +2,9 @@ package com.vex.iot.app;
 
 import com.vex.iot.api.sse.SsePusher;
 import com.vex.iot.domain.alarm.event.AlarmTriggeredEvent;
-import com.vex.iot.domain.data.event.DataEvent;
+import com.vex.iot.domain.device.event.DataEvent;
 import com.vex.iot.domain.device.event.DeviceEvent;
-import com.vex.iot.domain.event.IEvent;
+import com.vex.iot.common.event.IEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -36,7 +36,8 @@ public class BroadcastApp {
     @EventListener
     public void onDataEvent(DataEvent<?> event) {
         if (Objects.isNull(event)) {
-            log.error("DataEvent is null ");
+            log.error("DataEvent is null");
+            return;
         }
         ssePusher.push("broadcast", event);
     }
@@ -46,7 +47,8 @@ public class BroadcastApp {
     @EventListener
     public void onDeviceEvent(DeviceEvent<?> event) {
         if (Objects.isNull(event)) {
-            log.error("DeviceEvent is null ");
+            log.error("DeviceEvent is null");
+            return;
         }
         ssePusher.push("broadcast", event);
     }
@@ -56,7 +58,8 @@ public class BroadcastApp {
     @EventListener
     public void onAlarmEvent(AlarmTriggeredEvent event) {
         if (Objects.isNull(event)) {
-            log.error("AlarmTriggeredEvent is null ");
+            log.error("AlarmTriggeredEvent is null");
+            return;
         }
         ssePusher.push("broadcast", event);
     }

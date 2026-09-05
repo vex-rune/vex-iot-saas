@@ -1,0 +1,23 @@
+# 测试环境配置 - 使用 dev 数据库
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:15432/iot_saas_dev
+    username: postgres
+    password: testpass
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+# MQTT 配置（测试环境）
+vex:
+  mqtt:
+    connection:
+      broker: tcp://localhost:1883
+      username: test
+      password: test
+
+logging:
+  level:
+    com.vex.iot: INFO
+    org.hibernate.SQL: WARN

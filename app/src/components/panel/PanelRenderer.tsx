@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, Component } from 'react';
+﻿import { memo, useCallback, useEffect, useMemo, useRef, useState, Component } from 'react';
 import type { ReactNode } from 'react';
 import {
   Modal,
@@ -22,7 +22,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import { useIsMobile } from '@/hooks/useMediaQuery';
+import { useIsMobile } from '@/hooks/common/useMediaQuery';
 import type { PointDefinition } from '@/types/api';
 import type { BadgeColor, DataSource, PanelConfig, PluginKind, WidgetInstance } from './types';
 import { PLUGIN_META } from './types';
@@ -46,14 +46,16 @@ import {
 // RGL 2.x：通过 legacy 出口使用 v1 扁平 props（内部转换为 v2 接口），WidthProvider 自动测量容器宽度
 const Grid = WidthProvider(ReactGridLayout);
 
-/** 手机端堆叠高度（按插件差异化，min-h 允许内容撑开） */
+/** 手机端堆叠高度（按插件差异化）
+ *  - line-chart 必须用 `h-` 显式高度（否则 ResponsiveContainer h-full 退化为 0，图表不可见）
+ *  - 其它小型插件保留 min-h-，避免被压缩时留白过大 */
 const MOBILE_HEIGHT: Record<PluginKind, string> = {
   'switch-light': 'min-h-36',
   'control-switch': 'min-h-36',
   'status-badge': 'min-h-28',
   'metric-value': 'min-h-32',
-  'line-chart': 'min-h-56',
-  gauge: 'min-h-48',
+  'line-chart': 'h-64',
+  gauge: 'h-48',
 };
 
 export interface PanelRendererProps {
@@ -66,14 +68,17 @@ export interface PanelRendererProps {
   onRemove?: (id: string) => void;
   /** 查看态空面板时点击整块进入编辑 */
   onRequestEdit?: () => void;
+  /** 外部日历区间覆盖（Unix 秒），仅影响历史类取数组件 */
+  fromSeconds?: number;
+  toSeconds?: number;
 }
 
 /** widget 显示标签：自定义标题 > 点位名 > 设备属性名 > 插件类型名 */
 function widgetLabel(widget: WidgetInstance, pointDef?: PointDefinition): string {
-  // 自定义标题（用户手动改过的才算）
+  // 自定义标题（非空且非插件名即视为自定义）
   if (widget.title && widget.title !== PLUGIN_META[widget.plugin]?.label) return widget.title;
   // 点位名
-  if (widget.binding.kind === 'point' && pointDef) return pointDef.pointName ?? '';
+  if (widget.binding.kind === 'point' && pointDef) return pointDef.pointName ?? PLUGIN_META[widget.plugin]?.label ?? '';
   // 设备属性
   if (widget.binding.kind === 'device') {
     const names: Record<string, string> = {
@@ -122,11 +127,15 @@ function WidgetBody({
   deviceId,
   pointDef,
   editable,
+  fromSeconds,
+  toSeconds,
 }: {
   widget: WidgetInstance;
   deviceId: string;
   pointDef?: PointDefinition;
   editable: boolean;
+  fromSeconds?: number;
+  toSeconds?: number;
 }) {
   const { binding } = widget;
   const label = widgetLabel(widget, pointDef);
@@ -147,6 +156,8 @@ function WidgetBody({
         pointDef={pointDef}
         label={label}
         editable={editable}
+        fromSeconds={fromSeconds}
+        toSeconds={toSeconds}
       />
     );
   }
@@ -221,6 +232,8 @@ function PointWidgetBody({
   pointDef,
   label,
   editable,
+  fromSeconds,
+  toSeconds,
 }: {
   widget: WidgetInstance;
   deviceId: string;
@@ -229,6 +242,8 @@ function PointWidgetBody({
   /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
   editable: boolean;
+  fromSeconds?: number;
+  toSeconds?: number;
 }) {
   switch (widget.plugin) {
     case 'switch-light':
@@ -242,7 +257,7 @@ function PointWidgetBody({
         />
       );
     case 'metric-value':
-      return <MetricBody widget={widget} deviceId={deviceId} pointCode={pointCode} pointDef={pointDef} label={label} />;
+      return <MetricBody widget={widget} deviceId={deviceId} pointCode={pointCode} pointDef={pointDef} label={label} fromSeconds={fromSeconds} toSeconds={toSeconds} />;
     case 'control-switch':
       return (
         <ControlSwitchBody
@@ -255,7 +270,7 @@ function PointWidgetBody({
         />
       );
     case 'line-chart':
-      return <LineChartBody widget={widget} deviceId={deviceId} pointCode={pointCode} pointDef={pointDef} label={label} />;
+      return <LineChartBody widget={widget} deviceId={deviceId} pointCode={pointCode} pointDef={pointDef} label={label} fromSeconds={fromSeconds} toSeconds={toSeconds} />;
     case 'gauge':
       return <GaugeBody widget={widget} deviceId={deviceId} pointCode={pointCode} pointDef={pointDef} label={label} />;
     default:
@@ -396,6 +411,9 @@ interface SeriesBodyProps {
   min?: number;
   max?: number;
   unit?: string;
+  /** 日历区间覆盖（Unix 秒） */
+  fromSeconds?: number;
+  toSeconds?: number;
 }
 
 /** 曲线：source → 专用取数组件注册表（新增 source 只加一行） */
@@ -404,13 +422,20 @@ const LINE_BODIES: Record<DataSource, React.FC<SeriesBodyProps>> = {
   realtime: RealtimeLineChartBody,
 };
 
-function HistoryLineChartBody({ deviceId, pointCode, label, range, limit }: SeriesBodyProps) {
+function HistoryLineChartBody({ deviceId, pointCode, label, range, limit, fromSeconds, toSeconds }: SeriesBodyProps) {
   // label 由外层保证是实体名；为空时由 LineChartView 展示占位文案
   const windowed = range === '1h' || range === '6h' || range === '24h' ? range : undefined;
-  const { series, isLoading, isError } = useHistorySeries(deviceId, pointCode, limit, windowed);
+  const { series, isLoading, isError } = useHistorySeries(deviceId, pointCode, limit, windowed, fromSeconds, toSeconds);
   if (isLoading) return <WidgetSkeleton />;
   if (isError) return <WidgetError />;
-  return <LineChartView label={label} series={series} />;
+  return (
+    <LineChartView
+      label={label}
+      series={series}
+      {...(fromSeconds != null ? { fromMs: fromSeconds * 1000 } : {})}
+      {...(toSeconds != null ? { toMs: toSeconds * 1000 } : {})}
+    />
+  );
 }
 
 function RealtimeLineChartBody({ deviceId, pointCode, label }: SeriesBodyProps) {
@@ -425,6 +450,8 @@ function LineChartBody({
   pointCode,
   pointDef,
   label,
+  fromSeconds,
+  toSeconds,
 }: {
   widget: WidgetInstance;
   deviceId: string;
@@ -432,6 +459,8 @@ function LineChartBody({
   pointDef?: PointDefinition;
   /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
+  fromSeconds?: number;
+  toSeconds?: number;
 }) {
   const Body = LINE_BODIES[widget.source];
   return (
@@ -442,6 +471,8 @@ function LineChartBody({
       range={widget.props.range ?? '24h'}
       limit={widget.props.limit ?? 200}
       unit={pointDef?.unit}
+      fromSeconds={fromSeconds}
+      toSeconds={toSeconds}
     />
   );
 }
@@ -506,8 +537,8 @@ const METRIC_BODIES: Record<DataSource, React.FC<SeriesBodyProps>> = {
   realtime: RealtimeMetricBody,
 };
 
-function HistoryMetricBody({ deviceId, pointCode, label, range, limit, unit }: SeriesBodyProps) {
-  const { series, isLoading, isError } = useHistorySeries(deviceId, pointCode, limit, range === '1h' || range === '6h' || range === '24h' ? range : undefined);
+function HistoryMetricBody({ deviceId, pointCode, label, range, limit, unit, fromSeconds, toSeconds }: SeriesBodyProps) {
+  const { series, isLoading, isError } = useHistorySeries(deviceId, pointCode, limit, range === '1h' || range === '6h' || range === '24h' ? range : undefined, fromSeconds, toSeconds);
   if (isLoading) return <WidgetSkeleton />;
   if (isError) return <WidgetError />;
   const last = series[series.length - 1]?.value;
@@ -517,11 +548,23 @@ function HistoryMetricBody({ deviceId, pointCode, label, range, limit, unit }: S
 }
 
 function RealtimeMetricBody({ deviceId, pointCode, label, unit }: SeriesBodyProps) {
-  const { point, isLoading, isError } = useRealtimePoint(deviceId, pointCode);
-  if (isLoading) return <WidgetSkeleton />;
-  if (isError) return <WidgetError />;
+  // label 由外层保证是实体名；为空时由 MetricValueView 展示占位文案
+  const { point, isLoading: rtLoading, isError: rtError } = useRealtimePoint(deviceId, pointCode);
+  // 当实时无值时，回退查历史最新一条，保证数值卡片在无 SSE 推送时也能显示
+  const { series, isLoading: histLoading, isError: histError } = useHistorySeries(
+    deviceId,
+    pointCode,
+    1,
+  );
+  if (rtLoading && histLoading) return <WidgetSkeleton />;
+  if (rtError || histError) return <WidgetError />;
+
+  const rtValue = point?.rawValue ?? point?.value;
+  const histLast = series[series.length - 1]?.value;
+  const value = rtValue ?? (histLast != null ? String(histLast) : undefined);
+
   return (
-    <MetricValueView label={label} value={point?.rawValue ?? point?.value} unit={unit} showUnit />
+    <MetricValueView label={label} value={value} unit={unit} showUnit />
   );
 }
 
@@ -531,6 +574,8 @@ function MetricBody({
   pointCode,
   pointDef,
   label,
+  fromSeconds,
+  toSeconds,
 }: {
   widget: WidgetInstance;
   deviceId: string;
@@ -538,18 +583,21 @@ function MetricBody({
   pointDef?: PointDefinition;
   /** 实体名；为空时使用占位文案，避免只看到插件名 */
   label: string;
+  fromSeconds?: number;
+  toSeconds?: number;
 }) {
-  // 读取 pointDef.unit 透传给 MetricValueView（避免在函数签名中解构未读字段导致 TS6133）
-  void pointDef;
-  const Body = METRIC_BODIES[widget.source];
+  const source = widget.source === 'history' ? 'realtime' : widget.source;
+  const Body = METRIC_BODIES[source];
   return (
     <Body
       deviceId={deviceId}
       pointCode={pointCode}
       label={label}
       range={widget.props.range ?? '24h'}
-      limit={widget.props.limit ?? 1}
+      limit={1}
       unit={pointDef?.unit}
+      fromSeconds={fromSeconds}
+      toSeconds={toSeconds}
     />
   );
 }
@@ -595,6 +643,8 @@ const WidgetCard = memo(function WidgetCard({
   onConfigure,
   onRemove,
   onMove,
+  fromSeconds,
+  toSeconds,
 }: {
   widget: WidgetInstance;
   deviceId: string;
@@ -604,6 +654,8 @@ const WidgetCard = memo(function WidgetCard({
   onConfigure?: (id: string) => void;
   onRemove?: (id: string) => void;
   onMove?: (id: string, dir: 'up' | 'down') => void;
+  fromSeconds?: number;
+  toSeconds?: number;
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-content1 shadow-sm">
@@ -639,7 +691,7 @@ const WidgetCard = memo(function WidgetCard({
       )}
       <div className="min-h-0 flex-1">
         <WidgetErrorBoundary>
-          <WidgetBody widget={widget} deviceId={deviceId} pointDef={pointDef} editable={editable} />
+          <WidgetBody widget={widget} deviceId={deviceId} pointDef={pointDef} editable={editable} fromSeconds={fromSeconds} toSeconds={toSeconds} />
         </WidgetErrorBoundary>
       </div>
     </div>
@@ -655,6 +707,8 @@ export default function PanelRenderer({
   onConfigure,
   onRemove,
   onRequestEdit,
+  fromSeconds,
+  toSeconds,
 }: PanelRendererProps) {
   const isMobile = useIsMobile();
   // 显式标注 key 类型,避免 TS 在外层 widen 成 Map<string | undefined, ...>
@@ -719,6 +773,8 @@ export default function PanelRenderer({
               onConfigure={onConfigure}
               onRemove={onRemove}
               onMove={editable ? moveWidget : undefined}
+              fromSeconds={fromSeconds}
+              toSeconds={toSeconds}
             />
           </div>
         ))}
@@ -736,6 +792,8 @@ export default function PanelRenderer({
       onConfigure={onConfigure}
       onRemove={onRemove}
       onMove={moveWidget}
+      fromSeconds={fromSeconds}
+      toSeconds={toSeconds}
     />
   );
 }
@@ -750,6 +808,8 @@ function DesktopGrid({
   onConfigure,
   onRemove,
   onMove,
+  fromSeconds,
+  toSeconds,
 }: {
   config: PanelConfig;
   deviceId: string;
@@ -759,6 +819,8 @@ function DesktopGrid({
   onConfigure?: (id: string) => void;
   onRemove?: (id: string) => void;
   onMove?: (id: string, dir: 'up' | 'down') => void;
+  fromSeconds?: number;
+  toSeconds?: number;
 }) {
   // 拖拽/缩放进行中不写回 config（避免拖动期间逐帧触发整树重渲染），停止时统一同步
   const draggingRef = useRef(false);
@@ -843,6 +905,8 @@ function DesktopGrid({
             onConfigure={onConfigure}
             onRemove={onRemove}
             onMove={editable ? onMove : undefined}
+            fromSeconds={fromSeconds}
+            toSeconds={toSeconds}
           />
         </div>
       ))}

@@ -1,16 +1,16 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { RequireAuth } from '@/components/RequireAuth';
-import AppShell from '@/components/AppShell';
-import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
-import Devices from '@/pages/Devices';
-import DeviceDetail from '@/pages/DeviceDetail';
-import DeviceCreate from '@/pages/DeviceCreate';
-import DeviceEdit from '@/pages/DeviceEdit';
-import PointAlarmEvents from '@/pages/PointAlarmEvents';
-import NotifyUsers from '@/pages/NotifyUsers';
-import AdminAccounts from '@/pages/AdminAccounts';
-import AdminTenants from '@/pages/AdminTenants';
+﻿import { Routes, Route, Navigate } from 'react-router-dom';
+import { RequireAuth } from '@/components/ui/RequireAuth';
+import AppShell from '@/components/ui/AppShell';
+import Login from '@/pages/auth/Login';
+import Dashboard from '@/pages/dashboard/Dashboard';
+import Devices from '@/pages/devices/List';
+import DeviceDetail from '@/pages/devices/Detail';
+import DeviceCreate from '@/pages/devices/Create';
+import DeviceEdit from '@/pages/devices/Edit';
+import PointAlarmEvents from '@/pages/alarms/PointEvents';
+import NotifyUsers from '@/pages/notify/Users';
+import AdminAccounts from '@/pages/admin/Accounts';
+import AdminTenants from '@/pages/admin/Tenants';
 
 export default function App() {
   return (

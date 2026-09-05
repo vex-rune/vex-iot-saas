@@ -1,25 +1,27 @@
 package com.vex.iot.domain.alarm;
 
-import com.vex.iot.common.enums.AlarmAckStatus;
-import com.vex.iot.common.enums.AlarmConditionType;
-import com.vex.iot.common.enums.AlarmLevel;
-import com.vex.iot.common.enums.EventStatus;
-import com.vex.iot.common.exception.BusinessExceptions.NotFoundException;
+import com.vex.iot.domain.alarm.enums.AlarmAckStatus;
+import com.vex.iot.domain.alarm.enums.EventStatus;
+import com.vex.iot.common.exception.NotFoundException;
 import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.common.util.UserContext;
-import com.vex.iot.domain.alarm.event.AlarmMessageFormatter;
 import com.vex.iot.domain.alarm.event.AlarmTriggeredEvent;
 import com.vex.iot.domain.alarm.exception.AlarmRuleNotFoundException;
 import com.vex.iot.domain.alarm.model.AlarmLogEntity;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
 import com.vex.iot.domain.alarm.repository.AlarmLogRepository;
 import com.vex.iot.domain.alarm.repository.AlarmRuleRepository;
-import com.vex.iot.domain.data.model.DataEntity;
+import com.vex.iot.domain.alarm.suppress.AlarmSuppressResult;
+import com.vex.iot.domain.alarm.suppress.AlarmSuppressStrategy;
+import com.vex.iot.domain.alarm.suppress.AlarmSuppressStrategyFactory;
+import com.vex.iot.domain.alarm.suppress.AlarmSuppressType;
+import com.vex.iot.domain.device.model.DataEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 预警服务。
@@ -44,10 +47,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AlarmService {
 
-    private static final int SUPPRESS_WINDOW_MINUTES = 5;
     private final AlarmLogRepository eventRepo;
     private final AlarmRuleRepository ruleRepo;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final AlarmSuppressStrategyFactory suppressStrategyFactory;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -110,8 +113,8 @@ public class AlarmService {
     /**
      * 根据点位定义ID查询启用的预警规则（点位级）。
      */
-    public List<AlarmRuleEntity> listEnabledRulesByPoint(String pointDefinitionId) {
-        return ruleRepo.findByPointDefinitionIdAndEnabledTrue(pointDefinitionId);
+    public List<AlarmRuleEntity> listEnabledRulesByPoint(String deviceId, @Size(max = 64) String pointCode) {
+        return ruleRepo.findByDeviceIdAndPointCodeAndEnabledTrue(deviceId, pointCode);
     }
 
     /**
@@ -142,55 +145,34 @@ public class AlarmService {
         return eventRepo.save(e);
     }
 
-    public void publishAlarm(AlarmRuleEntity rule, String rawValue, DataEntity data) {
-        // 报警重复抑制
-        if (isAlarmSuppressed(rule, data.getTimestamp())) {
-            return;
-        }
-
+    public void publishAlarm(AlarmRuleEntity rule, DataEntity data) {
         if (!rule.getEnabled()) {
             return;
         }
 
-        // 创建报警记录
-        AlarmLogEntity event = AlarmLogEntity.builder()
-                .id(IdGenerator.snowId())
-                .source(AlarmRuleEntity.AlarmRuleSource.DEVICE)
-                .deviceId(rule.getDeviceId())
-                .pointCode(rule.getPointCode())
-                .pointCode(rule.getPointDefinitionId())
-                .ruleId(rule.getId())
-                .level(rule.getLevel() == null ? AlarmLevel.WARNING : rule.getLevel())
-                .message(buildAlarmMessage(rule, rawValue))
-                .triggerValue(rawValue)
-                .acknowledged(AlarmAckStatus.UNACK)
-                .triggeredAt(data.getTimestamp())
-                .build();
+        // 根据规则配置获取抑制策略
+        AlarmSuppressType suppressType = rule.getSuppressType() != null
+                ? rule.getSuppressType() : AlarmSuppressType.COOLDOWN_AGGREGATE;
+        AlarmSuppressStrategy strategy = suppressStrategyFactory.getStrategy(suppressType);
 
-        // 插入数据
-        eventRepo.save(event);
+        // 执行策略
+        AlarmSuppressResult result = strategy.handle(rule, data);
 
-        // 生成message;
-
-        // 发送事件
-        applicationEventPublisher.publishEvent(
-                new AlarmTriggeredEvent(
-                        rule,
-                        data,
-                        AlarmMessageFormatter.format(rule, data)
-                )
-        );
-    }
-
-    private boolean isAlarmSuppressed(AlarmRuleEntity rule, Instant timestamp) {
-        Instant since = timestamp.minusSeconds(SUPPRESS_WINDOW_MINUTES * 60L);
-        long recentCount = eventRepo.countByRuleIdAndAcknowledgedAndTriggeredAtAfter(
-                rule.getId(), AlarmAckStatus.UNACK, since);
-        if (recentCount > 0) {
-            log.debug("规则[{}]在{}分钟内已有未确认告警，抑制重复报警", rule.getId(), SUPPRESS_WINDOW_MINUTES);
-            return true;
+        if (result.suppressed()) {
+            // 完全抑制，不做任何操作
+            return;
         }
-        return false;
+
+        if (!result.shouldNotify()) {
+            // 聚合模式：已递增次数，不发通知
+            return;
+        }
+
+        AlarmLogEntity logEntity = result.event();
+
+        // 发布事件
+        applicationEventPublisher.publishEvent(new AlarmTriggeredEvent(rule, data, logEntity));
+
     }
 
     public void recoverAlarm(AlarmRuleEntity rule) {
@@ -202,43 +184,6 @@ public class AlarmService {
                 AlarmAckStatus.ACK,
                 Instant.now()
         );
-    }
-
-
-    /**
-     * 构建报警消息。
-     */
-    private String buildAlarmMessage(AlarmRuleEntity rule, String rawValue) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("点位[").append(rule.getPointCode()).append("]");
-        sb.append("当前值[").append(rawValue).append("]");
-        sb.append("触发条件[").append(formatCondition(rule)).append("]");
-        return sb.toString();
-    }
-
-
-    /**
-     * 格式化条件描述。
-     */
-    private String formatCondition(AlarmRuleEntity rule) {
-        return switch (rule.getConditionType()) {
-            case GT -> AlarmConditionType.GT.getDisplayName() + rule.getThreshold();
-            case GE -> AlarmConditionType.GE.getDisplayName() + rule.getThreshold();
-            case LT -> AlarmConditionType.LT.getDisplayName() + rule.getThreshold();
-            case LE -> AlarmConditionType.LE.getDisplayName() + rule.getThreshold();
-            case EQ -> AlarmConditionType.EQ.getDisplayName() + rule.getThreshold();
-            case NE -> AlarmConditionType.NE.getDisplayName() + rule.getThreshold();
-            case BETWEEN -> rule.getThreshold() + " ~ " + rule.getThresholdHigh();
-            default -> "未知";
-        };
-    }
-
-    public BigDecimal convertToNumeric(String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return null;
-        }
-        String trimStr = rawValue.trim();
-        return new BigDecimal(trimStr);
     }
 
 
@@ -267,8 +212,21 @@ public class AlarmService {
             case LE -> value.compareTo(thresholdValue) <= 0;
             case EQ -> value.compareTo(thresholdValue) == 0;
             case NE -> value.compareTo(thresholdValue) != 0;
-            case BETWEEN ->
-                    value.compareTo(thresholdValue) >= 0 && value.compareTo(BigDecimal.valueOf(Double.parseDouble(rule.getThresholdHigh()))) <= 0;
+            case BETWEEN -> {
+                if (rule.getThresholdHigh() == null || !NumberUtils.isCreatable(rule.getThresholdHigh())) {
+                    yield false;
+                }
+                BigDecimal highValue = BigDecimal.valueOf(Double.parseDouble(rule.getThresholdHigh()));
+                yield value.compareTo(thresholdValue) >= 0 && value.compareTo(highValue) <= 0;
+            }
         };
+    }
+
+    public Optional<AlarmLogEntity> findActiveUnackById(String id) {
+        return eventRepo.findFirstByRuleIdAndEventStatusAndAcknowledgedOrderByTriggeredAtDesc(id, EventStatus.ACTIVE, AlarmAckStatus.UNACK);
+    }
+
+    public void saveLog(AlarmLogEntity alarm) {
+        eventRepo.save(alarm);
     }
 }

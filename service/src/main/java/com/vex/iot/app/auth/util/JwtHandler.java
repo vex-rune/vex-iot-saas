@@ -4,6 +4,7 @@ import com.vex.iot.app.auth.config.SecurityProperties;
 import com.vex.iot.app.auth.exception.TokenExpiredException;
 import com.vex.iot.app.auth.exception.TokenInvalidException;
 import com.vex.iot.app.auth.model.LoginUser;
+import com.vex.iot.common.config.IEnum;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -160,9 +162,20 @@ public class JwtHandler {
     }
 
     /**
-     * Token 类型
+     * 获取 Token 过期时间
+     *
+     * @param token JWT token
+     * @return 过期时间 Instant
+     * @throws com.vex.iot.app.auth.exception.TokenInvalidException token 无效时抛出
      */
-    public enum TokenType {
+    public Instant getTokenExpiration(String token) {
+        Claims claims = Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload();
+        Date expiration = claims.getExpiration();
+        return expiration.toInstant();
+    }
+
+    public enum TokenType implements IEnum {
         /**
          * 业务令牌
          */
@@ -170,14 +183,19 @@ public class JwtHandler {
         /**
          * 刷新令牌
          */
-        REFRESH
+        REFRESH;
+
+        @Override
+        public String displayName() {
+            return name();
+        }
     }
 
     /**
      * Token 有效期配置（秒）
      */
     @Getter
-    public enum TokenExpire {
+    public enum TokenExpire implements IEnum {
         /**
          * 业务令牌有效期：24小时
          */
@@ -193,5 +211,9 @@ public class JwtHandler {
             this.seconds = seconds;
         }
 
+        @Override
+        public String displayName() {
+            return name();
+        }
     }
 }

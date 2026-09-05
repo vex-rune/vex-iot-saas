@@ -1,9 +1,11 @@
 package com.vex.iot.domain.alarm.model;
 
-import com.vex.iot.common.enums.AlarmConditionType;
-import com.vex.iot.common.enums.AlarmLevel;
+import com.vex.iot.common.config.IEnum;
+import com.vex.iot.domain.alarm.enums.AlarmConditionType;
+import com.vex.iot.domain.alarm.enums.AlarmLevel;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
+import com.vex.iot.domain.alarm.suppress.AlarmSuppressType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -31,9 +33,14 @@ public class AlarmRuleEntity extends TenantBaseEntity {
     @SnowflakeId
     private String id;
 
+    /// 条件名称（用户可自定义）
+    @Size(max = 64)
+    @Column(length = 64)
+    private String ruleName;
+
     /// 规则来源：DEVICE-设备级 / POINT-点位级
     @Enumerated(EnumType.STRING)
-    @Column(name = "rule_source")
+    @Column(length = 16)
     private AlarmRuleSource source;
 
     /// 设备ID（设备级规则使用）
@@ -46,25 +53,16 @@ public class AlarmRuleEntity extends TenantBaseEntity {
     @Column(length = 64)
     private String pointCode;
 
-    /// 点位定义ID（点位级规则使用）
-    @Size(max = 64)
-    @Column(name = "point_definition_id", length = 64)
-    private String pointDefinitionId;
-
     /// 规则类型：THRESHOLD-阈值 / STATE-状态
     @Enumerated(EnumType.STRING)
-    @Column(name = "rule_type")
+    @Column(length = 16)
     private AlarmRuleType ruleType;
 
     /// 条件类型（阈值规则使用）：GT / GTE / LT / LTE / EQ / NE / BETWEEN
     @Enumerated(EnumType.STRING)
-    @Column(name = "condition_type")
+    @Column(length = 16)
     private AlarmConditionType conditionType;
 
-    /// 条件名称（用户可自定义）
-    @Size(max = 64)
-    @Column(length = 64)
-    private String conditionName;
 
     /// 阈值（单阈值时使用）
     private String threshold;
@@ -74,6 +72,7 @@ public class AlarmRuleEntity extends TenantBaseEntity {
 
     /// 预警级别：INFO / WARN / ERROR
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private AlarmLevel level;
 
     /// 预警提示文案
@@ -95,15 +94,33 @@ public class AlarmRuleEntity extends TenantBaseEntity {
     /// 通知用户ID列表
     private List<String> notifyUserIds;
 
+    /// 告警抑制策略类型（null 时默认 COOLDOWN_AGGREGATE）
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private AlarmSuppressType suppressType;
+
     /// 规则来源枚举
-    public enum AlarmRuleSource {
+    public enum AlarmRuleSource implements IEnum {
         DEVICE,  // 设备级
         POINT    // 点位级
+        ;
+
+        @Override
+        public String displayName() {
+            return name();
+        }
     }
 
     /// 规则类型枚举
-    public enum AlarmRuleType {
+    public enum AlarmRuleType implements IEnum {
         THRESHOLD,  // 阈值
         STATE       // 状态
+        ;
+
+        
+        @Override
+        public String displayName() {
+            return name();
+        }
     }
 }

@@ -1,7 +1,7 @@
 package com.vex.iot.api.sse;
 
 import com.vex.iot.common.util.IdGenerator;
-import com.vex.iot.domain.event.IEvent;
+import com.vex.iot.common.event.IEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;

@@ -1,6 +1,6 @@
 package com.vex.iot.api.sse;
 
-import com.vex.iot.common.exception.BusinessExceptions.BadRequestException;
+import com.vex.iot.common.exception.BadRequestException;
 import com.vex.iot.common.util.UserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

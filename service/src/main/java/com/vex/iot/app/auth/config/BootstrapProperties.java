@@ -5,6 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * bootstrap 一次性初始化配置:从 application.yml 中读取 token。
  */
-@ConfigurationProperties(prefix = "bootstrap")
+@ConfigurationProperties(prefix = "vex.bootstrap")
 public record BootstrapProperties(String token, String defaultTenantId) {
 }

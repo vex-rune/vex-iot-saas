@@ -1,9 +1,10 @@
 package com.vex.iot.domain.alarm.event;
 
 import com.vex.iot.common.util.IdGenerator;
+import com.vex.iot.domain.alarm.model.AlarmLogEntity;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
-import com.vex.iot.domain.data.model.DataEntity;
-import com.vex.iot.domain.event.IEvent;
+import com.vex.iot.domain.device.model.DataEntity;
+import com.vex.iot.common.event.IEvent;
 import lombok.Data;
 
 import java.time.Instant;
@@ -21,7 +22,7 @@ public final class AlarmTriggeredEvent implements IEvent<AlarmTriggeredEvent.Ala
     public AlarmTriggeredEvent(
             AlarmRuleEntity rule,
             DataEntity data,
-            String message
+            AlarmLogEntity message
     ) {
         this.metadata = new IEvent.Metadata(
                 IdGenerator.snowId(),
@@ -39,7 +40,7 @@ public final class AlarmTriggeredEvent implements IEvent<AlarmTriggeredEvent.Ala
     public record AlarmMessage(
             AlarmRuleEntity rule,
             DataEntity data,
-            String message
+            AlarmLogEntity log
     ) {
     }
 }

@@ -1,15 +1,12 @@
 package com.vex.iot.domain.device.model;
 
-import com.vex.iot.common.enums.AccessType;
-import com.vex.iot.common.enums.DataType;
+import com.vex.iot.domain.device.enums.AccessType;
+import com.vex.iot.domain.device.enums.DataType;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /// 点位定义
@@ -60,10 +57,12 @@ public class PointEntity extends TenantBaseEntity {
 
     /// 数据类型
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private DataType dataType;
 
     /// 访问类型（只读/读写）
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private AccessType access;
 
     /// 点位排序
@@ -89,6 +88,7 @@ public class PointEntity extends TenantBaseEntity {
     /// 例如 2 表示保留两位小数（3.14），3 表示保留三位（3.142）。
     /// null 或 0 表示不截断（保留原始精度）。
     @Column(name = "precision")
+    @Builder.Default
     private Integer precision = 0;
 
 

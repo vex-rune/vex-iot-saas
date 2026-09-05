@@ -1,6 +1,6 @@
 package com.vex.iot.domain.notify;
 
-import com.vex.iot.common.enums.NotifyChannelType;
+import com.vex.iot.domain.notify.enums.NotifyChannelType;
 
 import java.time.Instant;
 import java.util.List;

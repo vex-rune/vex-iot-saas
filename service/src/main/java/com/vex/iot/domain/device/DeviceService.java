@@ -1,9 +1,9 @@
 package com.vex.iot.domain.device;
 
 import com.vex.iot.common.config.DeviceCacheConfig;
-import com.vex.iot.common.enums.DeviceOnline;
-import com.vex.iot.common.exception.BusinessExceptions.ConflictException;
-import com.vex.iot.common.exception.BusinessExceptions.NotFoundException;
+import com.vex.iot.domain.device.enums.DeviceOnline;
+import com.vex.iot.common.exception.ConflictException;
+import com.vex.iot.common.exception.NotFoundException;
 import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;

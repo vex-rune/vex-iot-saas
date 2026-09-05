@@ -1,17 +1,16 @@
 package com.vex.iot.app;
 
-import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.domain.alarm.AlarmService;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
-import com.vex.iot.domain.data.event.DataUpdateEvent;
-import com.vex.iot.domain.data.model.DataEntity;
+import com.vex.iot.domain.device.event.DataUpdateEvent;
+import com.vex.iot.domain.device.model.DataEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,22 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AlarmApp {
 
-    private static final String SYSTEM_OPERATOR = "SYSTEM";
-    private static final String JS_ENGINE_NAME = "javascript";
-
     private final AlarmService alarmService;
-    private final ApplicationEventPublisher eventPublisher;
-
-    /**
-     * 获取触发者用户名。
-     * 如果触发用户为空，返回系统用户名。
-     */
-    private String getOperator(CurrentUser triggerUser) {
-        if (triggerUser != null) {
-            return triggerUser.username();
-        }
-        return SYSTEM_OPERATOR;
-    }
 
     /**
      * 异步订阅采集器发布的实时数据事件。
@@ -58,7 +42,7 @@ public class AlarmApp {
         DataEntity data = snap.data();
 
         // 获得规则
-        List<AlarmRuleEntity> rules = alarmService.listEnabledRulesByPoint(data.getPointId());
+        List<AlarmRuleEntity> rules = alarmService.listEnabledRulesByPoint(data.getDeviceId(), data.getPointCode());
         if (rules.isEmpty()) {
             return;
         }
@@ -69,8 +53,6 @@ public class AlarmApp {
             evaluateSingleRule(data, rule);
         }
 
-        // 是命中
-        // eventPublisher.publishEvent(AlarmTriggeredEvent.
     }
 
 
@@ -86,7 +68,7 @@ public class AlarmApp {
 
         List<String> notifyUserIds = rule.getNotifyUserIds();
 
-        if (notifyUserIds != null && !notifyUserIds.isEmpty()) {
+        if (CollectionUtils.isEmpty(notifyUserIds)) {
             return;
         }
 
@@ -95,18 +77,30 @@ public class AlarmApp {
         boolean isAbnormal = false;
         if (NumberUtils.isCreatable(rawValue)) {
             // 转换为数值
-            BigDecimal numericValue = alarmService.convertToNumeric(rawValue);
-            // 判断是否异常
-            isAbnormal = alarmService.checkAbnormal(rule, numericValue);
+            BigDecimal numericValue = convertToNumeric(rawValue);
+            if (numericValue != null) {
+                // 判断是否异常
+                isAbnormal = alarmService.checkAbnormal(rule, numericValue);
+            }
         }
 
 
-        if (!isAbnormal) {
-            alarmService.publishAlarm(rule, rawValue, data);
+        if (isAbnormal) {
+            alarmService.publishAlarm(rule, data);
         } else {
             alarmService.recoverAlarm(rule);
         }
 
+
+    }
+
+
+    public BigDecimal convertToNumeric(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return null;
+        }
+        String trimStr = rawValue.trim();
+        return new BigDecimal(trimStr);
     }
 
 }

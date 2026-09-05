@@ -5,7 +5,6 @@ import com.vex.iot.common.response.Response;
 import com.vex.iot.domain.alarm.AlarmService;
 import com.vex.iot.domain.alarm.model.AlarmLogEntity;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +28,7 @@ public class AlarmApi {
      */
     @PostMapping("/api/alarm/rules/query")
     public Response<List<AlarmRuleEntity>> queryRules(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(alarmService.queryRules(req));
     }
 
@@ -40,6 +40,7 @@ public class AlarmApi {
      */
     @PostMapping("/api/alarm/rules/count")
     public Response<Long> countRules(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(alarmService.countRules(req));
     }
 
@@ -49,7 +50,6 @@ public class AlarmApi {
      * @param rule 告警规则
      * @return 保存后的告警规则
      */
-    @AuditLog(action = "ALARM_RULE_SAVE", resourceType = "alarm_rule")
     @PostMapping("/api/alarm/rules")
     public Response<AlarmRuleEntity> saveRule(@Valid @RequestBody AlarmRuleEntity rule) {
         return Response.ok(alarmService.saveRule(rule));
@@ -61,7 +61,6 @@ public class AlarmApi {
      * @param id 告警规则ID
      * @return 操作结果
      */
-    @AuditLog(action = "ALARM_RULE_DELETE", resourceType = "alarm_rule")
     @DeleteMapping("/api/alarm/rules/{id}")
     public Response<Void> deleteRule(@PathVariable String id) {
         alarmService.deleteRule(id);
@@ -87,6 +86,7 @@ public class AlarmApi {
      */
     @PostMapping("/api/alarm/events/query")
     public Response<List<AlarmLogEntity>> queryEvents(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(alarmService.queryEvents(req));
     }
 
@@ -98,6 +98,7 @@ public class AlarmApi {
      */
     @PostMapping("/api/alarm/events/count")
     public Response<Long> countEvents(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(alarmService.countEvents(req));
     }
 

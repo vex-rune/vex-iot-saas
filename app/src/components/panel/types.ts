@@ -52,7 +52,7 @@ const PLUGIN_SOURCE_COMPAT: Record<PluginKind, DataSource[]> = {
   'switch-light': ['realtime'],
   'control-switch': ['realtime'],
   'status-badge': ['realtime'],
-  'metric-value': ['history', 'realtime'],
+  'metric-value': ['realtime', 'history'],
   'line-chart': ['history', 'realtime'],
   gauge: ['realtime', 'history'],
 };
@@ -191,7 +191,7 @@ export function createWidgetInstance(plugin: PluginKind, existingCount: number):
   const { w, h } = defaultSize[plugin];
   return {
     id: genWidgetId(),
-    title: '',
+    title: PLUGIN_META[plugin].label,
     layout: { x: (existingCount * 3) % 12, y: 999, w, h },
     binding: { kind: 'point', pointCode: '' },
     plugin,

@@ -13,6 +13,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -24,16 +25,11 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtHandler jwtHandler;
     private final SecurityProperties props;
     private final ObjectMapper objectMapper;
-
-    public JwtAuthenticationFilter(JwtHandler jwtHandler, SecurityProperties props, ObjectMapper objectMapper) {
-        this.jwtHandler = jwtHandler;
-        this.props = props;
-        this.objectMapper = objectMapper;
-    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest req) {
@@ -59,6 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String auth = req.getHeader(props.header());
             String token = jwtHandler.resolveToken(auth);
             if (token != null && !token.isBlank()) {
+
                 LoginUser lu = jwtHandler.parse(token);
                 CurrentUser cu = new CurrentUser(lu.userId(), lu.username(), null,
                         lu.tenantId(), lu.roles());

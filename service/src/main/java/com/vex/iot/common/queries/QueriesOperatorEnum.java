@@ -5,7 +5,7 @@ package com.vex.iot.common.queries;
  *
  * <p>比较操作符。
  */
-public enum QueriesOperatorEnum {
+public enum QueriesOperatorEnum{
     /**
      * 等于
      */

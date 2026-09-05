@@ -1,8 +1,8 @@
 package com.vex.iot.domain.alarm.event;
 
-import com.vex.iot.common.enums.AlarmConditionType;
+import com.vex.iot.domain.alarm.enums.AlarmConditionType;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
-import com.vex.iot.domain.data.model.DataEntity;
+import com.vex.iot.domain.device.model.DataEntity;
 
 import java.math.BigDecimal;
 
@@ -29,59 +29,32 @@ public final class AlarmMessageFormatter {
     private AlarmMessageFormatter() {
     }
 
-    public static String format(AlarmTriggeredEvent.AlarmMessage message) {
-        if (message == null) {
-            return "";
-        }
-        return format(message.rule(), message.data());
-    }
 
-    /// 同上，输入分开展开
+    /**
+     * 构建报警消息。
+     */
     public static String format(AlarmRuleEntity rule, DataEntity data) {
-        if (rule == null) {
-            return data == null ? "" : data.getDeviceName();
-        }
-        StringBuilder sb = new StringBuilder(128);
-
-        sb.append('[').append(orDash(rule.getConditionName())).append("] : ");
-        sb.append(orDash(data == null ? null : data.getDeviceName()))
-                .append(" - ")
-                .append(orDash(data == null ? null : data.getPointId()))
-                .append(" 当前: [")
-                .append(orDash(data == null ? null : data.getStringValue()))
-                .append(']');
-
-        String unit = data == null ? null : data.getUnit();
-        if (unit != null && !unit.isBlank()) {
-            sb.append(unit);
-        }
-
-        sb.append(' ').append(formatCondition(rule));
-
+        StringBuilder sb = new StringBuilder();
+        sb.append("点位[").append(data.getPointName()).append("]");
+        sb.append("当前值[").append(data.getStringValue()).append("]");
+        sb.append("触发条件[").append(formatCondition(rule)).append("]");
         return sb.toString();
     }
 
-    /// 仅条件片段：{@code displayName + threshold + (BETWEEN → high)}。
-    public static String formatCondition(AlarmRuleEntity rule) {
-        AlarmConditionType type = rule.getConditionType();
-        String displayName = (type == null ? null : type.getDisplayName());
-        String threshold = stringify(rule.getThreshold());
 
-        if (type == AlarmConditionType.BETWEEN) {
-            return threshold + " ~ " + stringify(rule.getThresholdHigh());
-        }
-        return (displayName == null ? "" : displayName) + threshold;
-    }
-
-    /// null-safe 字符串化
-    private static String orDash(Object o) {
-        return o == null ? "-" : o.toString();
-    }
-
-    /// 数字 / BigDecimal / 字符串 统一处理
-    private static String stringify(Object value) {
-        if (value == null) return "";
-        if (value instanceof BigDecimal bd) return bd.toPlainString();
-        return value.toString();
+    /**
+     * 格式化条件描述。
+     */
+    private static String formatCondition(AlarmRuleEntity rule) {
+        return switch (rule.getConditionType()) {
+            case GT -> AlarmConditionType.GT.displayName() + rule.getThreshold();
+            case GE -> AlarmConditionType.GE.displayName() + rule.getThreshold();
+            case LT -> AlarmConditionType.LT.displayName() + rule.getThreshold();
+            case LE -> AlarmConditionType.LE.displayName() + rule.getThreshold();
+            case EQ -> AlarmConditionType.EQ.displayName() + rule.getThreshold();
+            case NE -> AlarmConditionType.NE.displayName() + rule.getThreshold();
+            case BETWEEN -> rule.getThreshold() + " ~ " + rule.getThresholdHigh();
+            default -> "未知";
+        };
     }
 }

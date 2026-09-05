@@ -1,9 +1,9 @@
 package com.vex.iot.domain.notify.model;
 
-import com.vex.iot.common.enums.NotifyTemplatePlatform;
-import com.vex.iot.common.enums.NotifyTemplateType;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
+import com.vex.iot.domain.notify.enums.NotifyTemplatePlatform;
+import com.vex.iot.domain.notify.enums.NotifyTemplateType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -39,6 +39,7 @@ public class NotifyTemplateEntity extends TenantBaseEntity {
     private NotifyTemplateType type;
 
     /// 对接平台
+
     @Enumerated(EnumType.STRING)
     @Column(length = 16)
     private NotifyTemplatePlatform platform;

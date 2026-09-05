@@ -62,4 +62,16 @@ public class QueriesCriteria implements Serializable {
     public void setPredicate(QueriesPredicate predicate) {
         this.predicate = predicate;
     }
+
+    /**
+     * 用叶子条件快速构建 Criteria。
+     *
+     * @param condition 叶子条件
+     * @return Criteria
+     */
+    public static QueriesCriteria of(QueriesCondition condition) {
+        QueriesCriteria c = new QueriesCriteria();
+        c.setCondition(condition);
+        return c;
+    }
 }

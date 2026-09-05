@@ -3,6 +3,8 @@ package com.vex.iot.domain.schedule;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +22,7 @@ public final class CronExpressionHelper {
     }
 
     /**
-     * 计算 Cron 表达式在指定时间段内的所有执行时间点
+     * 计算 Cron 表达式在指定时间段内的所有执行时间点。
      *
      * @param cron  Cron 表达式
      * @param start 起始时间（包含）
@@ -31,10 +33,11 @@ public final class CronExpressionHelper {
         List<Instant> fireTimes = new ArrayList<>();
         CronExpression expression = CronExpression.parse(cron);
 
-        Instant next = expression.next(start);
-        while (next != null && next.isBefore(end)) {
-            fireTimes.add(next);
-            next = expression.next(next);
+        // CronExpression.next() 需要 ZonedDateTime（Instant 不支持 DayOfWeek 等字段）
+        ZonedDateTime zdt = expression.next(start.atZone(ZoneOffset.UTC));
+        while (zdt != null && zdt.toInstant().isBefore(end)) {
+            fireTimes.add(zdt.toInstant());
+            zdt = expression.next(zdt);
         }
 
         return fireTimes;

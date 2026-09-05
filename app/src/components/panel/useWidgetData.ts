@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { addToast } from '@heroui/react';
-import { controlPoint } from '@/api/devices';
-import { chainToPromise } from '@/hooks/useQueryList';
+import { controlData } from '@/services/controlData';
+import { chainToPromise } from '@/hooks/common/useQueryList';
 import {
   useRealtimePoint as useRealtimePointFromService,
   useDeviceStatus,
@@ -56,7 +56,7 @@ export function useRealtimeSeries(deviceId: string, pointCode: string, maxPoints
 export function useControlPoint(deviceId: string) {
   return useMutation({
     mutationFn: ({ pointCode, next }: { pointCode: string; next: boolean }) =>
-      chainToPromise(controlPoint(deviceId, pointCode, String(next))),
+      chainToPromise(controlData({ deviceId, pointCode, value: String(next) })),
     onSuccess: () => {
       addToast({ title: '控制指令已下发', color: 'success' });
     },

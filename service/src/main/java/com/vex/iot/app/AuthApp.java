@@ -6,7 +6,7 @@ import com.vex.iot.app.auth.model.*;
 import com.vex.iot.app.auth.util.DynamicKeyVerifier;
 import com.vex.iot.app.auth.util.JwtHandler;
 import com.vex.iot.common.constants.RoleConstants;
-import com.vex.iot.common.exception.BusinessExceptions.UnauthorizedException;
+import com.vex.iot.common.exception.UnauthorizedException;
 import com.vex.iot.common.model.CurrentUser;
 import com.vex.iot.common.util.UserContext;
 import com.vex.iot.domain.identity.AccountService;

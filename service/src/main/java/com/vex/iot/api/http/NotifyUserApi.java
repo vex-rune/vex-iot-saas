@@ -2,7 +2,6 @@ package com.vex.iot.api.http;
 
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.response.Response;
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.domain.notify.NotifyService;
 import com.vex.iot.domain.notify.model.NotifyUserEntity;
 import jakarta.validation.Valid;
@@ -31,6 +30,7 @@ public class NotifyUserApi {
      */
     @PostMapping("/api/notify-users/query")
     public Response<List<NotifyUserEntity>> query(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(notifyService.userQuery(req));
     }
 
@@ -42,6 +42,7 @@ public class NotifyUserApi {
      */
     @PostMapping("/api/notify-users/count")
     public Response<Long> count(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(notifyService.userCount(req));
     }
 
@@ -51,7 +52,6 @@ public class NotifyUserApi {
      * @param user 通知用户
      * @return 保存后的通知用户
      */
-    @AuditLog(action = "NOTIFY_USER_SAVE", resourceType = "notify_user")
     @PostMapping("/api/notify-users")
     public Response<NotifyUserEntity> save(@Valid @RequestBody NotifyUserEntity user) {
         return Response.ok(notifyService.saveUser(user));
@@ -63,7 +63,6 @@ public class NotifyUserApi {
      * @param id 通知用户ID
      * @return 操作结果
      */
-    @AuditLog(action = "NOTIFY_USER_DELETE", resourceType = "notify_user")
     @DeleteMapping("/api/notify-users/{id}")
     public Response<Void> delete(@PathVariable String id) {
         notifyService.deleteUser(id);

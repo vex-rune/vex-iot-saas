@@ -1,15 +1,8 @@
 /**
  * 设备点位历史快照 (openapi v2 /api/data/...)
  *
- * - 取代老 devices.getDeviceHistory (历史数据)
- * - 取代老 devices.controlPoint 控制写入(改用 POST /api/data)
- * - 取代老 devices.getDeviceRealtime 实时点(改用 SSE point.realtime)
- *
- * 设计:
- *   - 入参/出参 全部按 openapi.json §"七、data 模块" 字段对齐
- *   - DataRecord 字段(id/deviceId/pointId/dataType/intValue/doubleValue/stringValue/timestamp/value)
- *     完全对齐 DataEntity;dataType 5 值(BOOL/INT/FLOAT/DOUBLE/STRING)
- *   - PointHistory 是 DataRecord 的 alias,旧的 getDeviceHistory 返回类型可平滑对接
+ * 纯 HTTP 声明:每个函数 return get/post(...) 一个 RequestChain。
+ * 控制点下发的值路由业务(value → intValue/doubleValue/stringValue)放 @/services/controlData。
  */
 import { get, post, type RequestChain } from '@/lib/api-client';
 import type { DataRecord, DataType, QueryBody } from '@/types/api';
@@ -51,49 +44,20 @@ export function getDataRecord(id: string): RequestChain<DataRecord> {
 }
 
 /**
- * 控制点下发 (替代旧的 controlPoint '/devices/{id}/points/{code}/control').
+ * POST /api/data — 控制点下发(纯 HTTP 透传)
  *
- * 新契约:
- *   POST /api/data
- *   body: {
- *     deviceId, pointId (即 pointCode),
- *     dataType,
- *     intValue | doubleValue | stringValue    (按点位 dataType 二选一)
- *   }
+ * 注意:调用方必须已经把 value 投到正确字段(intValue/doubleValue/stringValue)。
+ * 值路由业务在 @/services/controlData 里。
  */
-export interface ControlDataReq {
+export interface PostControlDataReq {
   deviceId: string;
   pointCode: string;
-  value: string | number | boolean;
-  /** 可选,服务端按此分类;若不传服务端会自动按点位 dataType 路由 */
-  dataType?: DataType;
+  intValue?: number | null;
+  doubleValue?: number | null;
+  stringValue?: string | null;
+  dataType: DataType;
 }
 
-export function controlData(req: ControlDataReq): RequestChain<DataRecord> {
-  const { value, dataType } = req;
-  // 按点位 dataType 把 value 投到正确的字段上,服务端只读对应字段
-  // openapi v2 DataEntity.dataType = BOOL / INT / FLOAT / DOUBLE / STRING
-  let intValue: number | null = null;
-  let doubleValue: number | null = null;
-  let stringValue: string | null = null;
-  if (typeof value === 'boolean') {
-    intValue = value ? 1 : 0;
-  } else if (typeof value === 'number') {
-    if (dataType === 'BOOL' || dataType === 'INT') {
-      intValue = value;
-    } else {
-      // FLOAT / DOUBLE / STRING(数值情况)
-      doubleValue = value;
-    }
-  } else {
-    stringValue = String(value);
-  }
-  return post<DataRecord>('/data', {
-    deviceId: req.deviceId,
-    pointCode: req.pointCode,
-    intValue,
-    doubleValue,
-    stringValue,
-    dataType: dataType ?? 'BOOL',
-  });
+export function postControlData(req: PostControlDataReq): RequestChain<DataRecord> {
+  return post<DataRecord>('/data', req);
 }

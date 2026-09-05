@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "aliyun.sms", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "vex.aliyun.sms", name = "enabled", havingValue = "true")
 public class SmsChannel implements NotifyChannel {
 
     private final AliyunSmsProperties props;

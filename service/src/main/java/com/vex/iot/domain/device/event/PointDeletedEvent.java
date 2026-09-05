@@ -2,7 +2,7 @@ package com.vex.iot.domain.device.event;
 
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.domain.device.model.PointEntity;
-import com.vex.iot.domain.event.IEvent;
+import com.vex.iot.common.event.IEvent;
 import lombok.Data;
 
 import java.time.Instant;

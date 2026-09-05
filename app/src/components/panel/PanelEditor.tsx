@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import {
   Button,
@@ -24,7 +24,7 @@ import {
   useDisclosure,
 } from '@heroui/react';
 import { MagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { useIsMobile } from '@/hooks/useMediaQuery';
+import { useIsMobile } from '@/hooks/common/useMediaQuery';
 import type { PointDefinition } from '@/types/api';
 import {
   PLUGIN_KINDS,

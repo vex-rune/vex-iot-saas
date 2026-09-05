@@ -1,7 +1,7 @@
 package com.vex.iot.domain.notify.model;
 
-import com.vex.iot.common.enums.NotifyChannelType;
-import com.vex.iot.common.enums.NotifyRecordStatus;
+import com.vex.iot.domain.notify.enums.NotifyChannelType;
+import com.vex.iot.domain.notify.enums.NotifyRecordStatus;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.*;
@@ -11,6 +11,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,17 +42,19 @@ public class NotifyRecordEntity extends TenantBaseEntity {
     private String event;
 
     /// 通知人 ID 列表
-    @Column(name = "user_ids", length = 64, columnDefinition = "TEXT")
+    ///
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private List<String> notifyUserIds;
 
     /// 通知渠道
-    @Enumerated(EnumType.STRING)
+
     @Column(length = 16)
     private NotifyChannelType channel;
 
     /// 发送状态
-    @Enumerated(EnumType.STRING)
-    @Column(length = 16)
+
+    @Column(length = 64)
     private NotifyRecordStatus status;
 
     /// 实际发送内容(脱敏/截断后)

@@ -2,8 +2,8 @@ package com.vex.iot.api.http;
 
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.response.Response;
-import com.vex.iot.domain.data.DataService;
-import com.vex.iot.domain.data.model.DataEntity;
+import com.vex.iot.domain.device.DataService;
+import com.vex.iot.domain.device.model.DataEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +27,7 @@ public class PointDataApi {
      */
     @PostMapping("/api/data/query")
     public Response<List<DataEntity>> queryDevices(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(dataService.query(req));
     }
 
@@ -38,6 +39,7 @@ public class PointDataApi {
      */
     @PostMapping("/api/data/count")
     public Response<Long> count(@Valid @RequestBody QueriesPageRequest req) {
+        req.withTenantFilter();
         return Response.ok(dataService.count(req));
     }
 
@@ -48,7 +50,7 @@ public class PointDataApi {
      * @return 数据信息
      */
     @GetMapping("/api/data/{id}")
-    public Response<DataEntity> get(@PathVariable String pointId) {
+    public Response<DataEntity> get(@PathVariable("id") String pointId) {
         return Response.ok(dataService.getLatestData(pointId));
     }
 

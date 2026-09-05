@@ -1,11 +1,10 @@
 package com.vex.iot.app;
 
-import com.vex.iot.common.enums.NotifyChannelType;
-import com.vex.iot.common.enums.NotifyRecordStatus;
-import com.vex.iot.domain.alarm.event.AlarmMessageFormatter;
+import com.vex.iot.domain.notify.enums.NotifyChannelType;
+import com.vex.iot.domain.notify.enums.NotifyRecordStatus;
 import com.vex.iot.domain.alarm.event.AlarmTriggeredEvent;
+import com.vex.iot.domain.alarm.model.AlarmLogEntity;
 import com.vex.iot.domain.alarm.model.AlarmRuleEntity;
-import com.vex.iot.domain.data.model.DataEntity;
 import com.vex.iot.domain.notify.NotifyService;
 import com.vex.iot.domain.notify.model.NotifyRecordEntity;
 import com.vex.iot.domain.notify.model.NotifyUserEntity;
@@ -28,31 +27,37 @@ public class NotifyApp {
     @Async
     @EventListener(AlarmTriggeredEvent.class)
     public void onAlarm(AlarmTriggeredEvent event) {
+        if (event == null || event.getPayload() == null) {
+            log.error("报警事件或载荷为空，忽略");
+            return;
+        }
         AlarmTriggeredEvent.AlarmMessage alarmMessage = event.getPayload();
         AlarmRuleEntity rule = alarmMessage.rule();
-        DataEntity data = alarmMessage.data();
+        AlarmLogEntity alarmLog = alarmMessage.log();
+
+        if (rule == null) {
+            log.error("报警事件规则为空，忽略");
+            return;
+        }
 
         if (CollectionUtils.isEmpty(rule.getNotifyUserIds())) {
-            log.error("报警事件未配置通知人 eventId={}", rule);
+            log.error("报警事件未配置通知人 ruleId={}", rule.getId());
             return;
         }
 
         List<NotifyUserEntity> users = notifyService.findByTenantIdAndIdIn(rule.getTenantId(), rule.getNotifyUserIds());
         if (users.isEmpty()) {
-            log.warn("报警事件通知人档案不存在 rule={}", rule);
+            log.warn("报警事件通知人档案不存在 ruleId={}", rule.getId());
             return;
         }
 
-        // 同一条报警的通知文案只生成一次，复用到 event + content 两列
-        String message = AlarmMessageFormatter.format(rule, data);
-
         NotifyRecordEntity record = NotifyRecordEntity.builder()
                 .tenantId(rule.getTenantId())
-                .event(message)
+                .event(rule.getRuleName())
                 .notifyUserIds(users.stream().map(NotifyUserEntity::getId).toList())
                 .channel(NotifyChannelType.SMS)
                 .status(NotifyRecordStatus.PENDING)
-                .content(message)
+                .content(alarmLog != null ? alarmLog.getMessage() : rule.getMessage())
                 .error(null)
                 .build();
 

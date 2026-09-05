@@ -3,7 +3,6 @@ package com.vex.iot.api.http;
 import com.vex.iot.common.model.BaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.response.Response;
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.domain.identity.AccountService;
 import com.vex.iot.domain.identity.TenantService;
 import com.vex.iot.domain.identity.model.AccountEntity;
@@ -22,7 +21,6 @@ import java.util.Set;
 /// 账号管理(管理员侧) — 仅 {@code SUPER_ADMIN} 可调用。
 ///
 /// <p>{@code @PreAuthorize("hasRole('SUPER_ADMIN')")} 把关;多租户守卫由 {@link AccountService} 内部保证。
-/// 全部写操作走 {@link com.vex.iot.domain.audit.annotation.AuditLog} 记录。
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/accounts")
@@ -65,7 +63,6 @@ public class AccountAdminApi {
     /**
      * 账号-创建 — 租户授权不再由入参选择,改在租户详情维护关系
      */
-    @AuditLog(action = "ACCOUNT_CREATE", resourceType = "account")
     @PostMapping
     public Response<AccountEntity> create(@Valid @RequestBody CreateReq req) {
         return Response.ok(accountService.createAccount(
@@ -78,7 +75,6 @@ public class AccountAdminApi {
      * 账号本体 {@link AccountEntity} 不动。租户 ID 从请求头 {@value #HEADER_TENANT_ID} 取,
      * 缺失则回退到默认租户 {@link BaseEntity#DEFAULT_TENANT_ID}。
      */
-    @AuditLog(action = "ACCOUNT_TOGGLE_ENABLED", resourceType = "account")
     @PutMapping("/{id}/enabled")
     public Response<Void> setEnabled(@PathVariable String id,
                                      @RequestBody ToggleEnabledReq body,
@@ -92,7 +88,6 @@ public class AccountAdminApi {
      * 账号-软删(限定租户内) — 仅软删中间表关联行(state=-1),不动账号本体。
      * 租户 ID 从请求头 {@value #HEADER_TENANT_ID} 取,缺失则回退到默认租户。
      */
-    @AuditLog(action = "ACCOUNT_DELETE", resourceType = "account")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable String id, HttpServletRequest request) {
         String tenantId = resolveTenantId(request);

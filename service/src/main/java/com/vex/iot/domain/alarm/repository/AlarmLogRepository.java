@@ -1,7 +1,7 @@
 package com.vex.iot.domain.alarm.repository;
 
-import com.vex.iot.common.enums.AlarmAckStatus;
-import com.vex.iot.common.enums.EventStatus;
+import com.vex.iot.domain.alarm.enums.AlarmAckStatus;
+import com.vex.iot.domain.alarm.enums.EventStatus;
 import com.vex.iot.domain.alarm.model.AlarmLogEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 告警事件仓储。统一使用方法名派生查询,禁止在 Repository 中书写 SQL/JPQL。
@@ -31,6 +32,11 @@ public interface AlarmLogRepository extends JpaRepository<AlarmLogEntity, String
 
     /// 查询指定规则在指定时间之后的未确认事件数量（用于重复抑制）
     long countByRuleIdAndAcknowledgedAndTriggeredAtAfter(String ruleId, AlarmAckStatus acknowledged, Instant triggeredAt);
+
+    /// 查找指定规则最新的活跃未确认告警事件（用于告警聚合递增）
+    Optional<AlarmLogEntity> findFirstByRuleIdAndEventStatusAndAcknowledgedOrderByTriggeredAtDesc(
+            String ruleId, EventStatus eventStatus, AlarmAckStatus acknowledged);
+
 
     @Modifying
     @Query("""

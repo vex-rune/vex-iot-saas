@@ -62,6 +62,7 @@ public class AccountEntity extends BaseEntity {
     /// 角色集合
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "roles", columnDefinition = "jsonb")
+    @Builder.Default
     private Set<String> roles = new HashSet<>();
 
     /// 是否启用

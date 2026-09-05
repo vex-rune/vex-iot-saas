@@ -33,6 +33,7 @@ import java.time.Instant;
 @EntityListeners(SnowflakeIdListener.class)
 public abstract class TenantBaseEntity extends BaseEntity {
 
+    public static final String TENANT_ID_FIELD_NAME = "tenantId";
     public static final String DEFAULT_TENANT_ID = "0";
     public static final String SYSTEM_USER_ID = "system";
 

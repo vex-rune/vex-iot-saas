@@ -2,7 +2,6 @@ package com.vex.iot.api.http;
 
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.response.Response;
-import com.vex.iot.domain.audit.annotation.AuditLog;
 import com.vex.iot.domain.identity.AccountService;
 import com.vex.iot.domain.identity.TenantService;
 import com.vex.iot.domain.identity.model.AccountEntity;
@@ -78,7 +77,6 @@ public class TenantAdminApi {
     /**
      * 租户-创建
      */
-    @AuditLog(action = "TENANT_CREATE", resourceType = "tenant")
     @PostMapping
     public Response<TenantEntity> create(@Valid @RequestBody UpsertReq req) {
         TenantEntity t = new TenantEntity();
@@ -92,7 +90,6 @@ public class TenantAdminApi {
     /**
      * 租户-更新（含启停）
      */
-    @AuditLog(action = "TENANT_UPDATE", resourceType = "tenant")
     @PutMapping("/{id}")
     public Response<TenantEntity> update(@PathVariable String id, @Valid @RequestBody UpsertReq req) {
         TenantEntity exist = tenantService.findById(id).orElse(null);
@@ -113,7 +110,6 @@ public class TenantAdminApi {
     /**
      * 租户-软删
      */
-    @AuditLog(action = "TENANT_DELETE", resourceType = "tenant")
     @DeleteMapping("/{id}")
     public Response<Void> delete(@PathVariable String id) {
         if (DEFAULT_TENANT_ID.equals(id)) {
@@ -140,7 +136,6 @@ public class TenantAdminApi {
     /**
      * 租户-批量绑定账号
      */
-    @AuditLog(action = "TENANT_LINK_ACCOUNTS", resourceType = "tenant")
     @PostMapping("/{id}/accounts/link")
     public Response<Void> linkAccounts(@PathVariable String id, @Valid @RequestBody LinkReq req) {
         tenantService.linkAccounts(id, req.userIds());
@@ -150,7 +145,6 @@ public class TenantAdminApi {
     /**
      * 租户-批量解除绑定账号
      */
-    @AuditLog(action = "TENANT_UNLINK_ACCOUNTS", resourceType = "tenant")
     @PostMapping("/{id}/accounts/unlink")
     public Response<Void> unlinkAccounts(@PathVariable String id, @Valid @RequestBody LinkReq req) {
         tenantService.unlinkAccounts(id, req.userIds());

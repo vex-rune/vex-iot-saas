@@ -1,6 +1,6 @@
 package com.vex.iot.common.queries.jpa;
 
-import com.vex.iot.common.exception.BusinessExceptions.BadRequestException;
+import com.vex.iot.common.exception.BadRequestException;
 import com.vex.iot.common.queries.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -170,8 +170,8 @@ public class JpaQueriesExecutor<E> {
         CriteriaQuery<E> query = buildSelectQuery(builder);
 
         TypedQuery<E> typedQuery = entityManager.createQuery(query);
-        typedQuery.setFirstResult(0);
-        typedQuery.setMaxResults(10);
+//        typedQuery.setFirstResult(0);
+//        typedQuery.setMaxResults(10);
         return typedQuery.getResultList();
     }
 
@@ -233,7 +233,14 @@ public class JpaQueriesExecutor<E> {
             if (c.getCondition() != null) {
                 predicates.add(buildPredicateFromCondition(c.getCondition(), root, builder));
             } else if (c.getPredicate() != null) {
-                predicates.add(buildPredicateFromCriteria(c.getPredicate().getAnd(), true, root, builder));
+                List<QueriesCriteria> and = c.getPredicate().getAnd();
+                if (and != null && !and.isEmpty()) {
+                    predicates.add(buildPredicateFromCriteria(and, true, root, builder));
+                }
+                List<QueriesCriteria> or = c.getPredicate().getOr();
+                if (or != null && !or.isEmpty()) {
+                    predicates.add(buildPredicateFromCriteria(or, false, root, builder));
+                }
             }
         }
         if (predicates.isEmpty()) return builder.conjunction();
@@ -246,19 +253,34 @@ public class JpaQueriesExecutor<E> {
         if (c.getField() == null || c.getField().isBlank()) {
             throw new BadRequestException("查询条件 field 不能为空");
         }
+        // 校验字段是否存在于实体中,防止通过反射访问敏感字段
+        String field = c.getField();
+        try {
+            root.get(field);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("不合法的查询字段: " + field);
+        }
         Function<PredicateContext, Predicate> strategy = STRATEGY_CACHE.get(c.getOp());
         if (strategy == null) {
             throw new BadRequestException("不支持的操作符: " + c.getOp());
         }
-        return strategy.apply(new PredicateContext(builder, root.get(c.getField()), c.getValue(), c.getOp()));
+        return strategy.apply(new PredicateContext(builder, root.get(field), c.getValue(), c.getOp()));
     }
 
     private void applyOrdering(CriteriaQuery<E> query, Root<E> root, CriteriaBuilder builder) {
         if (orders == null || orders.isEmpty()) return;
         List<Order> orderList = orders.stream()
-                .map(o -> o.getOrder() == QueriesOrder.QueriesOrderEnum.DESC
-                        ? builder.desc(root.get(o.getField()))
-                        : builder.asc(root.get(o.getField())))
+                .map(o -> {
+                    // 校验排序字段是否存在于实体中
+                    try {
+                        root.get(o.getField());
+                    } catch (IllegalArgumentException e) {
+                        throw new BadRequestException("不合法的排序字段: " + o.getField());
+                    }
+                    return o.getOrder() == QueriesOrder.QueriesOrderEnum.DESC
+                            ? builder.desc(root.get(o.getField()))
+                            : builder.asc(root.get(o.getField()));
+                })
                 .collect(Collectors.toList());
         query.orderBy(orderList);
     }

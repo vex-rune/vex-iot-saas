@@ -2,6 +2,7 @@ package com.vex.iot.app.auth.config;
 
 import com.vex.iot.app.auth.filter.JwtAuthenticationFilter;
 import com.vex.iot.app.auth.handler.RestAuthHandlers;
+import com.vex.iot.app.auth.util.TotpProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +28,7 @@ import java.util.List;
  */
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
-@EnableConfigurationProperties({SecurityProperties.class, BootstrapProperties.class})
+@EnableConfigurationProperties({SecurityProperties.class, BootstrapProperties.class, TotpProperties.class})
 public class SecurityConfig {
 
     /**

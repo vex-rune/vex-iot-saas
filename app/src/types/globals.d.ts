@@ -57,6 +57,7 @@ declare module '@heroicons/react/24/outline' {
   export const ArrowUpIcon: IconComponent;
   export const ArrowDownIcon: IconComponent;
   export const ArrowUpDownIcon: IconComponent;
+  export const ArrowsPointingOutIcon: IconComponent;
 }
 
 declare module '@heroicons/react/24/solid' {

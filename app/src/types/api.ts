@@ -218,6 +218,24 @@ export interface DeviceOnlineResponse {
   lastHeartbeatAt?: string;
 }
 
+// ─── 设备面板配置 ─────────────────────────────────────────────────
+
+/** 面板配置对象(后端 DevicePanelEntity.panelConfig, DB JSONB) */
+export type PanelConfigObject = Record<string, unknown>;
+
+/** 面板配置实体(后端 DevicePanelEntity) */
+export interface DevicePanelConfig {
+  id: string;
+  deviceId: string;
+  panelConfig: PanelConfigObject | null;
+  createdAt?: string;
+  createId?: string;
+  updatedAt?: string;
+  updateId?: string;
+  state?: number;
+  tenantId?: string;
+}
+
 /** 点位定义 — GET /api/devices/{id}/points 与 /api/devices/points */
 export interface PointDefinition extends BaseEntity {
   id: string;
@@ -233,6 +251,8 @@ export interface PointDefinition extends BaseEntity {
   groupLabel?: string;
   /** 值→展示文本字典,序列化为 JSON:{"0":"关","1":"开"} */
   valueMappings?: string;
+  /** 数据精度：小数位数（仅 FLOAT/DOUBLE 有效）。null=不截断 */
+  precision?: number;
 }
 
 /** 兼容旧 devices.ts 使用的控制请求形态(openapi 端点已删除) */
@@ -308,6 +328,8 @@ export type AlarmRuleType = 'THRESHOLD' | 'STATE';
 export type AlarmConditionType = 'GT' | 'GE' | 'LT' | 'LE' | 'EQ' | 'NE' | 'BETWEEN';
 export type AlarmLevel = 'INFO' | 'WARNING' | 'CRITICAL' | 'FATAL';
 export type AlarmAckStatus = 'ACK' | 'UNACK';
+/** 告警抑制策略类型 */
+export type AlarmSuppressType = 'NONE' | 'COOLDOWN_AGGREGATE' | 'SLIDING_WINDOW';
 
 /** AlarmRuleEntity — POST /api/alarm/rules */
 export interface AlarmRule extends BaseEntity {
@@ -330,6 +352,8 @@ export interface AlarmRule extends BaseEntity {
   enabled?: boolean;
   maskEnable?: boolean;
   maskExpireTime?: string;
+  /** 告警抑制策略类型 */
+  suppressType?: AlarmSuppressType;
   notifyUserIds?: string[];
 }
 
@@ -355,6 +379,8 @@ export interface AlarmEvent extends BaseEntity {
   ackTime?: string;
   acknowledgedBy?: string;
   ackUserId?: string;
+  /** 告警触发次数（防抖聚合：未确认前重复触发仅递增此字段） */
+  triggerCount?: number;
 }
 
 /* ────────────────────────────────────────────────────────────────────────

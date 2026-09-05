@@ -1,16 +1,13 @@
 package com.vex.iot.domain.alarm.model;
 
-import com.vex.iot.common.enums.AlarmAckStatus;
-import com.vex.iot.common.enums.AlarmLevel;
-import com.vex.iot.common.enums.EventStatus;
+import com.vex.iot.domain.alarm.enums.AlarmAckStatus;
+import com.vex.iot.domain.alarm.enums.AlarmLevel;
+import com.vex.iot.domain.alarm.enums.EventStatus;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
@@ -32,7 +29,6 @@ public class AlarmLogEntity extends TenantBaseEntity {
     private String id;
 
     /// 事件来源：DEVICE-设备级 / POINT-点位级
-    @Enumerated(EnumType.STRING)
     @Column(name = "event_source")
     private AlarmRuleEntity.AlarmRuleSource source;
 
@@ -58,6 +54,7 @@ public class AlarmLogEntity extends TenantBaseEntity {
 
     /// 预警级别：INFO / WARN / ERROR
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private AlarmLevel level;
 
     /// 预警消息
@@ -72,11 +69,12 @@ public class AlarmLogEntity extends TenantBaseEntity {
 
     /// 事件状态（点位级使用）：ACTIVE / RECOVERED / ACK
     @Enumerated(EnumType.STRING)
-    @Column(name = "event_status")
+    @Column(length = 16)
     private EventStatus eventStatus;
 
     /// 确认状态（设备级使用）
     @Enumerated(EnumType.STRING)
+    @Column(length = 16)
     private AlarmAckStatus acknowledged;
 
     /// 触发时间
@@ -103,4 +101,14 @@ public class AlarmLogEntity extends TenantBaseEntity {
     @Size(max = 64)
     @Column(name = "ack_user_id", length = 64)
     private String ackUserId;
+
+    /// 告警触发次数（防抖聚合：未确认前重复触发仅递增此字段，不发通知）
+    @Column(name = "trigger_count")
+    @Builder.Default
+    private Integer triggerCount = 1;
+
+    public void incrementTriggerCount() {
+        triggerCount++;
+        triggeredAt = Instant.now();
+    }
 }
