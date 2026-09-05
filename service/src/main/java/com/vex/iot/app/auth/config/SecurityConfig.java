@@ -27,7 +27,7 @@ import java.util.List;
  * 生产可由 {@code application.yml} 维护具体 origin 列表进行收口。
  */
 @Configuration
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 @EnableConfigurationProperties({SecurityProperties.class, BootstrapProperties.class, TotpProperties.class})
 public class SecurityConfig {
 

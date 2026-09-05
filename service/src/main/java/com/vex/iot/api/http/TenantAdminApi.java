@@ -83,7 +83,7 @@ public class TenantAdminApi {
         t.setCode(req.code());
         t.setName(req.name());
         t.setDescription(req.description());
-        t.setEnabled(req.enabled() == null ? true : req.enabled());
+        t.setEnabled(req.enabled() == null || req.enabled());
         return Response.ok(tenantService.save(t));
     }
 

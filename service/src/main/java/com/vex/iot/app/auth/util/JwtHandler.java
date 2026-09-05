@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -45,10 +44,6 @@ public class JwtHandler {
                     "JWT secret 长度不足 " + MIN_SECRET_BYTES + " 字节,实际 " + bytes.length + " 字节");
         }
         this.key = Keys.hmacShaKeyFor(bytes);
-    }
-
-    public String generate(LoginUser user) {
-        return generate(user, TokenType.ACCESS);
     }
 
     /**
@@ -123,56 +118,6 @@ public class JwtHandler {
         if (prefix != null && !prefix.isBlank() && authorization.startsWith(prefix))
             return authorization.substring(prefix.length()).trim();
         return authorization.trim();
-    }
-
-    /**
-     * 检查 Token 是否即将过期
-     *
-     * @param token            JWT令牌
-     * @param thresholdSeconds 阈值（秒），小于此时间则认为即将过期
-     * @return 是否即将过期
-     */
-    public boolean isTokenExpiringSoon(String token, int thresholdSeconds) {
-        try {
-            Claims claims = Jwts.parser().verifyWith(key).build()
-                    .parseSignedClaims(token).getPayload();
-            Date expiration = claims.getExpiration();
-            long remaining = expiration.getTime() - System.currentTimeMillis();
-            return remaining < thresholdSeconds * 1000L;
-        } catch (JwtException e) {
-            return false;
-        }
-    }
-
-    /**
-     * 获取 Token 剩余有效时间（秒）
-     *
-     * @param token JWT令牌
-     * @return 剩余秒数，-1 表示已过期或无效
-     */
-    public long getTokenRemainingSeconds(String token) {
-        try {
-            Claims claims = Jwts.parser().verifyWith(key).build()
-                    .parseSignedClaims(token).getPayload();
-            Date expiration = claims.getExpiration();
-            return (expiration.getTime() - System.currentTimeMillis()) / 1000;
-        } catch (JwtException e) {
-            return -1;
-        }
-    }
-
-    /**
-     * 获取 Token 过期时间
-     *
-     * @param token JWT token
-     * @return 过期时间 Instant
-     * @throws com.vex.iot.app.auth.exception.TokenInvalidException token 无效时抛出
-     */
-    public Instant getTokenExpiration(String token) {
-        Claims claims = Jwts.parser().verifyWith(key).build()
-                .parseSignedClaims(token).getPayload();
-        Date expiration = claims.getExpiration();
-        return expiration.toInstant();
     }
 
     public enum TokenType implements IEnum {

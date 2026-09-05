@@ -110,8 +110,7 @@ public class DeviceDataApp {
         deviceService.heartByGatewayId(device.getGatewayId());
     }
 
-    private void updateData(List<ValueResult> resultList, DeviceEntity device) {
-        List<ValueResult> rData = resultList;
+    private void updateData(List<ValueResult> rData, DeviceEntity device) {
         if (rData == null || rData.isEmpty()) {
             return;
         }
@@ -120,9 +119,9 @@ public class DeviceDataApp {
         List<PointEntity> points = deviceService.queryPointsByDeviceId(device.getId());
 
 
-        List<DataEntity> datas = new ArrayList<>();
+        List<DataEntity> data = new ArrayList<>();
 
-        for (ValueResult valueResult : resultList) {
+        for (ValueResult valueResult : rData) {
             List<DataEntity> list = points.stream()
                     .filter(p -> p.getPointCode().equals(valueResult.name()))
                     .findFirst()
@@ -132,7 +131,7 @@ public class DeviceDataApp {
                     .stream()
                     .toList();
 
-            datas.addAll(list);
+            data.addAll(list);
 
             for (DataEntity dataEntity : list) {
                 log.debug("保存数据: {}", dataEntity);

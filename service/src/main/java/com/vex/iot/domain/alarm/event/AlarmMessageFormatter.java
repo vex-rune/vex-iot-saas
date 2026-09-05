@@ -34,11 +34,9 @@ public final class AlarmMessageFormatter {
      * 构建报警消息。
      */
     public static String format(AlarmRuleEntity rule, DataEntity data) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("点位[").append(data.getPointName()).append("]");
-        sb.append("当前值[").append(data.getStringValue()).append("]");
-        sb.append("触发条件[").append(formatCondition(rule)).append("]");
-        return sb.toString();
+        return "点位[" + data.getPointName() + "]" +
+                "当前值[" + data.getStringValue() + "]" +
+                "触发条件[" + formatCondition(rule) + "]";
     }
 
 
@@ -54,7 +52,6 @@ public final class AlarmMessageFormatter {
             case EQ -> AlarmConditionType.EQ.displayName() + rule.getThreshold();
             case NE -> AlarmConditionType.NE.displayName() + rule.getThreshold();
             case BETWEEN -> rule.getThreshold() + " ~ " + rule.getThresholdHigh();
-            default -> "未知";
         };
     }
 }

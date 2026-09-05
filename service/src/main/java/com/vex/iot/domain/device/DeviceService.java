@@ -223,7 +223,6 @@ public class DeviceService {
         PointEntity exist = pointRepository.findById(id).orElse(null);
         pointRepository.deleteById(id);
         if (exist != null) {
-            String operator = UserContext.username().orElse(TenantBaseEntity.SYSTEM_USER_ID);
             // 发送"点位删除"事件
             applicationEventPublisher.publishEvent(new PointDeletedEvent(exist));
         }

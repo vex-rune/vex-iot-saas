@@ -27,10 +27,12 @@ public class NotifyApp {
     @Async
     @EventListener(AlarmTriggeredEvent.class)
     public void onAlarm(AlarmTriggeredEvent event) {
-        if (event == null || event.getPayload() == null) {
+        if (event == null) {
             log.error("报警事件或载荷为空，忽略");
             return;
         }
+
+
         AlarmTriggeredEvent.AlarmMessage alarmMessage = event.getPayload();
         AlarmRuleEntity rule = alarmMessage.rule();
         AlarmLogEntity alarmLog = alarmMessage.log();

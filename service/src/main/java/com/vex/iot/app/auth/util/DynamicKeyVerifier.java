@@ -23,25 +23,14 @@ public final class DynamicKeyVerifier {
     private final String secretKey;
 
     public DynamicKeyVerifier(TotpProperties properties) {
-        this.secretKey = "vexrune";
-//        if (this.secretKey == null || this.secretKey.isBlank()) {
-//            throw new IllegalStateException(
-//                    "TOTP secret 未配置: 请通过环境变量 TOTP_SECRET 注入至少 16 字节密钥");
-//        }
-//        if (this.secretKey.length() < 16) {
-//            throw new IllegalStateException(
-//                    "TOTP secret 长度不足 16 字节,实际 " + this.secretKey.length() + " 字节");
-//        }
-    }
-
-    /**
-     * 获取当前时间窗的动态码
-     *
-     * @return 6位动态码
-     */
-    public String generateCode() {
-        Totp totp = new Totp(secretKey);
-        return totp.now();
+        if (this.secretKey == null || this.secretKey.isBlank()) {
+            throw new IllegalStateException(
+                    "TOTP secret 未配置: 请通过环境变量 TOTP_SECRET 注入至少 16 字节密钥");
+        }
+        if (this.secretKey.length() < 16) {
+            throw new IllegalStateException(
+                    "TOTP secret 长度不足 16 字节,实际 " + this.secretKey.length() + " 字节");
+        }
     }
 
     /**
@@ -58,13 +47,9 @@ public final class DynamicKeyVerifier {
         Totp totp = new Totp(secretKey);
 
         // 尝试当前时间窗
-        if (totp.verify(code)) {
-            return true;
-        }
+        return totp.verify(code);
 
         // AeroGear OTP 默认已经支持 ±1 个时间步长验证
         // 所以不需要手动验证上一时间窗
-
-        return false;
     }
 }

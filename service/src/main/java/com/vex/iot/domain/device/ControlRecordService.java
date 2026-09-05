@@ -68,7 +68,7 @@ public class ControlRecordService {
     public long count(QueriesPageRequest req) {
         req.withTenantFilter();
         return JpaQueriesExecutor.of(ControlRecordEntity.class, entityManager)
-                .count(req != null ? req.getPredicate() : null);
+                .count(req.getPredicate());
     }
 
     /**
