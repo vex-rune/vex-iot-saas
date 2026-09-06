@@ -1,6 +1,6 @@
 // heroicons v2 不含独立 .d.ts, 这里做全局声明
 declare module '@heroicons/react/24/outline' {
-  import type { FC, SVGProps } from 'react';
+  import type {FC, SVGProps} from 'react';
   type IconComponent = FC<SVGProps<SVGSVGElement>>;
   export const SignalIcon: IconComponent;
   export const ShieldCheckIcon: IconComponent;
@@ -58,10 +58,12 @@ declare module '@heroicons/react/24/outline' {
   export const ArrowDownIcon: IconComponent;
   export const ArrowUpDownIcon: IconComponent;
   export const ArrowsPointingOutIcon: IconComponent;
+    export const ChatBubbleLeftRightIcon: IconComponent;
+    export const PaperAirplaneIcon: IconComponent;
 }
 
 declare module '@heroicons/react/24/solid' {
-  import type { FC, SVGProps } from 'react';
+  import type {FC, SVGProps} from 'react';
   type IconComponent = FC<SVGProps<SVGSVGElement>>;
   export const CheckIcon: IconComponent;
   export const XMarkIcon: IconComponent;

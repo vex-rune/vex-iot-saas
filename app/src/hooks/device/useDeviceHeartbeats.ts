@@ -20,12 +20,9 @@
  * - 不再直接调用 GET /api/devices/{id}/online,改为读取 `@/services/deviceData` 的设备缓存（SSE `device.online` 事件 + HTTP 兜底刷新）。
  * - 心跳状态直接由 `devices` 驱动，无需额外轮询重建，避免“Maximum update depth exceeded”。
  */
-import { useMemo } from 'react';
-import {
-  type DeviceHeartbeatInfo,
-  deriveHeartbeatStatus,
-} from '@/components/ui/DeviceCard';
-import { useDeviceStatuses } from '@/services/deviceData';
+import {useMemo} from 'react';
+import {deriveHeartbeatStatus, type DeviceHeartbeatInfo,} from '@/components/ui/DeviceCard';
+import {useDeviceStatuses} from '@/services/deviceDataService';
 
 export function useDeviceHeartbeats(
   deviceIds: string[],

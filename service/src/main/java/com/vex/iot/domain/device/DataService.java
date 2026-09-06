@@ -1,8 +1,8 @@
 package com.vex.iot.domain.device;
 
-import com.vex.iot.domain.device.enums.DataType;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
+import com.vex.iot.domain.device.enums.DataType;
 import com.vex.iot.domain.device.event.DataUpdateEvent;
 import com.vex.iot.domain.device.model.DataEntity;
 import com.vex.iot.domain.device.model.RealtimeDataEntity;
@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -135,5 +136,29 @@ public class DataService {
     public List<DataEntity> query(@Valid QueriesPageRequest req) {
         return JpaQueriesExecutor.of(DataEntity.class, entityManager).page(req);
     }
+
+    public List<DataEntity> query(String tenantId, String deviceName, String pointName, Instant startTime, Instant endTime, Integer limit) {
+        return historyRepository.queryByTenantIdAndDeviceNameLikeAndPointNameLikeAndTimestampBetweenOrderByTimestampDesc(
+                tenantId, deviceName, pointName, startTime, endTime, Limit.of(limit)
+        );
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

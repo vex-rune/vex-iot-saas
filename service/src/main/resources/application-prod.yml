@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:15432/iot_saas_test
+    username: vex_postgres
+    password: ${PG_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+vex:
+  mqtt:
+    connection:
+      broker: tcp://127.0.0.1:1883
+      username: vex_admin
+      password: vex_admin_SDFI3FOUID8
+  auth:
+    jwt:
+      secret: vex_secret_SDFI3123FOUSDFWERFID8
+      expire-seconds: 43200
+    admin:
+      totp:
+        secret: ${TOTP_SECRET}
+
+  ai:
+    base-url: https://token-plan-cn.xiaomimimo.com/v1
+    api-key: ${MIMO_API_KEY:}
+    model: mimo-v2.5
+    temperature: 0.1
+    max-tokens: 2048
+
+server:
+  port: 18083
+
+logging:
+  level:
+    root: WARN
+    com.vex.iot: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

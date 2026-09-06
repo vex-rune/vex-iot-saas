@@ -9,17 +9,22 @@
  * 这些 hook 不直接调 api,而是订阅 service 的缓存层;
  * service 在缓存缺失/过期时通过 api 兜底。
  */
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { chainToPromise } from '@/hooks/common/useQueryList';
+import {useCallback, useEffect, useMemo, useSyncExternalStore} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {chainToPromise} from '@/hooks/common/useQueryList';
 import {
-  deviceCache, emitDevice, getDeviceHistory, realtimeCache,
-  realtimeCacheVersion, realtimeListeners, deviceListeners,
+  deviceCache,
+  deviceListeners,
+  emitDevice,
+  getDeviceHistory,
+  realtimeCache,
+  realtimeCacheVersion,
+  realtimeListeners,
   type RealtimePointRow,
-} from '@/services/deviceData';
-import { getDevice } from '@/services/device';
-import { RANGE_SECONDS } from '@/components/panel/types';
-import type { Device, PointHistory } from '@/types/api';
+} from '@/services/deviceDataService';
+import {getDevice} from '@/services/deviceService';
+import {RANGE_SECONDS} from '@/components/panel/types';
+import type {Device, PointHistory} from '@/types/api';
 
 // ─── 类型 ──────────────────────────────────────────────────────────
 

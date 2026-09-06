@@ -1,7 +1,7 @@
-﻿import { useQuery } from '@tanstack/react-query';
-import {countActiveDevices} from '@/services/device';
-import { countAlarmEvents } from '@/services/alarms';
-import { chainToPromise } from '@/hooks/common/useQueryList';
+﻿import {useQuery} from '@tanstack/react-query';
+import {countActiveDevices} from '@/services/deviceService';
+import {countAlarmEvents} from '@/services/alarmService';
+import {chainToPromise} from '@/hooks/common/useQueryList';
 
 export interface DashboardKpis {
   /** 设备总数 */

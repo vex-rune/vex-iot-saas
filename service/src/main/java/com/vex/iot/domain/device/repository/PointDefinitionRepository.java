@@ -1,6 +1,7 @@
 package com.vex.iot.domain.device.repository;
 
 import com.vex.iot.domain.device.model.PointEntity;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -12,4 +13,6 @@ public interface PointDefinitionRepository extends JpaRepository<PointEntity, St
     Optional<PointEntity> findByDeviceIdAndPointCode(String deviceId, String pointCode);
 
     List<PointEntity> findByIdIn(List<String> ids);
+
+    List<PointEntity> queryByTenantIdAndDeviceIdAndPointNameLike(String tenantId, String deviceId, String pointName, Limit limit);
 }

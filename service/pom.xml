@@ -25,6 +25,8 @@
         <jjwt.version>0.12.6</jjwt.version>
         <hutool.version>5.8.32</hutool.version>
         <aliyunSms.version>2.0.24</aliyunSms.version>
+        <langchain4j.version>1.16.1</langchain4j.version>
+        <langchain4j-agentic.version>1.16.1-beta26</langchain4j-agentic.version>
     </properties>
 
     <dependencyManagement>
@@ -125,6 +127,25 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-mqtt</artifactId>
+        </dependency>
+
+        <!-- Spring AI 暂不引入 (后续升级 Boot 版本时再切换) -->
+        <!-- LangChain4j -->
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-agentic</artifactId>
+            <version>${langchain4j-agentic.version}</version>
         </dependency>
 
         <!-- 阿里云短信 SDK(可选,仅启用时按需加载) -->

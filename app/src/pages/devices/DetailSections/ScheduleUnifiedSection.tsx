@@ -1,6 +1,6 @@
 ﻿/** 设备详情 - 定时任务页签 - 合并视图(控制设置预览 + 执行记录预览)。 */
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {
   Chip,
   Pagination,
@@ -14,20 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from '@heroui/react';
-import { listDeviceSchedules } from '@/services/schedules';
-import { queryControlRecords, countControlRecords } from '@/services/controlRecords';
-import { chainToPromise, useQueryList } from '@/hooks/common/useQueryList';
-import { EntityCard, FieldRow } from '@/components/ui/EntityCard';
-import { useIsMobile } from '@/hooks/common/useMediaQuery';
-import { formatDateTime } from '@/lib/format';
-import { cronToPlain } from '@/lib/cron';
-import type { ControlRecord } from '@/services/controlRecords';
-import type {
-  DeviceScheduleDetail,
-  Predicate,
-  PredicateItem,
-  QueryBody,
-} from '@/types/api';
+import {listDeviceSchedules} from '@/services/scheduleService';
+import type {ControlRecord} from '@/services/controlRecordService';
+import {countControlRecords, queryControlRecords} from '@/services/controlRecordService';
+import {chainToPromise, useQueryList} from '@/hooks/common/useQueryList';
+import {EntityCard, FieldRow} from '@/components/ui/EntityCard';
+import {useIsMobile} from '@/hooks/common/useMediaQuery';
+import {formatDateTime} from '@/lib/format';
+import {cronToPlain} from '@/lib/cron';
+import type {DeviceScheduleDetail, Predicate, PredicateItem, QueryBody,} from '@/types/api';
 
 interface ScheduleUnifiedSectionProps {
   deviceId: string;

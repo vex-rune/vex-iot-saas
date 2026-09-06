@@ -36,12 +36,12 @@ public class JwtHandler {
         String secret = props.secret();
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException(
-                    "JWT secret 未配置: 生产必须通过环境变量 JWT_SECRET 注入至少 32 字节密钥");
+                    "JWT secret 未配置: 生产必须通过环境变量 JWT_SECRET 注入至少 32 字节密钥; 当前: " + secret);
         }
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < MIN_SECRET_BYTES) {
             throw new IllegalStateException(
-                    "JWT secret 长度不足 " + MIN_SECRET_BYTES + " 字节,实际 " + bytes.length + " 字节");
+                    "JWT secret 长度不足 " + MIN_SECRET_BYTES + " 字节,实际 " + bytes.length + " 字节; 当前: " + secret);
         }
         this.key = Keys.hmacShaKeyFor(bytes);
     }

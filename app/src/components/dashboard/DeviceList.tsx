@@ -5,11 +5,11 @@
  * - 排序:在线优先,其次有告警优先,然后按名称
  * - 选中态高亮
  */
-import { useMemo, useState } from 'react';
-import { Button, Chip, Input, Select, SelectItem, Skeleton } from '@heroui/react';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import {useMemo, useState} from 'react';
+import {Button, Input, Select, SelectItem, Skeleton} from '@heroui/react';
+import {MagnifyingGlassIcon} from '@heroicons/react/24/outline';
 import DeviceCard from '@/components/ui/DeviceCard';
-import type { Device } from '@/types/api';
+import type {Device} from '@/types/api';
 
 export type DeviceFilterStatus = 'all' | 'online' | 'offline';
 
@@ -28,7 +28,6 @@ export interface DeviceListProps {
     input: string;
     setInput: (v: string) => void;
     applied: string;
-    submit: () => void;
     reset: () => void;
   };
   onSelect: (deviceId: string) => void;
@@ -69,7 +68,7 @@ export default function DeviceList({
 
   return (
     <div className="flex h-full flex-col gap-2">
-      {/* 搜索框 + 提交 + 清空 */}
+        {/* 搜索框 + 清空 */}
       <div className="flex items-center gap-1">
         <Input
           size="sm"
@@ -77,22 +76,10 @@ export default function DeviceList({
           placeholder="搜索名称 / 标签"
           value={search.input}
           onValueChange={search.setInput}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') search.submit();
-          }}
           variant="bordered"
           className="flex-1"
           startContent={<MagnifyingGlassIcon className="h-4 w-4 text-foreground-400" />}
         />
-        <Button
-          size="sm"
-          color="primary"
-          variant="flat"
-          isDisabled={search.input === search.applied}
-          onPress={search.submit}
-        >
-          搜索
-        </Button>
         {search.applied && (
           <Button size="sm" variant="flat" onPress={search.reset}>
             清空

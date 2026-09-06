@@ -20,15 +20,11 @@
  *     .onHttpError(err => { ... })
  *     .execute();
  */
-import axios, {
-  AxiosError,
-  type AxiosRequestConfig,
-  type InternalAxiosRequestConfig,
-} from 'axios';
-import { addToast } from '@heroui/react';
-import { API_BASE } from '@/lib/env';
-import { useAuthStore } from '@/stores/auth';
-import type { ApiResponse, TokenPairResp } from '@/types/api';
+import axios, {AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig,} from 'axios';
+import {API_BASE} from '@/lib/env';
+import {toastError, toastPermission} from '@/lib/toast';
+import {useAuthStore} from '@/stores/authStore';
+import type {ApiResponse, TokenPairResp} from '@/types/api';
 
 // ─── 业务响应 envelope ───────────────────────────────────────────────────────
 
@@ -52,11 +48,10 @@ export class BizError extends Error {
 
 function defaultBizErrorHandler(err: BizError): void {
   console.warn('[api-client] defaultBizErrorHandler', err.envelope);
-  addToast({
-    title: '业务异常',
-    description: `${err.envelope.message}  [${err.envelope.code}]`,
-    color: 'danger',
-  });
+    toastError(
+        '业务异常',
+        `${err.envelope.message}  [${err.envelope.code}]`,
+    );
 }
 
 const HTTP_TITLE_MAP: Record<number, string> = {
@@ -69,11 +64,15 @@ const HTTP_TITLE_MAP: Record<number, string> = {
 
 function defaultHttpErrorHandler(err: AxiosError): void {
   const status = err.response?.status ?? 0;
+    if (status === 403) {
+        toastPermission('权限不足', '您当前角色无此操作权限，请联系管理员升级');
+        return;
+    }
   const title =
     HTTP_TITLE_MAP[status]
     || (status >= 500 ? '服务器开了小差,请稍后再试' : `请求异常 (HTTP ${status})`);
   const description = status === 0 ? '无法连接到服务器,请检查网络' : (err.message || '请稍后重试');
-  addToast({ title, description, color: 'danger' });
+    toastError(title, description);
 }
 
 // ─── 链式回调类型 ─────────────────────────────────────────────────────────────

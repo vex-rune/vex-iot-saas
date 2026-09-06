@@ -1,5 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+﻿import type {Dispatch, SetStateAction} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {
   Button,
   Drawer,
@@ -20,24 +20,24 @@ import {
   SelectItem,
   Spinner,
   Switch,
-  addToast,
   useDisclosure,
 } from '@heroui/react';
-import { MagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { useIsMobile } from '@/hooks/common/useMediaQuery';
-import type { PointDefinition } from '@/types/api';
+import {toastError, toastWarning} from '@/lib/toast';
+import {MagnifyingGlassIcon, PlusIcon, TrashIcon} from '@heroicons/react/24/outline';
+import {useIsMobile} from '@/hooks/common/useMediaQuery';
+import type {PointDefinition} from '@/types/api';
+import type {BadgeColor, DataSource, PanelConfig, PluginKind, WidgetInstance} from './types';
 import {
-  PLUGIN_KINDS,
-  PLUGIN_META,
+  BADGE_COLOR_LABELS,
+  BADGE_COLORS,
+  createWidgetInstance,
   DATA_SOURCE_LABELS,
   DEVICE_PLUGINS,
-  BADGE_COLORS,
-  BADGE_COLOR_LABELS,
-  createWidgetInstance,
+  PLUGIN_KINDS,
+  PLUGIN_META,
   pluginsForDataType,
   sourcesForPlugin,
 } from './types';
-import type { BadgeColor, DataSource, PanelConfig, PluginKind, WidgetInstance } from './types';
 import PanelRenderer from './PanelRenderer';
 
 export interface PanelEditorProps {
@@ -131,7 +131,7 @@ export default function PanelEditor({
   // Drawer 开着且有未应用修改时，切换配置目标先拦截提示
   const requestConfigure = (id: string) => {
     if (dirty) {
-      addToast({ title: '当前组件有未应用的修改，请先应用或取消', color: 'warning' });
+        toastWarning('当前组件有未应用的修改，请先应用或取消');
       return;
     }
     setConfiguringId(id);
@@ -347,20 +347,20 @@ function WidgetConfigDrawer({
 
   const apply = () => {
     if (isPointBinding && (draft.binding.kind !== 'point' || !draft.binding.pointCode)) {
-      addToast({ title: '请选择要绑定的点位', color: 'warning' });
+        toastWarning('请选择要绑定的点位');
       return;
     }
     if (!draft.title.trim()) {
-      addToast({ title: '请填写组件标题', color: 'warning' });
+        toastWarning('请填写组件标题');
       return;
     }
     // 控制开关仅可绑定可控(RW)点位
     if (draft.plugin === 'control-switch' && selectedPoint && selectedPoint.access !== 'RW') {
-      addToast({ title: '控制开关只能绑定可控(RW)点位，请重新选择', color: 'danger' });
+        toastError('控制开关只能绑定可控(RW)点位，请重新选择');
       return;
     }
     if (draft.plugin === 'gauge' && props.min != null && props.max != null && props.max <= props.min) {
-      addToast({ title: '最大值必须大于最小值', color: 'warning' });
+        toastWarning('最大值必须大于最小值');
       return;
     }
     // 过滤掉匹配值为空的规则，避免存入无效数据

@@ -1,15 +1,15 @@
 ﻿/**
  * Dashboard 最近告警(按级别分组,每组最多 3 条)
  */
-import { useMemo } from 'react';
-import { Button, Chip, Skeleton } from '@heroui/react';
-import { CheckCircleIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import { useApiMutation } from '@/hooks/common/useApiMutation';
-import { addToast } from '@heroui/react';
-import { ackAlarmEvent } from '@/services/alarms';
-import { formatRelativeTime } from '@/lib/format';
-import { ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS } from '@/lib/levelMeta';
-import type { AlarmEvent, AlarmLevel } from '@/types/api';
+import {useMemo} from 'react';
+import {Button, Chip, Skeleton} from '@heroui/react';
+import {CheckCircleIcon, ChevronRightIcon} from '@heroicons/react/24/outline';
+import {useApiMutation} from '@/hooks/common/useApiMutation';
+import {toastSuccess} from '@/lib/toast';
+import {ackAlarmEvent} from '@/services/alarmService';
+import {formatRelativeTime} from '@/lib/format';
+import {ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS} from '@/lib/levelMeta';
+import type {AlarmEvent, AlarmLevel} from '@/types/api';
 
 const LEVEL_ORDER: AlarmLevel[] = ['FATAL', 'CRITICAL', 'WARNING', 'INFO'];
 const PER_LEVEL_LIMIT = 3;
@@ -50,7 +50,7 @@ export default function RecentAlarms({
 
   const handleAck = (id: string) => {
     ackMutation.mutate(id, {
-      onSuccess: () => addToast({ title: '告警已确认', color: 'success' }),
+        onSuccess: () => toastSuccess('告警已确认'),
     });
   };
 

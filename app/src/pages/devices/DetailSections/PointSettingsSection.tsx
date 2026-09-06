@@ -1,4 +1,4 @@
-﻿import { useCallback, useMemo, useRef, useState } from 'react';
+﻿import {useCallback, useMemo, useRef, useState} from 'react';
 import {
   Button,
   Chip,
@@ -18,42 +18,39 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
-  addToast,
 } from '@heroui/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {
-  ChartBarIcon,
-  TrashIcon,
-  CheckCircleIcon,
-  XMarkIcon,
   Bars3Icon,
+  ChartBarIcon,
+  CheckCircleIcon,
   DocumentDuplicateIcon,
+  TrashIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { ValueMappingsCell } from '@/components/ui/ValueMappingsCell';
-import { PresetAddButtons } from '@/components/ui/PresetAddButtons';
-import {
-  getDevicePoints,
-  savePoint,
-  deletePoint,
-  sortDevicePoints,
-} from '@/services/device';
-import { useApiMutation } from '@/hooks/common/useApiMutation';
-import { chainToPromise } from '@/hooks/common/useQueryList';
-import type { AccessType, DataType, PointDefinition } from '@/types/api';
+import {ValueMappingsCell} from '@/components/ui/ValueMappingsCell';
+import {PresetAddButtons} from '@/components/ui/PresetAddButtons';
+import {deletePoint, getDevicePoints, savePoint, sortDevicePoints,} from '@/services/deviceService';
+import {useApiMutation} from '@/hooks/common/useApiMutation';
+import {chainToPromise} from '@/hooks/common/useQueryList';
+import type {AccessType, DataType, PointDefinition} from '@/types/api';
+import type {PointRow} from './pointUtils';
 import {
   ACCESS_LABELS,
   ACCESS_TYPES,
   ALL_PRESETS,
   DATA_TYPES,
-  POINT_PRESET_GROUPS,
   generateUniquePointCode,
   generateUniquePointName,
   isPointCodeConflict,
   parseValueMappings,
   pickRowFields,
+  POINT_PRESET_GROUPS,
   serializeValueMappings,
 } from './pointUtils';
-import type { PointRow } from './pointUtils';
+import {EditableSectionLayout} from '@/components/ui/common/EditableSectionLayout';
+import {PointSettingsCard} from './cards/PointSettingsCard';
+import {toastError, toastSuccess, toastWarning} from '@/lib/toast';
 
 const toRow = (p: PointDefinition): PointRow => ({
   _key: p.id,
@@ -96,9 +93,6 @@ const buildUpdatePayload = (
     precision: merged.precision ?? undefined,
   };
 };
-
-import { EditableSectionLayout } from '@/components/ui/common/EditableSectionLayout';
-import { PointSettingsCard } from './cards/PointSettingsCard';
 
 // 主组件
 export interface PointSettingsSectionProps {
@@ -149,9 +143,9 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
         ['points', deviceId],
         (prev) => (prev ?? []).map((p) => (p.id === pointId ? { ...p, ...saved } : p)),
       );
-      addToast({ title: '点位已保存', color: 'success' });
+      toastSuccess('点位已保存');
     } catch {
-      addToast({ title: '点位保存失败', color: 'danger' });
+      toastError('点位保存失败');
     } finally {
       setSavingKeys((prev) => {
         const next = new Set(prev);
@@ -331,9 +325,9 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
         ['points', deviceId],
         (prev) => (prev ?? []).filter((p) => p.id !== pointId),
       );
-      addToast({ title: '点位已删除', color: 'success' });
+      toastError('点位已删除');
     } catch {
-      addToast({ title: '删除失败', color: 'danger' });
+      toastWarning('删除失败');
     }
   }, [pointDeleteMutation, existingPoints, queryClient, deviceId]);
 
@@ -415,19 +409,15 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
     const target = newRows.find((r) => r._key === key);
     if (!target) return;
     if (!target.pointName.trim()) {
-      addToast({ title: '请填写点位名称', color: 'warning' });
+      toastWarning('请填写点位名称');
       return;
     }
     if (!target.pointCode.trim()) {
-      addToast({ title: '请填写点位编码（MQTT 标识）', color: 'warning' });
+      toastSuccess('请填写点位编码（MQTT 标识）');
       return;
     }
     if (isPointCodeConflict(target, existingPoints, newRows)) {
-      addToast({
-        title: `点位编码「${target.pointCode.trim()}」已存在`,
-        description: '同设备内 pointCode 必须唯一',
-        color: 'warning',
-      });
+      toastWarning(`点位编码「${target.pointCode.trim()}」已存在`, '同设备内 pointCode 必须唯一');
       return;
     }
     setSavingKeys((prev) => new Set(prev).add(key));
@@ -448,9 +438,9 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
         (prev) => [...(prev ?? []), saved],
       );
       setNewRows((prev) => prev.filter((r) => r._key !== key));
-      addToast({ title: `已保存点位：${saved.pointName}`, color: 'success' });
+      toastSuccess(`已保存点位：${saved.pointName}`);
     } catch {
-      addToast({ title: '点位保存失败', color: 'danger' });
+      toastError('点位保存失败');
     } finally {
       setSavingKeys((prev) => {
         const next = new Set(prev);
@@ -504,10 +494,10 @@ export default function PointSettingsSection({ deviceId, sectionRef }: PointSett
           return idx >= 0 ? { ...p, sortOrder: idx } : p;
         });
       });
-      addToast({ title: '排序已保存', color: 'success' });
+      toastSuccess('排序已保存');
       setManualOrder(null);
     } catch {
-      addToast({ title: '排序保存失败', color: 'danger' });
+      toastError('排序保存失败');
     }
   }, [manualOrder, deviceId, queryClient]);
 

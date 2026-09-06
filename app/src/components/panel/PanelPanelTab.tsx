@@ -1,24 +1,16 @@
-﻿import { useEffect, useRef, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Skeleton,
-  addToast,
-} from '@heroui/react';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
-import { getDevicePoints, getPanelConfig, savePanelConfig } from '@/services/device';
-import { chainToPromise } from '@/hooks/common/useQueryList';
-import { useBeforeUnload } from '@/hooks/common/useBeforeUnload';
-import type { PointDefinition } from '@/types/api';
+﻿import {useEffect, useRef, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Skeleton,} from '@heroui/react';
+import {toastError, toastSuccess, toastWarning} from '@/lib/toast';
+import {PencilSquareIcon} from '@heroicons/react/24/outline';
+import {getDevicePoints, getPanelConfig, savePanelConfig} from '@/services/deviceService';
+import {chainToPromise} from '@/hooks/common/useQueryList';
+import {useBeforeUnload} from '@/hooks/common/useBeforeUnload';
+import type {PointDefinition} from '@/types/api';
 import PanelRenderer from './PanelRenderer';
 import PanelEditor from './PanelEditor';
-import { parsePanelConfig, panelConfigSchema } from './types';
-import type { PanelConfig } from './types';
+import type {PanelConfig} from './types';
+import {panelConfigSchema, parsePanelConfig} from './types';
 
 /** 安全 JSON.stringify:序列化失败时返回固定哨兵字符串,避免脏值绕过 dirty 比较 */
 function safeStringify(value: unknown): string {
@@ -81,12 +73,12 @@ export default function PanelPanelTab({
       chainToPromise(savePanelConfig(deviceId, configObj as unknown as Record<string, unknown>)),
     onSuccess: () => {
       savedSnapshotRef.current = safeStringify(config);
-      addToast({ title: '面板已保存', color: 'success' });
+        toastSuccess('面板已保存');
       onEditingChange(false);
       queryClient.invalidateQueries({ queryKey: ['device.panel-config', deviceId] });
     },
     onError: () => {
-      addToast({ title: '保存失败，请稍后重试', color: 'danger' });
+        toastError('保存失败，请稍后重试');
     },
   });
 
@@ -97,11 +89,11 @@ export default function PanelPanelTab({
       (w) => (w.binding.kind === 'point' && !w.binding.pointCode) || !w.title.trim(),
     );
     if (invalid.length > 0) {
-      addToast({ title: `还有 ${invalid.length} 个组件未完成配置，请先应用后再保存`, color: 'warning' });
+        toastWarning(`还有 ${invalid.length} 个组件未完成配置，请先应用后再保存`);
       return;
     }
     if (!panelConfigSchema.safeParse(config).success) {
-      addToast({ title: '面板配置校验未通过，请检查组件配置', color: 'danger' });
+        toastError('面板配置校验未通过，请检查组件配置');
       return;
     }
     saveMutation.mutate(config);

@@ -1,7 +1,6 @@
 package com.vex.iot.domain.device;
 
 import com.vex.iot.common.config.DeviceCacheConfig;
-import com.vex.iot.domain.device.enums.DeviceOnline;
 import com.vex.iot.common.exception.ConflictException;
 import com.vex.iot.common.exception.NotFoundException;
 import com.vex.iot.common.model.TenantBaseEntity;
@@ -9,6 +8,7 @@ import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.common.util.UserContext;
+import com.vex.iot.domain.device.enums.DeviceOnline;
 import com.vex.iot.domain.device.event.*;
 import com.vex.iot.domain.device.exception.DeviceNotFoundException;
 import com.vex.iot.domain.device.model.DeviceEntity;
@@ -27,6 +27,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -155,6 +156,10 @@ public class DeviceService {
 
     public List<PointEntity> queryPoints(QueriesPageRequest req) {
         return JpaQueriesExecutor.of(PointEntity.class, entityManager).page(req);
+    }
+
+    public List<PointEntity> queryPoints(String tenantId, String deviceId, String pointName, int limit) {
+        return pointRepository.queryByTenantIdAndDeviceIdAndPointNameLike(tenantId, deviceId, "%" + pointName + "%", Limit.of(limit));
     }
 
     public long countPoints(QueriesPageRequest req) {

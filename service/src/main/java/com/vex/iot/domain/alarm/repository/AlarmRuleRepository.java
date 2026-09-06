@@ -9,4 +9,6 @@ public interface AlarmRuleRepository extends JpaRepository<AlarmRuleEntity, Stri
     List<AlarmRuleEntity> findByDeviceIdAndPointCodeAndEnabledTrue(String deviceId, String pointCode);
 
     List<AlarmRuleEntity> findByDeviceIdAndEnabledTrue(String deviceId);
+
+    List<AlarmRuleEntity> queryByTenantIdAndDeviceIdAndRuleNameLikeAndEnabled(String tenantId, String deviceId, String ruleName, Boolean enabled);
 }

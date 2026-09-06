@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { useAuthStore } from '@/stores/auth';
-import { API_BASE } from '@/lib/env';
+import {useEffect, useRef, useState} from 'react';
+import {useAuthStore} from '@/stores/authStore';
+import {API_BASE} from '@/lib/env';
 
 /**
  * SSE 事件载荷(handler 收到的 data 参数)。

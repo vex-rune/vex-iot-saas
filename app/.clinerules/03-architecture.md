@@ -101,8 +101,8 @@ export function getDevice(id: string) {
 
 **强制规则**:任何 UI(components/、pages/、hooks/ 里的 .tsx/.ts 涉及页面交互)调后端时,**必须走 service 层**,**禁止** `import from '@/api/...'`。
 
-- 即便是最简单的 `getDevice(id)` 也要走 `from '@/services/device'`(barrel re-export),保持单一入口,便于将来加埋点/缓存/重试。
-- 服务层文件即便暂时只是 re-export,**也**必须存在(`services/<domain>.ts`),用作语义隔离层。
+- 即便是最简单的 `getDevice(id)` 也要走 `from '@/services/deviceService'`(barrel re-export),保持单一入口,便于将来加埋点/缓存/重试。
+- 服务层文件即便暂时只是 re-export, **也**必须存在 (`services/<domain>Service.ts`),用作语义隔离层。
 - 允许例外:`services/` 内部互相调用、`services/` 调 `lib/api-client`、`api/` 内部互相 import(同模块)。**`api/``** 永远不对 UI 暴露。
 
 ## Hooks / Component 层契约

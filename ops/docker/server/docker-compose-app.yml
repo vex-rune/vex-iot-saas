@@ -1,0 +1,25 @@
+# Vex IoT Spring Boot 服务 — 独立启动
+# 前置条件: PostgreSQL 已启动 (docker-compose-pg.yml)
+# 启动: docker compose -f ops/docker/docker-compose-app.yml up -d
+# 停止: docker compose -f ops/docker/docker-compose-app.yml down
+
+version: "3.8"
+
+services:
+  app:
+    image: vex/iot-saas:latest
+    container_name: iot-service
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      PG_PASSWORD: ${PG_PASSWORD:-vex_postgres_OIAUSDF123LHJK907}
+      JWT_SECRET: ${JWT_SECRET:-vex_secret_SDFI3123FOUSDFWERFID8}
+      MIMO_API_KEY: ${MIMO_API_KEY:-}
+      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC"
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:18083/actuator/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

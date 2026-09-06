@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useViewModeStore } from '@/stores/viewMode';
+import {useEffect, useState} from 'react';
+import {useViewModeStore} from '@/stores/viewModeStore';
 
 /**
  * 订阅媒体查询。

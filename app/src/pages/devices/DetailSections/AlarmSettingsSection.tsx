@@ -1,6 +1,6 @@
-﻿import { EditableSectionLayout } from '@/components/ui/common/EditableSectionLayout';
-import { AlarmSettingsCard } from './cards/AlarmSettingsCard';
-import { useCallback, useMemo, useState } from 'react';
+﻿import {EditableSectionLayout} from '@/components/ui/common/EditableSectionLayout';
+import {AlarmSettingsCard} from './cards/AlarmSettingsCard';
+import {useCallback, useMemo, useState} from 'react';
 import {
   Button,
   Chip,
@@ -23,9 +23,8 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
-  addToast,
 } from '@heroui/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {
   BellIcon,
   CheckCircleIcon,
@@ -34,14 +33,15 @@ import {
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { getAlarmRulesByDevice, saveAlarmRule, deleteAlarmRule } from '@/services/alarms';
-import { ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS, ALARM_LEVEL_OPTIONS } from '@/lib/levelMeta';
-import { getDevicePoints } from '@/services/device';
-import { queryNotifyUsers } from '@/services/notifyUsers';
-import { useApiMutation } from '@/hooks/common/useApiMutation';
-import { chainToPromise } from '@/hooks/common/useQueryList';
-import { BatchProgressModal, type BatchTask } from '@/components/ui/common/BatchProgressModal';
-import type { AlarmLevel, AlarmRule, AlarmConditionType, NotifyUser, PointDefinition } from '@/types/api';
+import {deleteAlarmRule, getAlarmRulesByDevice, saveAlarmRule} from '@/services/alarmService';
+import {ALARM_LEVEL_COLORS, ALARM_LEVEL_LABELS, ALARM_LEVEL_OPTIONS} from '@/lib/levelMeta';
+import {getDevicePoints} from '@/services/deviceService';
+import {queryNotifyUsers} from '@/services/notifyUserService';
+import {useApiMutation} from '@/hooks/common/useApiMutation';
+import {chainToPromise} from '@/hooks/common/useQueryList';
+import {BatchProgressModal, type BatchTask} from '@/components/ui/common/BatchProgressModal';
+import type {AlarmConditionType, AlarmLevel, AlarmRule, NotifyUser, PointDefinition} from '@/types/api';
+import {toastError, toastSuccess, toastWarning} from '@/lib/toast';
 
 const CONDITION_OPTIONS: AlarmConditionType[] = ['GT', 'GE', 'LT', 'LE', 'EQ', 'NE', 'BETWEEN'];
 const CONDITION_DEFAULT_LABELS: Record<AlarmConditionType, string> = {
@@ -359,11 +359,7 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
       }
     }
     if (fail.length > 0) {
-      addToast({
-        title: '请补全必填/解决冲突',
-        description: fail.slice(0, 3).join('；') + (fail.length > 3 ? `…等 ${fail.length} 项` : ''),
-        color: 'warning',
-      });
+        toastWarning('请补全必填/解决冲突', fail.slice(0, 3).join('；') + (fail.length > 3 ? `…等 ${fail.length} 项` : ''));
       return;
     }
     setBatchTasks(buildTasks());
@@ -375,10 +371,10 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
       setPendingChanges(new Map());
       setDrafts([]);
       setDeletedIds(new Set());
-      addToast({ title: '全部保存成功', color: 'success' });
+        toastWarning('全部保存成功');
     } else {
       const ok = results.filter((r) => r.ok).length;
-      addToast({ title: `部分失败：成功 ${ok} / 共 ${results.length}`, color: 'warning' });
+        toastWarning(`部分失败：成功 ${ok} / 共 ${results.length}`);
     }
     queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
   };
@@ -471,6 +467,9 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
           {/* 移动端新增告警规则按钮 */}
           <div className="col-span-full">
             <Popover placement="bottom-end">
+                <PopoverTrigger>
+                    <Button size="sm" variant="flat">+ 添加规则</Button>
+                </PopoverTrigger>
               <PopoverContent>
                 <div className="flex flex-col gap-1">
                   <Button size="sm" variant="flat" className="justify-start"
@@ -625,10 +624,12 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
                             notifyUserIds: row.notifyUserIds,
                             ruleName: row.ruleName.trim() || undefined,
                           });
-                          addToast({ title: '规则已保存', color: 'success' });
+                            toastSuccess('规则已保存');
                           removeDraft(row._key);
                           queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
-                        } catch (e) { addToast({ title: `保存失败：${e instanceof Error ? e.message : String(e)}`, color: 'danger' }); }
+                        } catch (e) {
+                            toastError(`保存失败：${e instanceof Error ? e.message : String(e)}`);
+                        }
                       }}>
                       <CheckCircleIcon className="h-4 w-4" />
                     </Button>
@@ -663,10 +664,12 @@ export default function AlarmSettingsSection({ deviceId, sectionRef }: AlarmSett
                             notifyUserIds: eff.notifyUserIds,
                             ruleName: eff.ruleName.trim() || undefined,
                           });
-                          addToast({ title: '规则已更新', color: 'success' });
+                            toastSuccess('规则已更新');
                           discardRule(r.id);
                           queryClient.invalidateQueries({ queryKey: ['alarmRules.byDevice', deviceId] });
-                        } catch (e) { addToast({ title: `更新失败：${e instanceof Error ? e.message : String(e)}`, color: 'danger' }); }
+                        } catch (e) {
+                            toastError(`更新失败：${e instanceof Error ? e.message : String(e)}`);
+                        }
                       }}>
                       <CheckCircleIcon className="h-4 w-4" />
                     </Button>

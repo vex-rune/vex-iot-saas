@@ -1,23 +1,14 @@
 ﻿/** 设备详情 - 点位页签 - 合并视图(点位设置 + 实时数据)。 */
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Chip,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-} from '@heroui/react';
-import { getDevicePoints } from '@/services/device';
-import { chainToPromise } from '@/hooks/common/useQueryList';
-import { EntityCard, FieldRow } from '@/components/ui/EntityCard';
-import { useIsMobile } from '@/hooks/common/useMediaQuery';
-import { useRealtimePointsList } from '@/services/deviceData';
-import { formatRelativeTime } from '@/lib/format';
-import type { PointDefinition } from '@/types/api';
+import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {Chip, Skeleton, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow,} from '@heroui/react';
+import {getDevicePoints} from '@/services/deviceService';
+import {chainToPromise} from '@/hooks/common/useQueryList';
+import {EntityCard, FieldRow} from '@/components/ui/EntityCard';
+import {useIsMobile} from '@/hooks/common/useMediaQuery';
+import {useRealtimePointsList} from '@/services/deviceDataService';
+import {formatRelativeTime} from '@/lib/format';
+import type {PointDefinition} from '@/types/api';
 
 const ACCESS_LABELS: Record<'RO' | 'RW', string> = { RO: '只读', RW: '读写' };
 

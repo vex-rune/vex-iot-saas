@@ -1,13 +1,14 @@
 package com.vex.iot.domain.alarm;
 
-import com.vex.iot.domain.alarm.enums.AlarmAckStatus;
-import com.vex.iot.domain.alarm.enums.EventStatus;
 import com.vex.iot.common.exception.NotFoundException;
 import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.queries.jpa.JpaQueriesExecutor;
 import com.vex.iot.common.util.IdGenerator;
 import com.vex.iot.common.util.UserContext;
+import com.vex.iot.domain.alarm.enums.AlarmAckStatus;
+import com.vex.iot.domain.alarm.enums.AlarmLevel;
+import com.vex.iot.domain.alarm.enums.EventStatus;
 import com.vex.iot.domain.alarm.event.AlarmTriggeredEvent;
 import com.vex.iot.domain.alarm.exception.AlarmRuleNotFoundException;
 import com.vex.iot.domain.alarm.model.AlarmLogEntity;
@@ -26,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -96,6 +98,19 @@ public class AlarmService {
     }
 
     /**
+     * 分页查询预警规则。
+     */
+    public List<AlarmRuleEntity> queryRules(
+            String tenantId,
+            String deviceId,
+            String ruleName,
+            Boolean enabled) {
+        return ruleRepo.queryByTenantIdAndDeviceIdAndRuleNameLikeAndEnabled(
+                tenantId, deviceId, "%" + ruleName + "%", enabled
+        );
+    }
+
+    /**
      * 统计预警规则数量。
      */
     public long countRules(QueriesPageRequest req) {
@@ -125,11 +140,33 @@ public class AlarmService {
     }
 
     /**
+     * 分页查询预警事件。
+     */
+    public List<AlarmLogEntity> queryEvents(
+            String tenantId,
+            String deviceId,
+            AlarmLevel level,
+            EventStatus eventStatus) {
+        return eventRepo.queryByTenantIdAndDeviceIdAndLevelAndEventStatusOrderByTriggeredAtDesc(tenantId, deviceId, level, eventStatus, Limit.of(20));
+    }
+
+    /**
      * 统计预警事件数量。
      */
     public long countEvents(QueriesPageRequest req) {
         return JpaQueriesExecutor.of(AlarmLogEntity.class, entityManager).count(
                 req != null ? req.getPredicate() : null);
+    }
+
+    /**
+     * 统计预警事件数量。
+     */
+    public long countEvents(
+            String tenantId,
+            String deviceId,
+            AlarmLevel level,
+            EventStatus eventStatus) {
+        return eventRepo.countByTenantIdAndDeviceIdAndLevelAndEventStatus(tenantId, deviceId, level, eventStatus);
     }
 
     /**

@@ -1,29 +1,31 @@
 /**
  * Dashboard 设备搜索 hook:
- * - 输入即时态(本地) + 提交态(触发后端查询)
+ * - 输入即时态(本地) + debounce 300ms 自动提交(触发后端查询)
  * - 关键词推 predicate 到后端(覆盖全量,不受 size 限制)
  */
-import { useState } from 'react';
-import type { Predicate } from '@/types/api';
+import {useEffect, useState} from 'react';
+import type {Predicate} from '@/types/api';
 
 export interface DeviceSearchValue {
   input: string;
   applied: string;
   setInput: (v: string) => void;
-  setApplied: (v: string) => void;
-  submit: () => void;
   reset: () => void;
 }
 
 export function useDeviceSearch(): DeviceSearchValue {
   const [input, setInput] = useState('');
   const [applied, setApplied] = useState('');
+
+    useEffect(() => {
+        const t = setTimeout(() => setApplied(input.trim()), 300);
+        return () => clearTimeout(t);
+    }, [input]);
+
   return {
     input,
     setInput,
     applied,
-    setApplied,
-    submit: () => setApplied(input.trim()),
     reset: () => {
       setInput('');
       setApplied('');

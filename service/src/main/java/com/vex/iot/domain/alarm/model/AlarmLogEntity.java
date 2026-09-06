@@ -1,10 +1,10 @@
 package com.vex.iot.domain.alarm.model;
 
+import com.vex.iot.common.model.SnowflakeId;
+import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.domain.alarm.enums.AlarmAckStatus;
 import com.vex.iot.domain.alarm.enums.AlarmLevel;
 import com.vex.iot.domain.alarm.enums.EventStatus;
-import com.vex.iot.common.model.SnowflakeId;
-import com.vex.iot.common.model.TenantBaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -29,6 +29,7 @@ public class AlarmLogEntity extends TenantBaseEntity {
     private String id;
 
     /// 事件来源：DEVICE-设备级 / POINT-点位级
+    @Enumerated(EnumType.STRING)
     @Column(name = "event_source")
     private AlarmRuleEntity.AlarmRuleSource source;
 

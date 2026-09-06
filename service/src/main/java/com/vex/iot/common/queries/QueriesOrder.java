@@ -2,7 +2,9 @@ package com.vex.iot.common.queries;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.vex.iot.common.config.IEnum;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -11,6 +13,8 @@ import java.io.Serializable;
  * 排序条件
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class QueriesOrder implements Serializable {
 
     @Serial

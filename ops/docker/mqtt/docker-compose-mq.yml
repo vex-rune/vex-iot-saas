@@ -1,0 +1,30 @@
+# EMQX MQTT Broker — 独立启动
+# 启动: docker compose -f ops/docker/docker-compose-mq.yml up -d
+# 停止: docker compose -f ops/docker/docker-compose-mq.yml down
+
+version: "3.8"
+
+services:
+  emqx:
+    image: emqx/emqx:5.8
+    container_name: iot-emqx
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "18083:18083"
+    volumes:
+      - /app/emqx/data:/opt/emqx/data
+      - /app/emqx/log:/opt/emqx/log
+    environment:
+      EMQX_NAME: iot-emqx
+      EMQX_HOST: 127.0.0.1
+      EMQX_DASHBOARD__DEFAULT_USERNAME: vex_admin
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: vex_admin_SDFI3FOUID8
+      EMQX_LISTENERS__TCP__DEFAULT__BIND: "0.0.0.0:1883"
+    healthcheck:
+      test: [ "CMD", "emqx", "ctl", "status" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

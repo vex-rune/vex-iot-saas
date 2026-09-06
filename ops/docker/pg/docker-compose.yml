@@ -1,0 +1,25 @@
+# PostgreSQL — 独立启动
+# 启动: docker compose -f ops/docker/docker-compose-pg.yml up -d
+# 停止: docker compose -f ops/docker/docker-compose-pg.yml down
+
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: iot-test-postgres
+    restart: unless-stopped
+    ports:
+      - "15432:5432"
+    volumes:
+      - /app/pg/data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: iot_saas
+      POSTGRES_USER: vex_postgres
+      POSTGRES_PASSWORD: vex_postgres_OIAUSDF123LHJK907
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U vex_postgres -d ${PG_DB:-iot_saas}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

@@ -1,34 +1,16 @@
-﻿import { EditableSectionLayout } from '@/components/ui/common/EditableSectionLayout';
-import { PointScheduleCard } from './cards/PointScheduleCard';
-import { useCallback, useMemo, useState } from 'react';
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  addToast,
-} from '@heroui/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ClockIcon,
-} from '@heroicons/react/24/outline';
-import {
-  listDeviceSchedules,
-  saveSchedule,
-  deleteSchedule,
-} from '@/services/schedules';
-import { getDevicePoints } from '@/services/device';
-import { useApiMutation } from '@/hooks/common/useApiMutation';
-import { chainToPromise } from '@/hooks/common/useQueryList';
-import { BatchProgressModal, type BatchTask } from '@/components/ui/common/BatchProgressModal';
-import type {
-  DataType,
-  DeviceSchedule,
-  DeviceScheduleDetail,
-  PointDefinition,
-} from '@/types/api';
+import {EditableSectionLayout} from '@/components/ui/common/EditableSectionLayout';
+import {PointScheduleCard} from './cards/PointScheduleCard';
+import {useCallback, useMemo, useState} from 'react';
+import {Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader,} from '@heroui/react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {ClockIcon,} from '@heroicons/react/24/outline';
+import {deleteSchedule, listDeviceSchedules, saveSchedule,} from '@/services/scheduleService';
+import {getDevicePoints} from '@/services/deviceService';
+import {useApiMutation} from '@/hooks/common/useApiMutation';
+import {chainToPromise} from '@/hooks/common/useQueryList';
+import {BatchProgressModal, type BatchTask} from '@/components/ui/common/BatchProgressModal';
+import type {DataType, DeviceSchedule, DeviceScheduleDetail, PointDefinition,} from '@/types/api';
+import {toastError, toastSuccess, toastWarning} from '@/lib/toast';
 
 // ── Action 草稿（与点位设置对齐的 _key 本地唯一标识） ──
 export type ActionDraft = {
@@ -319,11 +301,7 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
       if (d.actions.length === 0) fail.push(`${d.name || '未命名规则'}：至少添加一个动作`);
     }
     if (fail.length > 0) {
-      addToast({
-        title: '请补全必填项',
-        description: fail.slice(0, 3).join('；') + (fail.length > 3 ? `…等 ${fail.length} 项` : ''),
-        color: 'warning',
-      });
+        toastWarning('请补全必填项', fail.slice(0, 3).join('；') + (fail.length > 3 ? `…等 ${fail.length} 项` : ''));
       return;
     }
     setBatchTasks(buildTasks());
@@ -335,10 +313,10 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
       setPendingChanges(new Map());
       setDrafts([]);
       setDeletedIds(new Set());
-      addToast({ title: '全部保存成功', color: 'success' });
+        toastWarning('全部保存成功');
     } else {
       const ok = results.filter((r) => r.ok).length;
-      addToast({ title: `部分失败：成功 ${ok} / 共 ${results.length}`, color: 'warning' });
+        toastSuccess(`部分失败：成功 ${ok} / 共 ${results.length}`);
     }
     queryClient.invalidateQueries({ queryKey: ['schedules.list.byDevice', deviceId] });
   };
@@ -457,12 +435,12 @@ export default function PointScheduleSection({ deviceId, sectionRef }: PointSche
                         })),
                       },
                     });
-                    addToast({ title: '规则已更新', color: 'success' });
+                      toastError('规则已更新');
                     discardSched(s.id!);
                     queryClient.invalidateQueries({ queryKey: ['schedules.list.byDevice', deviceId] });
                   } catch (e) {
                     const msg = e instanceof Error ? e.message : String(e);
-                    addToast({ title: `更新失败：${msg}`, color: 'danger' });
+                      toastError(`更新失败：${msg}`);
                   }
                 }}
                 onDiscard={() => isNew ? removeDraftAt(row.idx!) : discardSched(row.id)}

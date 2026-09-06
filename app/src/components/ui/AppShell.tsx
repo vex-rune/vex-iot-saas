@@ -1,9 +1,5 @@
-﻿import { useEffect, useState } from 'react';
-import {
-  Outlet,
-  NavLink,
-  useNavigate,
-} from 'react-router-dom';
+﻿import {useEffect, useState} from 'react';
+import {NavLink, Outlet, useNavigate,} from 'react-router-dom';
 import {
   Avatar,
   Button,
@@ -23,26 +19,28 @@ import {
   Tooltip,
 } from '@heroui/react';
 import {
+  ArrowPathIcon,
   BellIcon,
+  BuildingOfficeIcon,
   ChartBarIcon,
   ComputerDesktopIcon,
   CpuChipIcon,
   DevicePhoneMobileIcon,
+  DocumentDuplicateIcon,
+  GlobeAltIcon,
   MoonIcon,
   PowerIcon,
   SunIcon,
   UsersIcon,
-  GlobeAltIcon,
-  BuildingOfficeIcon,
-  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
-import { useAuthStore } from '@/stores/auth';
-import { useThemeStore } from '@/stores/theme';
-import { useViewModeStore, type ViewMode } from '@/stores/viewMode';
-import { APP_TITLE, OFFICIAL_URL } from '@/lib/env';
-import { isAdmin, isSuperAdmin } from '@/lib/perm';
-import { BrandLogo } from '@/components/ui/BrandLogo';
+import {useAuthStore} from '@/stores/authStore';
+import {useThemeStore} from '@/stores/themeStore';
+import {useViewModeStore, type ViewMode} from '@/stores/viewModeStore';
+import {APP_TITLE, OFFICIAL_URL} from '@/lib/env';
+import {isAdmin, isSuperAdmin} from '@/lib/perm';
+import {BrandLogo} from '@/components/ui/BrandLogo';
 import TenantSwitcher from '@/components/ui/TenantSwitcher';
+import ChatPanel from '@/components/chat/ChatPanel';
 
 interface NavItem {
   to: string;
@@ -55,6 +53,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: '控制台', icon: ChartBarIcon },
   { to: '/devices', label: '设备管理', icon: CpuChipIcon },
+    {to: '/templates', label: '模版管理', icon: DocumentDuplicateIcon, adminOnly: 'super'},
   { to: '/alarms/events', label: '警告信息', icon: BellIcon },
   { to: '/notify-users', label: '通知', icon: UsersIcon },
   // 仅 SUPER_ADMIN 可见的菜单 — 后端 @PreAuthorize 二次把关
@@ -267,6 +266,9 @@ export default function AppShell() {
           <div className="flex-1"><Outlet /></div>
         </main>
       </div>
+
+        {/* AI 对话浮窗 */}
+        <ChatPanel/>
 
       {/* 移动端底部 Tab Bar */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-divider bg-content1 md:hidden">

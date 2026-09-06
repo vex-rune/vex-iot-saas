@@ -64,4 +64,11 @@ public class QueriesPageRequest implements Serializable {
         }
     }
 
+    public void withTenantFilter(String tenantId) throws BadRequestException {
+        tenantId = UserContext.tenantId().orElse(tenantId);
+        if (!TenantBaseEntity.DEFAULT_TENANT_ID.equals(tenantId)) {
+            addAndCondition(QueriesCondition.of(TenantBaseEntity.TENANT_ID_FIELD_NAME, QueriesOperatorEnum.eq, tenantId));
+        }
+    }
+
 }

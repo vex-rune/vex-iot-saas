@@ -186,6 +186,23 @@ export type DeviceOnlineStatus = 'ONLINE' | 'OFFLINE';
 export type AccessType = 'RO' | 'RW';
 export type RegisterType = 'STATIC' | 'DYNAMIC';
 
+/** 网关类型枚举 — 对齐后端 GatewayType */
+export type GatewayType = 'USR_G771' | 'USR_G771_EDGE' | 'MODBUS_TCP' | 'MQTT_DIRECT' | 'OTHER';
+
+/** 网关类型显示名映射 */
+export const GATEWAY_TYPE_LABELS: Record<GatewayType, string> = {
+    USR_G771: '有人G771透传',
+    USR_G771_EDGE: '有人G771边缘计算',
+    MODBUS_TCP: 'Modbus TCP',
+    MQTT_DIRECT: 'MQTT直连',
+    OTHER: '其他',
+};
+
+export const GATEWAY_TYPE_OPTIONS = Object.entries(GATEWAY_TYPE_LABELS).map(([value, label]) => ({
+    value: value as GatewayType,
+    label
+}));
+
 /**
  * openapi v2 DataEntity.dataType 枚举从 4 值扩到 5 值:
  * BOOL(0/1 布尔) / INT(整型) / FLOAT / DOUBLE / STRING
@@ -200,6 +217,9 @@ export interface Device extends BaseEntity {
   id: string;
   deviceName: string;
   gatewayId?: string;
+    gatewayType?: GatewayType;
+    templateId?: string;
+    templateSyncEnabled?: boolean;
   enabled?: boolean;
   online?: DeviceOnlineStatus;
   level1Tag?: string;
@@ -234,6 +254,21 @@ export interface DevicePanelConfig {
   updateId?: string;
   state?: number;
   tenantId?: string;
+}
+
+/** 设备模版实体 — 对齐后端 DeviceTemplateEntity */
+export interface DeviceTemplate extends BaseEntity {
+    id: string;
+    templateName?: string;
+    description?: string;
+    gatewayType?: GatewayType;
+    /** JSON: 点位配置快照 */
+    pointConfig?: string;
+    /** JSON: 定时控制配置快照 */
+    scheduleConfig?: string;
+    /** JSON: 面板配置快照 */
+    panelConfig?: string;
+    enabled?: boolean;
 }
 
 /** 点位定义 — GET /api/devices/{id}/points 与 /api/devices/points */

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 import {
   Button,
   Modal,
@@ -9,14 +9,10 @@ import {
   Radio,
   RadioGroup,
   Spinner,
-  addToast,
 } from '@heroui/react';
-import {
-  fetchAvailableTenants,
-  switchTenant,
-  type AvailableTenant,
-} from '@/services/auth';
-import { useAuthStore } from '@/stores/auth';
+import {toastError, toastSuccess, toastWarning} from '@/lib/toast';
+import {type AvailableTenant, fetchAvailableTenants, switchTenant,} from '@/services/authService';
+import {useAuthStore} from '@/stores/authStore';
 
 interface TenantSwitcherProps {
   isOpen: boolean;
@@ -55,9 +51,15 @@ export default function TenantSwitcher({ isOpen, onOpenChange }: TenantSwitcherP
         const cur = (data ?? []).find((t) => t.current);
         setSelected(cur?.id ?? data?.[0]?.id ?? null);
       },
-      onBizError: () => setTenants([]),
-      onHttpError: () => setTenants([]),
-    }).then(() => setLoading(false));
+        onBizError: () => {
+            setTenants([]);
+            setLoading(false);
+        },
+        onHttpError: () => {
+            setTenants([]);
+            setLoading(false);
+        },
+    });
     // 这里故意不让 fetchAvailableTenants 的返回值参与 deps,它自身稳定
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -65,7 +67,7 @@ export default function TenantSwitcher({ isOpen, onOpenChange }: TenantSwitcherP
   const handleSwitch = () => {
     if (!selected) return;
     if (!refreshToken) {
-      addToast({ title: '登录状态已失效,请重新登录', color: 'warning' });
+        toastWarning('登录状态已失效,请重新登录');
       return;
     }
     setSwitching(true);
@@ -78,12 +80,12 @@ export default function TenantSwitcher({ isOpen, onOpenChange }: TenantSwitcherP
           if (data?.accessToken && data?.refreshToken) {
             setTokens(data.accessToken, data.refreshToken);
             setTenantId(selected!);
-            addToast({ title: '租户已切换,正在刷新页面...', color: 'success' });
+              toastSuccess('租户已切换,正在刷新页面...');
             // 简单粗暴:全页面刷新,所有订阅/缓存全部重连
             setTimeout(() => window.location.reload(), 200);
           } else {
             setSwitching(false);
-            addToast({ title: '切换失败,响应数据异常', color: 'danger' });
+              toastError('切换失败,响应数据异常');
           }
         },
         onBizError: () => setSwitching(false),
