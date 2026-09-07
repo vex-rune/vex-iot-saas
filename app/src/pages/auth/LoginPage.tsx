@@ -354,7 +354,7 @@ export default function Login() {
                         {/* 大屏顶部标题 */}
                         <div className="mb-7 hidden flex-col gap-2 lg:flex">
                             <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                                {isAdminMode ? '管理员登录' : '欢迎回来 👋'}
+                                {isAdminMode ? '管理员登录' : '欢迎回归 👋'}
                             </h1>
                             <p className="text-sm text-foreground-500">
                                 {isAdminMode
