@@ -121,17 +121,25 @@ jobs:
             pgrep -f "vex-iot-server.jar" && echo "✅ 进程已启动" || tail -30 logs/startup.log
           REMOTE_EOF
 
-      - name: 🏥 健康检查
+      - name: 🏥 服务器内部健康检查
         run: |
-          for i in $(seq 1 12); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' http://${{ vars.ECS_IP }}:${{ env.CONTAINER_PORT }}/actuator/health || echo "000")
-            echo "  ($i/12) HTTP $CODE"
-            if [[ "$CODE" == "200" ]]; then
-              echo "✅ 健康检查通过"
-              exit 0
+          ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ vars.ECS_IP }} << 'REMOTE_HEALTH'
+            cd /app/vex-iot-server
+            PORT=18083
+            OK=0
+            for i in $(seq 1 12); do
+              CODE=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT}/actuator/health || echo "000")
+              echo "  ($i/12) LOCAL HTTP $CODE"
+              if [[ "$CODE" == "200" ]]; then
+                echo "✅ 健康检查通过"
+                OK=1
+                break
+              fi
+              sleep 5
+            done
+            if [[ ${OK} -ne 1 ]]; then
+              echo "❌ 健康检查失败，打印启动日志"
+              tail -80 logs/startup.log
+              exit 1
             fi
-            sleep 5
-          done
-          echo "❌ 健康检查失败，拉取启动日志："
-          ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ vars.ECS_IP }} "tail -80 /app/vex-iot-server/logs/startup.log"
-          exit 1
+          REMOTE_HEALTH

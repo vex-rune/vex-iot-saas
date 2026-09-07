@@ -92,17 +92,3 @@ jobs:
         run: |
           REMOTE_PATH="/app/vex-iot"
           scp -i .ssh/id_rsa -r -q -o StrictHostKeyChecking=no ./dist/* root@${{ vars.ECS_IP }}:"${REMOTE_PATH}/"
-
-      - name: 🏥 Frontend health check
-        run: |
-          sleep 2
-          for i in $(seq 1 8); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 8 http://${{ vars.ECS_IP }} || echo "000")
-            echo "($i/8) Response HTTP $CODE"
-            if [[ "$CODE" == "200" ]]; then
-              echo "✅ Frontend deploy completed successfully"
-              exit 0
-            fi
-            sleep 4
-          done
-          echo "⚠️ Health check skip warning: Web server may not ready, files already uploaded"
