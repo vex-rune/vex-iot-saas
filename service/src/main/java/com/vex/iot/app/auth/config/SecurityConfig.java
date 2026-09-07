@@ -14,7 +14,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
@@ -30,29 +29,6 @@ import java.util.List;
 @EnableMethodSecurity
 @EnableConfigurationProperties({SecurityProperties.class, BootstrapProperties.class, TotpProperties.class})
 public class SecurityConfig {
-
-    /**
-     * CORS 配置 — {@code allowAll()} 形态：任意来源、常用方法、所有请求头、跨域凭据关闭。
-     *
-     * <p>
-     * 与
-     * 中的 {@code http.cors(c -> {})} 配合启用 Spring Security 的 CORS 过滤器。
-     */
-    @Bean
-    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration cfg = new CorsConfiguration();
-        // allowedOriginPatterns 支持通配符；allowedOrigins 不允许 "*" 与 allowCredentials=true 同时
-        cfg.setAllowedOriginPatterns(List.of("*"));
-        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
-        cfg.setAllowCredentials(false);
-        cfg.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return source;
-    }
 
     /**
      * 认证管理器
