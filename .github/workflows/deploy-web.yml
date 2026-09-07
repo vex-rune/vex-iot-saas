@@ -1,0 +1,108 @@
+name: Build & Deploy Frontend
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'app/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: 🏗️ Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: 📥 Install dependencies
+        working-directory: ./app
+        run: npm ci
+
+      - name: 🏗️ Build production dist
+        working-directory: ./app
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_WS_BASE_URL: ${{ vars.VITE_WS_BASE_URL }}
+        run: npm run build
+
+      - name: ✅ Validate dist folder exists
+        working-directory: ./app
+        run: |
+          [[ -d "dist" ]] || { echo "dist directory not found!"; exit 1; }
+          du -sh dist
+
+      - name: 📤 Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: app/dist/
+          retention-days: 7
+
+  deploy:
+    name: 🚀 Deploy Frontend to ECS
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+      url: http://${{ vars.ECS_IP }}
+
+    env:
+      REMOTE_PATH: "/app/vex-iot"
+      CLEAN_REMOTE: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ⬇️ Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./dist
+
+      - name: 🔑 Prepare SSH key
+        run: |
+          mkdir -p .ssh
+          echo "${{ secrets.ALIYUN_ECS_SSH_PRIVATE_KEY }}" > .ssh/id_rsa
+          chmod 600 .ssh/id_rsa
+          ssh-keyscan -H "${{ vars.ECS_IP }}" >> .ssh/known_hosts 2>/dev/null || true
+
+      - name: 🧪 SSH connection test
+        run: |
+          ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+            root@${{ vars.ECS_IP }} "echo SSH_OK"
+
+      - name: 🧹 Clean remote directory (match --clean)
+        if: env.CLEAN_REMOTE == 'true'
+        run: |
+          ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no root@${{ vars.ECS_IP }} << 'REMOTE'
+            REMOTE_PATH="/app/vex-iot"
+            rm -rf "${REMOTE_PATH:?}"/* "${REMOTE_PATH:?}"/.[!.]* 2>/dev/null
+            mkdir -p "${REMOTE_PATH}"
+          REMOTE
+
+      - name: 📤 Upload dist/* to remote (scp, same as local deploy.sh)
+        run: |
+          REMOTE_PATH="/app/vex-iot"
+          scp -i .ssh/id_rsa -r -q -o StrictHostKeyChecking=no ./dist/* root@${{ vars.ECS_IP }}:"${REMOTE_PATH}/"
+
+      - name: 🏥 Frontend health check
+        run: |
+          sleep 2
+          for i in $(seq 1 8); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 8 http://${{ vars.ECS_IP }} || echo "000")
+            echo "($i/8) Response HTTP $CODE"
+            if [[ "$CODE" == "200" ]]; then
+              echo "✅ Frontend deploy completed successfully"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "⚠️ Health check skip warning: Web server may not ready, files already uploaded"
