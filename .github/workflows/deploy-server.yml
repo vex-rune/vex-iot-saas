@@ -6,7 +6,7 @@ on:
       - 'release/*'
     paths:
       - 'service/**'
-      - '.github/workflows/deploy.yml'
+      - 'deploy-server.yml'
   workflow_dispatch:
     inputs:
       env:
