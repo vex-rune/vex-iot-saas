@@ -1,5 +1,4 @@
 name: Deploy to Production
-
 on:
   push:
     branches:
@@ -15,7 +14,7 @@ on:
         required: true
         default: 'prod'
         type: choice
-        options: [ dev, prod ]
+        options: [dev, prod]
 
 env:
   REMOTE_DIR: /app/vex-iot-server
@@ -26,7 +25,6 @@ jobs:
   build:
     name: 🏗️ Maven Build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -103,52 +101,52 @@ jobs:
             sftp -o Compression=yes -i $GITHUB_WORKSPACE/.ssh/id_rsa root@127.0.0.1 << SFTP_EOF
               put $GITHUB_WORKSPACE/service/target/iot-saas.jar.gz vex-iot-server.jar.gz
               bye
-  SFTP_EOF
-  EOF
+            SFTP_EOF
+          EOF
 
-- name: 📦 解压
-  run: |
-    ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << 'EOF'
-      cd /app/vex-iot-server
-      gunzip -f vex-iot-server.jar.gz
-    EOF
+      - name: 📦 解压
+        run: |
+          ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << 'EOF'
+            cd /app/vex-iot-server
+            gunzip -f vex-iot-server.jar.gz
+          EOF
 
-- name: 🚀 启动服务
-  env:
-    SPRING_PROFILES_ACTIVE: prod
-    # PG/MQTT/JWT 密码 (从变量读取)
-    PG_PASSWORD: ${{ vars.PG_PASSWORD }}
-    MQTT_PASSWORD: ${{ vars.MQTT_PASSWORD }}
-    TOTP_SECRET: ${{ vars.TOTP_SECRET }}
-    JWT_SECRET: ${{ vars.TOTP_SECRET }}32bytes-padding-must-be-long-enough
-    # AI Key (从变量读取)
-    MIMO_API_KEY: ${{ vars.MIMO_API_KEY }}
-    MINIMAX_API_KEY: ${{ vars.MINIMAX_API_KEY }}
-  run: |
-    ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << 'EOF'
-      cd /app/vex-iot-server
-      nohup java \
-        -Xms512m -Xmx1024m -XX:+UseG1GC \
-        -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
-        -DPG_PASSWORD="${PG_PASSWORD}" \
-        -DMQTT_PASSWORD="${MQTT_PASSWORD}" \
-        -DJWT_SECRET="${JWT_SECRET}" \
-        -DTOTP_SECRET="${TOTP_SECRET}" \
-        -DMIMO_API_KEY="${MIMO_API_KEY}" \
-        -DMINIMAX_API_KEY="${MINIMAX_API_KEY}" \
-        -jar vex-iot-server.jar \
-        > logs/startup.log 2>&1 &
-      sleep 10
-      pgrep -f "vex-iot-server.jar" || tail -30 logs/startup.log
-    EOF
+      - name: 🚀 启动服务
+        env:
+          SPRING_PROFILES_ACTIVE: prod
+          # PG/MQTT/JWT 密码 (从变量读取)
+          PG_PASSWORD: ${{ vars.PG_PASSWORD }}
+          MQTT_PASSWORD: ${{ vars.MQTT_PASSWORD }}
+          TOTP_SECRET: ${{ vars.TOTP_SECRET }}
+          JWT_SECRET: ${{ vars.TOTP_SECRET }}
+          # AI Key (从变量读取)
+          MIMO_API_KEY: ${{ vars.MIMO_API_KEY }}
+          MINIMAX_API_KEY: ${{ vars.MINIMAX_API_KEY }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << 'EOF'
+            cd /app/vex-iot-server
+            nohup java \
+              -Xms512m -Xmx1024m -XX:+UseG1GC \
+              -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
+              -DPG_PASSWORD="${PG_PASSWORD}" \
+              -DMQTT_PASSWORD="${MQTT_PASSWORD}" \
+              -DJWT_SECRET="${JWT_SECRET}" \
+              -DTOTP_SECRET="${TOTP_SECRET}" \
+              -DMIMO_API_KEY="${MIMO_API_KEY}" \
+              -DMINIMAX_API_KEY="${MINIMAX_API_KEY}" \
+              -jar vex-iot-server.jar \
+              > logs/startup.log 2>&1 &
+            sleep 10
+            pgrep -f "vex-iot-server.jar" || tail -30 logs/startup.log
+          EOF
 
-- name: 🏥 健康检查
-  run: |
-    for i in 1 2 3 4 5 6 7 8 9 10; do
-      CODE=$(curl -s -o /dev/null -w '%{http_code}' http://${{ env.ECS_IP }}:${{ env.CONTAINER_PORT }}/actuator/health || echo "000")
-      echo "  ($i/10) HTTP $CODE"
-      if [[ "$CODE" == "200" ]]; then exit 0; fi
-      sleep 5
-    done
-    ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} "tail -50 /app/vex-iot-server/logs/startup.log"
-    exit 1
+      - name: 🏥 健康检查
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' http://${{ env.ECS_IP }}:${{ env.CONTAINER_PORT }}/actuator/health || echo "000")
+            echo "  ($i/10) HTTP $CODE"
+            if [[ "$CODE" == "200" ]]; then exit 0; fi
+            sleep 5
+          done
+          ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} "tail -50 /app/vex-iot-server/logs/startup.log"
+          exit 1
