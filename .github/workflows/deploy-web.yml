@@ -24,7 +24,7 @@ jobs:
 
       - name: 📥 Install dependencies
         working-directory: ./app
-        run: npm build
+        run: npm i
 
       - name: 🏗️ Build production dist
         working-directory: ./app
