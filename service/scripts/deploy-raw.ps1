@@ -61,9 +61,9 @@ if (-not (Test-Path $jarPath))
 # Step 2: 传输
 Write-Host "[DEPLOY] Step 2/3: 传输 JAR..." -Fore Cyan
 $jarSize = [math]::Round((Get-Item $jarPath).Length / 1MB, 1)
-Write-Host "  📦 文件大小: ${jarSize} MB" -Fore Cyan
+Write-Host "  📦 传输 ${jarSize} MB → ${ECS_IP}:${REMOTE_DIR}/" -Fore Cyan
 & ssh -i $SSH_KEY $SSH_OPTS root@$ECS_IP "mkdir -p $REMOTE_DIR/logs"
-& scp -v -i $SSH_KEY $SSH_OPTS $jarPath "root@${ECS_IP}:${REMOTE_DIR}/vex-iot-server.jar" 2>&1 | Select-String -Pattern "sent|received|transferred|Total" | ForEach-Object { Write-Host "  $_" -Fore Gray }
+& scp -i $SSH_KEY $SSH_OPTS $jarPath "root@${ECS_IP}:${REMOTE_DIR}/vex-iot-server.jar"
 Write-Host "[  OK ] 传输完成" -Fore Green
 
 # Step 3: 重启

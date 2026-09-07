@@ -35,6 +35,7 @@ fi
 HOST=""
 SKIP_BUILD=false
 DRY_RUN=false
+CLEAN=false
 SSH_KEY="$USER_HOME/.ssh/id_rsa"
 REMOTE_PATH="/app/vex-iot"
 
@@ -43,10 +44,12 @@ while [[ $# -gt 0 ]]; do
         --host)        HOST="$2";       shift 2 ;;
         --skip-build)  SKIP_BUILD=true; shift   ;;
         --dry-run)     DRY_RUN=true;    shift   ;;
+        --clean)       CLEAN=true;      shift   ;;
         --key)         SSH_KEY="$2";    shift 2 ;;
         --remote)      REMOTE_PATH="$2"; shift 2 ;;
         -h|--help)
-            echo "用法: $0 [--host IP] [--skip-build] [--dry-run] [--key PATH]"
+            echo "用法: $0 [--host IP] [--skip-build] [--dry-run] [--clean] [--key PATH]"
+            echo "  --clean    上传前清空远程目录(删除旧文件,确保 hash 资源完全替换)"
             exit 0 ;;
         *) fail "未知参数: $1" ;;
     esac
@@ -96,7 +99,14 @@ ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
     || fail "SSH 连接失败，请检查密钥和网络"
 ok "SSH 连接正常"
 
-# ─── 4. 上传 ──────────────────────────────────────────────────────────
+# ─── 4. 清空远程目录(可选) ──────────────────────────────────────────
+if [[ "$CLEAN" == true ]]; then
+    info "清空远程目录 ${REMOTE_PATH}/ ..."
+    ssh -i "$SSH_KEY" "root@${HOST}" "rm -rf ${REMOTE_PATH}/* ${REMOTE_PATH}/.[!.]* 2>/dev/null; mkdir -p ${REMOTE_PATH}"
+    ok "远程目录已清空"
+fi
+
+# ─── 5. 上传 ──────────────────────────────────────────────────────────
 info "上传 dist/ → ${HOST}:${REMOTE_PATH}/ ..."
 UPLOAD_START=$(date +%s)
 
@@ -111,7 +121,7 @@ UPLOAD_END=$(date +%s)
 UPLOAD_TIME=$((UPLOAD_END - UPLOAD_START))
 ok "上传完成 (${UPLOAD_TIME}s)"
 
-# ─── 5. 重载 Nginx ────────────────────────────────────────────────────
+# ─── 6. 重载 Nginx ────────────────────────────────────────────────────
 info "重载 Nginx ..."
 ssh -i "$SSH_KEY" "root@${HOST}" bash -s <<REMOTE_EOF
 if command -v nginx >/dev/null 2>&1; then

@@ -1,0 +1,140 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'service/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: '部署环境'
+        required: true
+        default: 'prod'
+        type: choice
+        options: [ dev, prod ]
+
+env:
+  REMOTE_DIR: /app/vex-iot-server
+  CONTAINER_PORT: 18083
+
+jobs:
+  build:
+    name: 🏗️ Maven Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: 🏗️ Maven 编译
+        working-directory: ./service
+        run: mvn clean package -DskipTests
+
+      - name: 📤 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: iot-saas-jar
+          path: service/target/iot-saas.jar
+          retention-days: 7
+
+  deploy:
+    name: 🚀 Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: http://${{ secrets.ECS_IP }}:${{ env.CONTAINER_PORT }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ⬇️ 下载 JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: iot-saas-jar
+          path: ./service/target/
+
+      - name: 🔑 配置 SSH
+        run: |
+          mkdir -p .ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > .ssh/id_rsa
+          chmod 600 .ssh/id_rsa
+          echo "${{ secrets.ECS_IP }}" > .ssh/host_ecs_ip.txt
+          ssh-keyscan -H "${{ secrets.ECS_IP }}" >> .ssh/known_hosts 2>/dev/null || true
+          echo "✅ SSH 配置完成"
+
+      - name: 🧪 测试连接
+        run: |
+          ECS_IP=$(cat .ssh/host_ecs_ip.txt)
+          echo "ECS_IP=$ECS_IP" >> $GITHUB_ENV
+          ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@$ECS_IP "echo ✅"
+
+      - name: 🛑 停止旧服务
+        run: |
+          ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << 'EOF'
+            APP_DIR=/app/vex-iot-server
+            mkdir -p $APP_DIR/logs
+            PID=$(pgrep -f "vex-iot-server.jar" || true)
+            if [[ -n "$PID" ]]; then
+              kill "$PID" 2>/dev/null || true
+              sleep 3
+              kill -9 "$PID" 2>/dev/null || true
+            fi
+            rm -f $APP_DIR/vex-iot-server.jar $APP_DIR/vex-iot-server.jar.gz
+          EOF
+
+      - name: 📤 上传 JAR (gzip + zlib)
+        run: |
+          gzip -kf service/target/iot-saas.jar
+          ssh -o Compression=yes -i .ssh/id_rsa root@${{ env.ECS_IP }} << EOF
+            cd /app/vex-iot-server
+            sftp -o Compression=yes -i $GITHUB_WORKSPACE/.ssh/id_rsa root@127.0.0.1 << SFTP_EOF
+              put $GITHUB_WORKSPACE/service/target/iot-saas.jar.gz vex-iot-server.jar.gz
+              bye
+  SFTP_EOF
+  EOF
+
+- name: 📦 解压
+  run: |
+    ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << 'EOF'
+      cd /app/vex-iot-server
+      gunzip -f vex-iot-server.jar.gz
+    EOF
+
+- name: 🚀 启动服务
+  env:
+    SPRING_PROFILES_ACTIVE: prod
+    PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+    JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
+  run: |
+    ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << 'EOF'
+      cd /app/vex-iot-server
+      nohup java \
+        -Xms512m -Xmx1024m -XX:+UseG1GC \
+        -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
+        -DPG_PASSWORD="${PG_PASSWORD}" \
+        -DJWT_SECRET="${JWT_SECRET}" \
+        -DMIMO_API_KEY="${MIMO_API_KEY}" \
+        -jar vex-iot-server.jar \
+        > logs/startup.log 2>&1 &
+      sleep 10
+      pgrep -f "vex-iot-server.jar" || tail -30 logs/startup.log
+    EOF
+
+- name: 🏥 健康检查
+  run: |
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+      CODE=$(curl -s -o /dev/null -w '%{http_code}' http://${{ env.ECS_IP }}:${{ env.CONTAINER_PORT }}/actuator/health || echo "000")
+      echo "  ($i/10) HTTP $CODE"
+      if [[ "$CODE" == "200" ]]; then exit 0; fi
+      sleep 5
+    done
+    ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} "tail -50 /app/vex-iot-server/logs/startup.log"
+    exit 1
