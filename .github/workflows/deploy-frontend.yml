@@ -91,7 +91,7 @@ jobs:
             sftp -o Compression=yes -i $GITHUB_WORKSPACE/.ssh/id_rsa root@127.0.0.1 << SFTP_EOF
               put $GITHUB_WORKSPACE/frontend-dist.tar.gz frontend-dist.tar.gz
               bye
-SFTP_EOF
+            SFTP_EOF
           EOF
 
           ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ env.ECS_IP }} << EOF
