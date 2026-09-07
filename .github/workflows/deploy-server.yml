@@ -42,7 +42,6 @@ jobs:
           name: iot-saas-jar
           path: service/target/iot-saas.jar
           retention-days: 7
-
   deploy:
     name: 🚀 Deploy to Production
     needs: build
@@ -50,7 +49,6 @@ jobs:
     environment:
       name: prod
       url: http://${{ vars.ECS_IP }}:${{ env.CONTAINER_PORT }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -77,13 +75,13 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ vars.ECS_IP }} << 'EOF'
             APP_DIR=/app/vex-iot-server
             mkdir -p $APP_DIR/logs
-            PID=$(pgrep -f "vex-iot-server.jar" || true)
+            PID=$(pgrep -f "iot-saas.jar" || true)
             if [[ -n "$PID" ]]; then
               kill "$PID" 2>/dev/null || true
               sleep 3
               kill -9 "$PID" 2>/dev/null || true
             fi
-            rm -f $APP_DIR/vex-iot-server.jar $APP_DIR/vex-iot-server.jar.gz
+            rm -f $APP_DIR/iot-saas.jar $APP_DIR/iot-saas.jar.gz
           EOF
 
       - name: 📤 上传 JAR (gzip 压缩 + scp)
@@ -91,15 +89,15 @@ jobs:
           gzip -kf service/target/iot-saas.jar
           scp -o StrictHostKeyChecking=no -i .ssh/id_rsa \
             service/target/iot-saas.jar.gz \
-            root@${{ vars.ECS_IP }}:/app/vex-iot-server/vex-iot-server.jar.gz
+            root@${{ vars.ECS_IP }}:/app/vex-iot-server/
           echo "✅ JAR 上传完成"
 
       - name: 📦 解压
         run: |
           ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ vars.ECS_IP }} << 'EOF'
             cd /app/vex-iot-server
-            gunzip -f vex-iot-server.jar.gz
-            ls -lh vex-iot-server.jar
+            gunzip -f iot-saas.jar.gz
+            ls -lh iot-saas.jar
           EOF
 
       - name: 🚀 启动服务
@@ -115,10 +113,10 @@ jobs:
               -DTOTP_SECRET="${{ vars.TOTP_SECRET }}" \
               -DMIMO_API_KEY="${{ vars.MIMO_API_KEY }}" \
               -DMINIMAX_API_KEY="${{ vars.MINIMAX_API_KEY }}" \
-              -jar vex-iot-server.jar \
+              -jar iot-saas.jar \
               > logs/startup.log 2>&1 &
             sleep 10
-            pgrep -f "vex-iot-server.jar" && echo "✅ 进程已启动" || tail -30 logs/startup.log
+            pgrep -f "iot-saas.jar" && echo "✅ 进程已启动" || tail -30 logs/startup.log
           REMOTE_EOF
 
       - name: 🏥 服务器内部健康检查
