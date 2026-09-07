@@ -39,6 +39,18 @@ logging:
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
 
+# Actuator 健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+
 springdoc:
   api-docs:
     enabled: false
