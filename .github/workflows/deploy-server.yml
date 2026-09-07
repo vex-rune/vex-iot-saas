@@ -18,7 +18,7 @@ on:
 
 env:
   REMOTE_DIR: /app/vex-iot-server
-  CONTAINER_PORT: 18083
+  CONTAINER_PORT: 10083
 
 jobs:
   build:
@@ -125,7 +125,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ vars.ECS_IP }} << 'REMOTE_HEALTH'
             cd /app/vex-iot-server
-            PORT=18083
+            PORT=10083
             OK=0
             for i in $(seq 1 12); do
               CODE=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT}/actuator/health || echo "000")

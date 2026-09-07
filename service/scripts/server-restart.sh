@@ -95,7 +95,7 @@ cmd_status() {
         ps -p "$PID" -o pid,etime,rss,vsz,cmd 2>/dev/null || true
         echo ""
         # 健康检查
-        local CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18083/actuator/health 2>/dev/null || echo "000")
+        local CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10083/actuator/health 2>/dev/null || echo "000")
         if [[ "$CODE" == "200" ]]; then
             ok "健康检查: HTTP $CODE ✅"
         else

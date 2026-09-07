@@ -39,7 +39,7 @@ APP_NAME="iot-saas"
 IMAGE_NAME="vex/${APP_NAME}"
 JAR_NAME="${APP_NAME}.jar"
 CONTAINER="iot-service"
-HOST_PORT="18083"
+HOST_PORT="10083"
 CONTAINER_PORT="8080"
 REMOTE_DIR="/opt/iot-saas"
 

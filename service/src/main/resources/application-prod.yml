@@ -30,7 +30,7 @@ vex:
     max-tokens: 2048
 
 server:
-  port: 18083
+  port: 10083
 
 logging:
   level:

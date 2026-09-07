@@ -90,7 +90,7 @@ sleep 8
 PID=\$( pgrep -f "vex-iot-server.jar" || true )
 [[ -n "\$PID" ]] && echo "✅ 进程已启动 (PID: \$PID)" || echo "⚠️  进程未启动，查看日志: tail -50 logs/startup.log"
 for i in 1 2 3 4 5; do
-  CODE=\$( curl -s -o /dev/null -w '%{http_code}' http://localhost:18083/actuator/health 2> /dev/null || echo 000 )
+  CODE=\$( curl -s -o /dev/null -w '%{http_code}' http://localhost:10083/actuator/health 2> /dev/null || echo 000 )
   [[ "\$CODE" == "200" ]] && echo "✅ 服务启动成功" && exit 0
   echo "  等待中... (\$i/5)"
   sleep 3
@@ -100,5 +100,5 @@ echo "⚠️  查看日志: tail -50 logs/startup.log"
 & ssh -i $SSH_KEY $SSH_OPTS root@$ECS_IP $remoteCmd
 
 Write-Host ""
-Write-Host "[  OK ] 部署完成! http://${ECS_IP}:18083" -Fore Green
+Write-Host "[  OK ] 部署完成! http://${ECS_IP}:10083" -Fore Green
 Write-Host "[  OK ] 日志: ${REMOTE_DIR}/logs/startup.log" -Fore Green

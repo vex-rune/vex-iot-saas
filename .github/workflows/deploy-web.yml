@@ -1,11 +1,12 @@
 name: Deploy to Web
+
 on:
   push:
     branches:
       - master
     paths:
       - 'app/**'
-      - 'deploy-web.yml'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 jobs:
@@ -15,16 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js 20
+      - name: 🟢 Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: app/package-lock.json
 
       - name: 📥 Install dependencies
         working-directory: ./app
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: 🏗️ Build production dist
         working-directory: ./app

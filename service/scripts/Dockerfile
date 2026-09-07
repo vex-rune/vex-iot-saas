@@ -44,7 +44,7 @@ RUN groupadd -r app && useradd -r -g app app && \
     chown -R app:app /app
 USER app
 
-EXPOSE 18083
+EXPOSE 10083
 
 # JVM 参数 (可通过环境变量覆盖)
 ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication -Djava.security.egd=file:/dev/./urandom"
@@ -53,6 +53,6 @@ ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication -Djav
 ENV SPRING_PROFILES_ACTIVE=dev
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD curl -sf http://localhost:18083/actuator/health || exit 1
+    CMD curl -sf http://localhost:10083/actuator/health || exit 1
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/vex-iot-server.jar"]
