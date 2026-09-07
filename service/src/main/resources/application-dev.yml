@@ -10,6 +10,10 @@ spring:
 
 # MQTT 配置
 vex:
+  # 开发环境:启动时自动播种演示数据(库中已有设备时自动跳过)
+  data-seed:
+    enabled: ${DATA_SEED_ENABLED:true}
+
   mqtt:
     connection:
       broker: ${MQTT_BROKER:tcp://localhost:1883}

@@ -82,8 +82,13 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(handlers).accessDeniedHandler(handlers))
                 .authorizeHttpRequests(reg -> reg
                         .requestMatchers(
+                                // 认证接口
                                 "/api/auth/login",
-                                "/api/auth/key-info")
+                                // 验证码接口
+                                "/api/auth/key-info",
+                                // 健康监测
+                                "/actuator/health"
+                        )
                         .permitAll()
                         .anyRequest()
                         .authenticated())

@@ -45,6 +45,16 @@ spring:
 
 # 阿里云短信(可选,未配置时通知降级为日志通道)
 vex:
+  # 演示数据播种开关(启动时自动创建测试数据)
+  # 全局默认关闭;dev profile 中开启,生产环境显式关闭
+  data-seed:
+    enabled: ${DATA_SEED_ENABLED:false}
+    # 库中已有设备时是否仍继续播种(会产生重复的告警规则/历史数据)
+    force: ${DATA_SEED_FORCE:false}
+    device-count: ${DATA_SEED_DEVICE_COUNT:10}
+    history-days: ${DATA_SEED_HISTORY_DAYS:30}
+    password: ${DATA_SEED_PASSWORD:12345678}
+
   aliyun:
     sms:
       enabled: ${ALIYUN_SMS_ENABLED:false}
