@@ -99,6 +99,10 @@ public class DataSeedService {
      * @return 播种结果；当库中已有设备且 {@code force=false} 时返回 {@code null} 表示已跳过
      */
     public SeedResult seedFullSystemData(DataSeedProperties props) {
+        if (!props.isEnabled()) {
+            log.info("[数据播种] 播种开关未开启，跳过播种");
+            return null;
+        }
         if (!props.isForce() && deviceRepository.count() > 0) {
             return null;
         }

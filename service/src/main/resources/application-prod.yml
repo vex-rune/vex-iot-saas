@@ -9,6 +9,10 @@ spring:
     show-sql: false
 
 vex:
+  # 生产环境严禁自动播种演示数据
+  data-seed:
+    enabled: true
+
   mqtt:
     connection:
       broker: tcp://127.0.0.1:1883

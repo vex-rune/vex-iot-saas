@@ -11,6 +11,10 @@ spring:
 
 # MQTT 配置（测试环境）
 vex:
+  # 测试上下文不自动播种，由 DataSeedingTest 显式调用
+  data-seed:
+    enabled: false
+
   mqtt:
     connection:
       broker: tcp://localhost:1883
