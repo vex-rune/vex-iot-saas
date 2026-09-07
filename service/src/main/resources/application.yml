@@ -99,6 +99,7 @@ logging:
     org.springframework.security: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  config: classpath:logback-spring.xml
 
 server:
   port: 8080
@@ -112,16 +113,10 @@ server:
 management:
   endpoints:
     web:
-      base-path: /actuator
       exposure:
+        # 开放健康、info，生产不要开 *
         include: health,info
   endpoint:
     health:
-      show-details: when_authorized
-      probes:
-        enabled: true
-  health:
-    livenessstate:
-      enabled: true
-    readinessstate:
-      enabled: true
+      # 展示详细组件状态：数据库、磁盘、mqtt等
+      show-details: always
