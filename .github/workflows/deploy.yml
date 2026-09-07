@@ -103,26 +103,18 @@ jobs:
           EOF
 
       - name: 🚀 启动服务
-        env:
-          SPRING_PROFILES_ACTIVE: prod
-          PG_PASSWORD: ${{ vars.PG_PASSWORD }}
-          MQTT_PASSWORD: ${{ vars.MQTT_PASSWORD }}
-          TOTP_SECRET: ${{ vars.TOTP_SECRET }}
-          JWT_SECRET: ${{ vars.JWT_SECRET }}
-          MIMO_API_KEY: ${{ vars.MIMO_API_KEY }}
-          MINIMAX_API_KEY: ${{ vars.MINIMAX_API_KEY }}
         run: |
           ssh -o StrictHostKeyChecking=no -i .ssh/id_rsa root@${{ vars.ECS_IP }} << 'REMOTE_EOF'
             cd /app/vex-iot-server
             nohup java \
               -Xms512m -Xmx1024m -XX:+UseG1GC \
-              -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
-              -DPG_PASSWORD="${PG_PASSWORD}" \
-              -DMQTT_PASSWORD="${MQTT_PASSWORD}" \
-              -DJWT_SECRET="${JWT_SECRET}" \
-              -DTOTP_SECRET="${TOTP_SECRET}" \
-              -DMIMO_API_KEY="${MIMO_API_KEY}" \
-              -DMINIMAX_API_KEY="${MINIMAX_API_KEY}" \
+              -Dspring.profiles.active=prod \
+              -DPG_PASSWORD="${{ vars.PG_PASSWORD }}" \
+              -DMQTT_PASSWORD="${{ vars.MQTT_PASSWORD }}" \
+              -DJWT_SECRET="${{ vars.JWT_SECRET }}" \
+              -DTOTP_SECRET="${{ vars.TOTP_SECRET }}" \
+              -DMIMO_API_KEY="${{ vars.MIMO_API_KEY }}" \
+              -DMINIMAX_API_KEY="${{ vars.MINIMAX_API_KEY }}" \
               -jar vex-iot-server.jar \
               > logs/startup.log 2>&1 &
             sleep 10
