@@ -80,7 +80,7 @@ vex:
   # 生产部署必须通过环境变量 TOTP_SECRET 注入至少 16 字节密钥
     admin:
       totp:
-        secret: ${TOTP_SECRET:comvexiotauth}
+        secret: JZOWAOBGHN3MSE2T
 
   # AI 助手 (LangChain4j + MiniMax via OpenAI 兼容)
   ai:
