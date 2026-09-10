@@ -101,12 +101,6 @@ const extractIn = (f: RSchemaFilter | undefined, field: string): string => {
     }
     return '';
 };
-const buildIn = (field: string, csv: string) => {
-    const v = csv.split(',').map(s => s.trim()).filter(Boolean);
-    if (v.length === 0) return null;
-    return {condition: {field, op: v.length === 1 ? 'eq' : 'in', value: v.length === 1 ? v[0] : v}};
-};
-
 interface Props {
     editingDef?: ReportDefinition | null;
     onSaveSuccess: () => void;
