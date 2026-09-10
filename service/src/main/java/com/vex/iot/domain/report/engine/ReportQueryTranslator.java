@@ -1,7 +1,9 @@
-﻿package com.vex.iot.domain.report.engine;
+package com.vex.iot.domain.report.engine;
 
 import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.common.queries.QueriesCondition;
+import com.vex.iot.common.queries.QueriesCriteria;
+import com.vex.iot.common.queries.QueriesOperatorEnum;
 import com.vex.iot.common.queries.QueriesPredicate;
 import com.vex.iot.common.util.UserContext;
 import com.vex.iot.domain.device.model.DataEntity;
@@ -16,8 +18,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-/// 核心翻译器：将 ReportSchema 编译为 JPA CriteriaQuery
-/// 受信模块——内部只用 CriteriaBuilder / Path / Expression，不拼 SQL 字符串
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -26,198 +26,277 @@ public class ReportQueryTranslator {
     private final EntityManager entityManager;
     private final ReportFieldWhitelist whitelist;
 
-    /// root 实体类型映射
-    private final Map<ReportDataSource, Class<?>> ROOT_CLASSES = Map.of(
+    private static final Map<ReportDataSource, Class<?>> ROOT_CLASSES = Map.of(
             ReportDataSource.DEVICE, DeviceEntity.class,
             ReportDataSource.POINT_HISTORY, DataEntity.class,
             ReportDataSource.POINT_REALTIME, RealtimeDataEntity.class
     );
 
-    /// 翻译完整查询，返回 Tuple 列表
-    public List<Object[]> translate(ReportSchema schema, QueriesPredicate extraFilters) {
+    private static final Map<String, JoinKey> JOIN_KEYS = Map.of(
+            "DEVICE:POINT_HISTORY",
+            new JoinKey(ReportDataSource.DEVICE, "id", ReportDataSource.POINT_HISTORY, "deviceId"),
+            "DEVICE:POINT_REALTIME",
+            new JoinKey(ReportDataSource.DEVICE, "id", ReportDataSource.POINT_REALTIME, "deviceId")
+    );
+
+    public List<Object[]> translate(ReportSchema schema, ReportSchemaFilter extraFilters) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Object[]> query = cb.createQuery(Object[].class);
         ReportDataSource source = schema.getSource();
-        Root<?> root = query.from(ROOT_CLASSES.get(source));
 
-        // 隐式 JOIN
-        Join<?, ?> historyJoin = null, realtimeJoin = null;
-        if (source == ReportDataSource.DEVICE) {
-            historyJoin = root.join("history", JoinType.LEFT);
-            realtimeJoin = root.join("realtime", JoinType.LEFT);
+        Set<ReportDataSource> neededSources = collectNeededSources(schema);
+
+        Map<ReportDataSource, Root<?>> roots = new LinkedHashMap<>();
+        for (ReportDataSource src : neededSources) {
+            roots.put(src, query.from(ROOT_CLASSES.get(src)));
         }
+        Root<?> primaryRoot = roots.get(source);
 
-        // 租户过滤
-        applyTenantFilter(cb, query, root);
-
-        // schema.filters
-        if (schema.getFilters() != null && schema.getFilters().getAnd() != null) {
-            for (QueriesPredicate pred : schema.getFilters().getAnd()) {
-                applyCondition(cb, query, root, historyJoin, realtimeJoin, pred);
+        List<Predicate> wherePredicates = new ArrayList<>();
+        String tenantId = UserContext.tenantId().orElse(null);
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalArgumentException("未识别租户");
+        }
+        // tenant filter on ALL roots（DEFAULT_TENANT_ID 跳过，可查看所有租户数据）
+        if (!TenantBaseEntity.DEFAULT_TENANT_ID.equals(tenantId)) {
+            for (Root<?> r : roots.values()) {
+                wherePredicates.add(cb.equal(r.get(TenantBaseEntity.TENANT_ID_FIELD_NAME), tenantId));
             }
         }
-        if (schema.getFilters() != null && schema.getFilters().getOr() != null) {
-            List<CriteriaQuery<Object[]>> orQueries = new ArrayList<>();
-            for (QueriesPredicate pred : schema.getFilters().getOr()) {
-                applyCondition(cb, query, root, historyJoin, realtimeJoin, pred);
-            }
-        }
+        addJoinConditions(cb, roots, wherePredicates);
+        collectFromFilter(cb, primaryRoot, source, schema.getFilters(), wherePredicates);
+        collectFromFilter(cb, primaryRoot, source, extraFilters, wherePredicates);
 
-        // extra filters
-        if (extraFilters != null && extraFilters.getAnd() != null) {
-            for (QueriesPredicate pred : extraFilters.getAnd()) {
-                applyCondition(cb, query, root, historyJoin, realtimeJoin, pred);
-            }
-        }
+        query.where(wherePredicates.toArray(new Predicate[0]));
 
-        // SELECT 列
         List<Selection<?>> selectCols = new ArrayList<>();
-        List<String> aliases = new ArrayList<>();
         for (ReportColumnDef col : schema.getColumns()) {
-            Path<?> fieldPath = getFieldPath(root, historyJoin, realtimeJoin, col.getSource(), col.getField());
+            Path<?> fieldPath = resolvePath(roots, col.getSource(), col.getField());
             Selection<?> sel;
             String alias = col.getAlias();
-            aliases.add(alias);
             if (col.getAgg() == ReportAggFunc.NONE && col.getOp() == null) {
                 sel = fieldPath.alias(alias);
             } else if (col.getAgg() == ReportAggFunc.NONE && col.getOp() != null) {
-                Path<?> rightField = getFieldPath(root, historyJoin, realtimeJoin,
+                Path<?> rightField = resolvePath(roots,
                         col.getOperand().getSource(), col.getOperand().getField());
                 sel = applyOp(cb, fieldPath, col.getOp(), rightField).alias(alias);
             } else if (col.getAgg() != ReportAggFunc.NONE && col.getOp() == null) {
                 sel = applyAgg(cb, col.getAgg(), fieldPath).alias(alias);
             } else {
-                // agg + op
                 Expression<?> leftAgg = applyAgg(cb, col.getAgg(), fieldPath);
                 Expression<?> rightAgg = applyAgg(cb, col.getOperand().getAgg(),
-                        getFieldPath(root, historyJoin, realtimeJoin,
-                                col.getOperand().getSource(), col.getOperand().getField()));
+                        resolvePath(roots, col.getOperand().getSource(), col.getOperand().getField()));
                 sel = applyOp(cb, leftAgg, col.getOp(), rightAgg).alias(alias);
             }
             selectCols.add(sel);
         }
         query.select(cb.array(selectCols.toArray(new Selection<?>[0])));
 
-        // GROUP BY
         if (schema.getBreakout() != null) {
-            Path<?> breakPath = getFieldPath(root, historyJoin, realtimeJoin,
+            Path<?> breakPath = resolvePath(roots,
                     schema.getBreakout().getSource(), schema.getBreakout().getField());
             query.groupBy(breakPath);
         }
 
-        // LIMIT
+        // ORDER BY
+        List<Order> orderList = new ArrayList<>();
+        if (schema.getSort() != null) {
+            for (ReportSortItem sortItem : schema.getSort()) {
+                Path<?> sortPath = resolvePath(roots, sortItem.getSource(), sortItem.getField());
+                orderList.add(sortItem.getDirection() == ReportSortDirection.DESC
+                        ? cb.desc(sortPath) : cb.asc(sortPath));
+            }
+        }
+        if (!orderList.isEmpty()) {
+            query.orderBy(orderList);
+        }
+
         return entityManager.createQuery(query)
                 .setMaxResults(schema.getLimit() != null ? schema.getLimit() : 5000)
                 .getResultList();
     }
 
-    /// 获取字段 JPA Path
-    private Path<?> getFieldPath(Root<?> root, Join<?, ?> hJoin, Join<?, ?> rJoin,
-                                 ReportDataSource fieldSource, String fieldName) {
+    private Set<ReportDataSource> collectNeededSources(ReportSchema schema) {
+        Set<ReportDataSource> sources = new LinkedHashSet<>();
+        sources.add(schema.getSource());
+        for (ReportColumnDef col : schema.getColumns()) {
+            sources.add(col.getSource());
+            if (col.getOperand() != null) {
+                sources.add(col.getOperand().getSource());
+            }
+        }
+        if (schema.getBreakout() != null) {
+            sources.add(schema.getBreakout().getSource());
+        }
+        return sources;
+    }
+
+    private void addJoinConditions(CriteriaBuilder cb,
+                                   Map<ReportDataSource, Root<?>> roots,
+                                   List<Predicate> out) {
+        List<ReportDataSource> sourceList = new ArrayList<>(roots.keySet());
+        for (int i = 0; i < sourceList.size(); i++) {
+            for (int j = i + 1; j < sourceList.size(); j++) {
+                ReportDataSource s1 = sourceList.get(i);
+                ReportDataSource s2 = sourceList.get(j);
+                JoinKey key = JOIN_KEYS.get(s1 + ":" + s2);
+                if (key == null) key = JOIN_KEYS.get(s2 + ":" + s1);
+                if (key != null) {
+                    Root<?> leftRoot = roots.get(key.leftSource());
+                    Root<?> rightRoot = roots.get(key.rightSource());
+                    if (leftRoot != null && rightRoot != null) {
+                        out.add(cb.equal(leftRoot.get(key.leftField()),
+                                rightRoot.get(key.rightField())));
+                    }
+                }
+            }
+        }
+    }
+
+    private Path<?> resolvePath(Map<ReportDataSource, Root<?>> roots,
+                                ReportDataSource fieldSource, String fieldName) {
+        Root<?> root = roots.get(fieldSource);
+        if (root == null) {
+            throw new IllegalArgumentException(
+                    "\u6570\u636e\u6e90 " + fieldSource + " \u672a\u627e\u5230, \u65e0\u6cd5\u89e3\u6790\u5b57\u6bb5 " + fieldName);
+        }
         String jpaField = whitelist.getJpaPath(fieldSource, fieldName);
-        return switch (fieldSource) {
-            case DEVICE -> root.get(jpaField);
-            case POINT_HISTORY -> hJoin.get(jpaField);
-            case POINT_REALTIME -> rJoin.get(jpaField);
+        return root.get(jpaField);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Expression<?> applyAgg(CriteriaBuilder cb, ReportAggFunc agg, Path<?> field) {
+        return switch (agg) {
+            case SUM -> cb.sum(field.as(Double.class));
+            case AVG -> cb.avg(field.as(Double.class));
+            case MIN -> cb.min((Expression) field);
+            case MAX -> cb.max((Expression) field);
+            case COUNT -> cb.count(field);
+            case COUNT_DISTINCT -> cb.countDistinct(field);
+            case NONE -> field;
         };
     }
 
-    /// 应用聚合函数
-    private Expression<?> applyAgg(CriteriaBuilder cb, ReportAggFunc func, Path<?> path) {
-        return switch (func) {
-            case SUM -> cb.sum((Expression<Number>) path);
-            case AVG -> cb.avg((Expression<Number>) path);
-            case MIN -> cb.min((Expression<Comparable>) path);
-            case MAX -> cb.max((Expression<Comparable>) path);
-            case COUNT -> cb.count(path);
-            case COUNT_DISTINCT -> cb.countDistinct(path);
-            default -> path;
-        };
-    }
-
-    /// 应用字段间运算
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private Expression<?> applyOp(CriteriaBuilder cb, Expression<?> left,
                                   ReportOperator op, Expression<?> right) {
+        Expression l = left;
+        Expression r = right;
         return switch (op) {
-            case ADD -> cb.sum((Expression<Number>) left, (Expression<Number>) right);
-            case SUB -> cb.diff((Expression<Number>) left, (Expression<Number>) right);
-            case MUL -> cb.prod((Expression<Number>) left, (Expression<Number>) right);
-            case DIV -> cb.quot((Expression<Number>) left, (Expression<Number>) right);
+            case ADD -> cb.sum(l, r);
+            case SUB -> cb.diff(l, r);
+            case MUL -> cb.prod(l, r);
+            case DIV -> cb.quot(l, r);
         };
     }
 
-    /// 应用过滤条件到 WHERE
-    private void applyCondition(CriteriaBuilder cb, CriteriaQuery<?> query,
-                                Root<?> root, Join<?, ?> hJoin, Join<?, ?> rJoin,
-                                QueriesPredicate pred) {
-        if (pred == null) return;
-        if (pred.getCondition() != null) {
-            QueriesCondition c = pred.getCondition();
-            String field = c.getField();
-            // 确定字段所在 source
-            Path<?> path = resolveFieldPath(root, hJoin, rJoin, field);
-            Predicate p = buildPredicate(cb, path, c);
-            if (p != null) query.where(p);
+    private void collectFromFilter(CriteriaBuilder cb, Root<?> root,
+                                   ReportDataSource source,
+                                   ReportSchemaFilter filter, List<Predicate> out) {
+        if (filter == null) return;
+        if (filter.getAnd() != null) {
+            collectCriteriaList(cb, root, source, filter.getAnd(), true, out);
         }
-        if (pred.getAnd() != null) {
-            for (QueriesPredicate inner : pred.getAnd()) {
-                applyCondition(cb, query, root, hJoin, rJoin, inner);
+        if (filter.getOr() != null) {
+            collectCriteriaList(cb, root, source, filter.getOr(), false, out);
+        }
+    }
+
+    private void collectCriteriaList(CriteriaBuilder cb, Root<?> root,
+                                     ReportDataSource source,
+                                     List<QueriesCriteria> criteriaList,
+                                     boolean isAnd, List<Predicate> out) {
+        List<Predicate> predicates = new ArrayList<>();
+        for (QueriesCriteria c : criteriaList) {
+            if (c.getCondition() != null) {
+                predicates.add(buildCondition(cb, root, source, c.getCondition()));
+            } else if (c.getPredicate() != null) {
+                QueriesPredicate nested = c.getPredicate();
+                if (nested.getAnd() != null) {
+                    collectCriteriaList(cb, root, source, nested.getAnd(), true, predicates);
+                }
+                if (nested.getOr() != null) {
+                    collectCriteriaList(cb, root, source, nested.getOr(), false, predicates);
+                }
+            }
+        }
+        if (!predicates.isEmpty()) {
+            if (isAnd) {
+                out.addAll(predicates);
+            } else {
+                out.add(cb.or(predicates.toArray(new Predicate[0])));
             }
         }
     }
 
-    /// 根据字段名自动推断数据源路径
-    private Path<?> resolveFieldPath(Root<?> root, Join<?, ?> hJoin, Join<?, ?> rJoin, String field) {
-        String jpaField = whitelist.getJpaPath(ReportDataSource.POINT_HISTORY, field);
-        // 默认从 history 取，如果 history 不存在则从 device 取
-        try {
-            if (hJoin != null && hJoin.getModel().getAttribute(jpaField) != null) {
-                return hJoin.get(jpaField);
-            }
-        } catch (Exception ignored) {
-        }
-        try {
-            return root.get(jpaField);
-        } catch (Exception ignored) {
-        }
-        // 回退到 realtime
-        if (rJoin != null) {
-            try {
-                return rJoin.get(jpaField);
-            } catch (Exception ignored) {
-            }
-        }
-        return root.get(field);
-    }
-
-    /// 构建单个谓词
-    private Predicate buildPredicate(CriteriaBuilder cb, Path<?> path, QueriesCondition c) {
-        String op = c.getOp();
-        Object value = c.getValue();
-        return switch (op != null ? op.toLowerCase() : "") {
-            case "eq" -> cb.equal(path, value);
-            case "ne" -> cb.notEqual(path, value);
-            case "gt" -> cb.greaterThan((Expression<Comparable>) path, (Comparable) value);
-            case "gte" -> cb.greaterThanOrEqualTo((Expression<Comparable>) path, (Comparable) value);
-            case "lt" -> cb.lessThan((Expression<Comparable>) path, (Comparable) value);
-            case "lte" -> cb.lessThanOrEqualTo((Expression<Comparable>) path, (Comparable) value);
-            case "like" -> cb.like((Expression<String>) path, "%" + value + "%");
-            case "in" -> {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Predicate buildCondition(CriteriaBuilder cb, Root<?> root,
+                                     ReportDataSource source,
+                                     QueriesCondition c) {
+        String field = c.getField();
+        String jpaField = whitelist.getJpaPath(source, field);
+        Path<?> path = root.get(jpaField);
+        QueriesOperatorEnum op = c.getOp();
+        Object value = convertValue(root, jpaField, c.getValue());
+        return switch (op) {
+            case eq -> cb.equal(path, value);
+            case ne -> cb.notEqual(path, value);
+            case gt -> cb.greaterThan((Expression) path, (Comparable) value);
+            case gte -> cb.greaterThanOrEqualTo((Expression) path, (Comparable) value);
+            case lt -> cb.lessThan((Expression) path, (Comparable) value);
+            case lte -> cb.lessThanOrEqualTo((Expression) path, (Comparable) value);
+            case like -> cb.like(path.as(String.class), (String) value);
+            case in -> {
                 CriteriaBuilder.In<Object> in = cb.in(path);
                 if (value instanceof Collection<?> col) col.forEach(in::value);
                 yield in;
             }
-            default -> null;
+            default -> cb.conjunction();
         };
     }
 
-    /// 租户过滤（无条件追加）
-    private void applyTenantFilter(CriteriaBuilder cb, CriteriaQuery<?> query, Root<?> root) {
-        String tenantId = UserContext.tenantId().orElse(null);
-        if (tenantId == null || tenantId.isBlank()) {
-            throw new com.vex.iot.common.exception.BadRequestException("unauthorized", "未识别租户");
+    /// 根据 JPA 属性的实际类型，将 String 值转换为对应 Java 类型
+    private Object convertValue(Root<?> root, String jpaField, Object value) {
+        if (value == null) return null;
+        if (!(value instanceof String str)) return value;
+
+        Class<?> javaType = root.getModel().getAttribute(jpaField).getJavaType();
+        if (javaType == null) return value;
+
+        // Instant / Date
+        if (javaType == java.time.Instant.class) {
+            return java.time.Instant.parse(str);
         }
-        Predicate p = cb.equal(root.get(TenantBaseEntity.TENANT_ID_FIELD_NAME), tenantId);
-        query.where(p);
+        if (javaType == java.time.LocalDateTime.class) {
+            return java.time.LocalDateTime.parse(str);
+        }
+        if (javaType == java.time.LocalDate.class) {
+            return java.time.LocalDate.parse(str);
+        }
+        // 数值
+        if (javaType == Long.class || javaType == long.class) {
+            return Long.parseLong(str);
+        }
+        if (javaType == Integer.class || javaType == int.class) {
+            return Integer.parseInt(str);
+        }
+        if (javaType == Double.class || javaType == double.class) {
+            return Double.parseDouble(str);
+        }
+        if (javaType == Float.class || javaType == float.class) {
+            return Float.parseFloat(str);
+        }
+        if (javaType == Boolean.class || javaType == boolean.class) {
+            return Boolean.parseBoolean(str);
+        }
+        // 枚举
+        if (javaType.isEnum()) {
+            return Enum.valueOf((Class<Enum>) javaType, str);
+        }
+        return value;
+    }
+
+    private record JoinKey(ReportDataSource leftSource, String leftField,
+                           ReportDataSource rightSource, String rightField) {
     }
 }

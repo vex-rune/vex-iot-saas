@@ -1,8 +1,8 @@
-﻿/**
+/**
  * 报表模块 HTTP 层（纯声明，无业务逻辑）
  */
-import {get, post, put, del, type RequestChain} from '@/lib/api-client';
-import type {QueryBody, ApiResponse} from '@/types/api';
+import {del, get, post, put, type RequestChain} from '@/lib/api-client';
+import type {QueryBody} from '@/types/api';
 
 /** 报表定义 */
 export interface ReportDefinition {
@@ -19,6 +19,7 @@ export interface ReportDefinition {
 /** 报表列信息 */
 export interface ReportColumnInfo {
     alias: string;
+    displayName: string;
     type: string;
 }
 

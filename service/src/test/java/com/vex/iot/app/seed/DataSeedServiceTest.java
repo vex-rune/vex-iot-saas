@@ -1,18 +1,19 @@
 package com.vex.iot.app.seed;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vex.iot.domain.ai.repository.AiChatMemoryRepository;
+import com.vex.iot.domain.ai.repository.AiUserProfileRepository;
 import com.vex.iot.domain.alarm.repository.AlarmLogRepository;
 import com.vex.iot.domain.alarm.repository.AlarmRuleRepository;
 import com.vex.iot.domain.device.DataService;
-import com.vex.iot.domain.device.repository.ControlRecordRepository;
-import com.vex.iot.domain.device.repository.DevicePanelRepository;
-import com.vex.iot.domain.device.repository.DeviceRepository;
-import com.vex.iot.domain.device.repository.PointDefinitionRepository;
+import com.vex.iot.domain.device.repository.*;
 import com.vex.iot.domain.identity.repository.AccountRepository;
 import com.vex.iot.domain.identity.repository.SysTenantAccountRepository;
 import com.vex.iot.domain.identity.repository.TenantRepository;
 import com.vex.iot.domain.notify.repository.NotifyRecordRepository;
 import com.vex.iot.domain.notify.repository.NotifyTemplateRepository;
 import com.vex.iot.domain.notify.repository.NotifyUserRepository;
+import com.vex.iot.domain.report.definition.ReportDefinitionRepository;
 import com.vex.iot.domain.schedule.repository.DeviceScheduleRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,16 @@ class DataSeedServiceTest {
     private DevicePanelRepository devicePanelRepository;
     @Mock
     private DeviceScheduleRepository deviceScheduleRepository;
+    @Mock
+    private DeviceTemplateRepository deviceTemplateRepository;
+    @Mock
+    private AiUserProfileRepository aiUserProfileRepository;
+    @Mock
+    private AiChatMemoryRepository aiChatMemoryRepository;
+    @Mock
+    private ReportDefinitionRepository reportDefinitionRepository;
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private DataSeedService dataSeedService;

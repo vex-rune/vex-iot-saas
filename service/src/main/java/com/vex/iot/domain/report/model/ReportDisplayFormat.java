@@ -1,4 +1,4 @@
-﻿package com.vex.iot.domain.report.model;
+package com.vex.iot.domain.report.model;
 
 import com.vex.iot.common.config.IEnum;
 
@@ -8,8 +8,8 @@ public enum ReportDisplayFormat implements IEnum {
     decimal2,
     decimal4,
     percent2,
-    int,
-    string;
+    integer,
+    strings;
 
     @Override
     public String displayName() {

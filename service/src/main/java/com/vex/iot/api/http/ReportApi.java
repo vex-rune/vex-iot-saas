@@ -1,8 +1,9 @@
-﻿package com.vex.iot.api.http;
+package com.vex.iot.api.http;
 
 import com.vex.iot.common.queries.QueriesPageRequest;
 import com.vex.iot.common.response.Response;
 import com.vex.iot.domain.report.ReportService;
+import com.vex.iot.domain.report.engine.ReportCsvExporter;
 import com.vex.iot.domain.report.model.ReportDefinitionEntity;
 import com.vex.iot.domain.report.model.ReportQueryRequest;
 import com.vex.iot.domain.report.model.ReportResultDTO;
@@ -13,7 +14,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /// 自定义报表
@@ -22,6 +22,7 @@ import java.util.List;
 public class ReportApi {
 
     private final ReportService reportService;
+    private final ReportCsvExporter csvExporter;
 
     // ─── 配置 CRUD ──────────────────────────────────────────────
 
@@ -96,37 +97,6 @@ public class ReportApi {
             HttpServletResponse response) throws IOException {
         req.setLimit(5000);
         ReportResultDTO result = reportService.execute(req, false);
-        response.setContentType("text/csv;charset=UTF-8");
-        response.setCharacterEncoding("UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=report.csv");
-        // UTF-8 BOM
-        response.getOutputStream().write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
-        StringBuilder sb = new StringBuilder();
-        if (result.getColumns() != null && !result.getColumns().isEmpty()) {
-            for (int i = 0; i < result.getColumns().size(); i++) {
-                if (i > 0) sb.append(',');
-                sb.append(result.getColumns().get(i).getAlias());
-            }
-            sb.append("\r\n");
-        }
-        if (result.getRows() != null) {
-            for (var row : result.getRows()) {
-                boolean first = true;
-                for (var col : result.getColumns()) {
-                    if (!first) sb.append(',');
-                    Object val = row.get(col.getAlias());
-                    String str = val == null ? "" : String.valueOf(val);
-                    if (str.contains(",") || str.contains("\"") || str.contains("\n")) {
-                        str = str.replace("\"", "\"\"");
-                        str = "\"" + str + "\"";
-                    }
-                    sb.append(str);
-                    first = false;
-                }
-                sb.append("\r\n");
-            }
-        }
-        response.getOutputStream().write(sb.toString().getBytes(StandardCharsets.UTF_8));
-        response.getOutputStream().flush();
+        csvExporter.export(result, response);
     }
 }

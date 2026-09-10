@@ -1,4 +1,4 @@
-﻿package com.vex.iot.domain.report.model;
+package com.vex.iot.domain.report.model;
 
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;

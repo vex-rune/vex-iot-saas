@@ -127,6 +127,23 @@ class DataSeedingTest {
                             d.getTimestamp(), d.getDeviceName(), d.getPointName(), formatValue(d)));
         }
 
+        System.out.println("\n【14. 设备模版】总数: " + result.deviceTemplates().size());
+        result.deviceTemplates().forEach(t ->
+                System.out.printf("    %s | %s | gw=%s | enabled=%s%n",
+                        t.getTemplateName(), t.getDescription(), t.getGatewayType(), t.isEnabled()));
+
+        System.out.println("\n【15. 报表定义】总数: " + result.reportDefinitions().size());
+        result.reportDefinitions().forEach(r ->
+                System.out.printf("    %s | %s | enabled=%s%n",
+                        r.getName(), r.getDescription(), r.isEnabled()));
+
+        System.out.println("\n【16. AI 用户画像】总数: " + result.aiProfiles().size());
+        result.aiProfiles().forEach(p ->
+                System.out.printf("    userId=%s | totalChats=%d | resources=%s%n",
+                        p.getUserId(), p.getTotalChats(), p.getResourceUsageStats()));
+
+        System.out.println("\n【17. AI 对话记忆】总数: " + result.aiMemories().size());
+
         System.out.println("\n========================================");
         System.out.println("  播种完成");
         System.out.println("========================================\n");

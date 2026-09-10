@@ -27,3 +27,4 @@ export const REPORT_AGG_FUNCS = ['NONE', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', 'C
 export const REPORT_OPERATORS = ['ADD', 'SUB', 'MUL', 'DIV'] as const;
 export const REPORT_FORMATS = ['raw', 'decimal2', 'decimal4', 'percent2', 'int', 'string'] as const;
 export const REPORT_SOURCES: ReportDataSource[] = ['DEVICE', 'POINT_HISTORY', 'POINT_REALTIME'];
+export const REPORT_SORT_DIRECTIONS = ['ASC', 'DESC'] as const;

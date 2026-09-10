@@ -1,4 +1,4 @@
-﻿package com.vex.iot.domain.report.model;
+package com.vex.iot.domain.report.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +34,7 @@ public class ReportResultDTO {
     @AllArgsConstructor
     public static class ColumnInfo {
         private String alias;
+        private String displayName;
         private String type;
     }
 }

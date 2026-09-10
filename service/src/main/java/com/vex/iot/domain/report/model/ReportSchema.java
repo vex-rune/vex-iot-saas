@@ -1,4 +1,4 @@
-﻿package com.vex.iot.domain.report.model;
+package com.vex.iot.domain.report.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
@@ -30,6 +30,8 @@ public class ReportSchema {
     private ReportBreakout breakout;
     /// 过滤条件（复用 predicate 结构）
     private ReportSchemaFilter filters;
+    /// 排序条件（可为 null 或空数组）
+    private List<ReportSortItem> sort = new ArrayList<>();
     /// 行数上限（默认 5000）
     private Integer limit = 5000;
 }

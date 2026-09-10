@@ -13,11 +13,6 @@ public enum PointDataState implements IEnum {
 
     @Getter
     private final String description;
-
-    
-
-
-    
     @Override
     public String displayName() {
         return description;

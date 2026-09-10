@@ -60,6 +60,7 @@ declare module '@heroicons/react/24/outline' {
   export const ArrowsPointingOutIcon: IconComponent;
     export const ChatBubbleLeftRightIcon: IconComponent;
     export const PaperAirplaneIcon: IconComponent;
+    export const BarsArrowDownIcon: IconComponent;
 }
 
 declare module '@heroicons/react/24/solid' {

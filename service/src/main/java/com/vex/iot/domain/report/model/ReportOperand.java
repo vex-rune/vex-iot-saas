@@ -1,4 +1,4 @@
-﻿package com.vex.iot.domain.report.model;
+package com.vex.iot.domain.report.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

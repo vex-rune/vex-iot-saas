@@ -1,4 +1,4 @@
-﻿package com.vex.iot.domain.report.exception;
+package com.vex.iot.domain.report.exception;
 
 /// 报表定义不存在异常
 public class ReportDefinitionNotFoundException extends com.vex.iot.common.exception.BizException {

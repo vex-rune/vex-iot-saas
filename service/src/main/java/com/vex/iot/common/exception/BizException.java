@@ -13,7 +13,7 @@ package com.vex.iot.common.exception;
  *
  * <p>每个子类需定义 CODE 常量，使用简短说明性短语。
  */
-public abstract class BizException extends RuntimeException {
+public class BizException extends RuntimeException {
 
     private final String code;
 
@@ -22,7 +22,7 @@ public abstract class BizException extends RuntimeException {
         this.code = code;
     }
 
-    protected BizException(String code, String msg) {
+    public BizException(String code, String msg) {
         super(msg);
         this.code = code;
     }

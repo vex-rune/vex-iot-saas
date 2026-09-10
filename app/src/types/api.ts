@@ -191,11 +191,7 @@ export type GatewayType = 'USR_G771' | 'USR_G771_EDGE' | 'MODBUS_TCP' | 'MQTT_DI
 
 /** 网关类型显示名映射 */
 export const GATEWAY_TYPE_LABELS: Record<GatewayType, string> = {
-    USR_G771: '有人G771透传',
     USR_G771_EDGE: '有人G771边缘计算',
-    MODBUS_TCP: 'Modbus TCP',
-    MQTT_DIRECT: 'MQTT直连',
-    OTHER: '其他',
 };
 
 export const GATEWAY_TYPE_OPTIONS = Object.entries(GATEWAY_TYPE_LABELS).map(([value, label]) => ({

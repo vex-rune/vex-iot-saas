@@ -27,6 +27,11 @@ export default function ChatPanel() {
     const [conversationId, setConversationId] = useState<string | undefined>(getSavedConversationId);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    // 悬浮球位置 & 拖拽
+    const [pos, setPos] = useState({x: 0, y: 0});
+    const [dragging, setDragging] = useState(false);
+    const movedRef = useRef(false);
+    const dragStart = useRef({x: 0, y: 0, posX: 0, posY: 0});
 
     useEffect(() => {
         scrollRef.current?.scrollTo({top: scrollRef.current.scrollHeight});
@@ -93,12 +98,63 @@ export default function ChatPanel() {
         localStorage.removeItem(STORAGE_EXPIRY);
     };
 
+    // 拖拽处理 — document 级别监听，标准 React 拖拽模式
+    const onPointerDown = (e: React.PointerEvent) => {
+        if (isOpen) return;
+        movedRef.current = false;
+        dragStart.current = {x: e.clientX, y: e.clientY, posX: pos.x, posY: pos.y};
+        setDragging(true);
+    };
+
+    useEffect(() => {
+        if (!dragging) return;
+        const onMove = (e: PointerEvent) => {
+            const dx = e.clientX - dragStart.current.x;
+            const dy = e.clientY - dragStart.current.y;
+            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+            movedRef.current = true;
+            const nx = dragStart.current.posX + dx;
+            const ny = dragStart.current.posY + dy;
+            const maxX = window.innerWidth - 60;
+            const maxY = window.innerHeight - 60;
+            setPos({
+                x: Math.max(-dragStart.current.posX, Math.min(nx, maxX)),
+                y: Math.max(-dragStart.current.posY, Math.min(ny, maxY))
+            });
+        };
+        const onUp = () => {
+            setDragging(false);
+        };
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+        return () => {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+        };
+    }, [dragging]);
+
+    const handleBallPress = () => {
+        if (movedRef.current) {
+            movedRef.current = false;
+            return;
+        }
+        setIsOpen(!isOpen);
+    };
+
     return (
         <>
-            {/* 悬浮按钮 */}
-            <div className="fixed bottom-6 right-6 z-50">
+            {/* 悬浮按钮 — 可拖拽 */}
+            <div
+                className="fixed z-50"
+                style={{
+                    bottom: '1.5rem', left: '1.5rem',
+                    transform: `translate(${pos.x}px,${pos.y}px)`,
+                    transition: dragging ? 'none' : 'transform 0.2s',
+                }}
+                onPointerDown={onPointerDown}
+            >
                 <Button isIconOnly color="primary" size="lg" radius="full"
-                        className="shadow-lg" onPress={() => setIsOpen(!isOpen)}>
+                        className="shadow-lg cursor-grab active:cursor-grabbing" onPress={handleBallPress}>
                     {isOpen ? <XMarkIcon className="h-6 w-6"/>
                         : <ChatBubbleLeftRightIcon className="h-6 w-6"/>}
                 </Button>
@@ -107,7 +163,7 @@ export default function ChatPanel() {
             {/* 对话面板 */}
             {isOpen && (
                 <div
-                    className="fixed bottom-20 right-6 z-50 flex w-[380px] max-w-[calc(100vw-3rem)] flex-col rounded-2xl border border-divider bg-content1 shadow-2xl"
+                    className="fixed bottom-20 left-6 z-50 flex w-[380px] max-w-[calc(100vw-3rem)] flex-col rounded-2xl border border-divider bg-content1 shadow-2xl"
                     style={{height: 'min(560px, calc(100vh - 120px))'}}>
                     <div className="flex items-center justify-between border-b border-divider px-4 py-3">
                         <div className="flex items-center gap-2">

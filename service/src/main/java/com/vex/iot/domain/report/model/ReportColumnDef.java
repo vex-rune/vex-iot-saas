@@ -1,4 +1,4 @@
-﻿package com.vex.iot.domain.report.model;
+package com.vex.iot.domain.report.model;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -10,8 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReportColumnDef {
-    /// 输出列别名（唯一、正则校验）
-    @NotNull
+    /// 用户填写的显示名称（必填）
+    private String displayName;
+    /// 输出列别名（运行时自动生成，无需用户填写）
     private String alias;
     /// 引用的数据源
     @NotNull

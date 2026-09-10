@@ -1,6 +1,5 @@
-﻿package com.vex.iot.domain.report.model;
+package com.vex.iot.domain.report.model;
 
-import com.vex.iot.common.queries.QueriesPredicate;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,7 +14,7 @@ public class ReportQueryRequest {
     /// 内联 schema（调试 / 临时执行用）
     private ReportSchema schema;
     /// 额外过滤条件（叠加到 schema.filters 上）
-    private QueriesPredicate filters;
+    private ReportSchemaFilter filters;
     /// 行数上限
     private Integer limit;
 }
