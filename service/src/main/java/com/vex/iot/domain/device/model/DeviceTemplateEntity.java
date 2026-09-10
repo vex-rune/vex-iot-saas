@@ -2,8 +2,10 @@ package com.vex.iot.domain.device.model;
 
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
-import com.vex.iot.domain.device.enums.GatewayType;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -36,9 +38,8 @@ public class DeviceTemplateEntity extends TenantBaseEntity {
     private String description;
 
     /// 网关类型
-    @Enumerated(EnumType.STRING)
     @Column(length = 32)
-    private GatewayType gatewayType;
+    private String gatewayType;
 
     /// 点位配置快照（JSON）
     @Column(columnDefinition = "TEXT")

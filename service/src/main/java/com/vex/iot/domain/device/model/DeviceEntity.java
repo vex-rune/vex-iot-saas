@@ -3,7 +3,6 @@ package com.vex.iot.domain.device.model;
 import com.vex.iot.common.model.SnowflakeId;
 import com.vex.iot.common.model.TenantBaseEntity;
 import com.vex.iot.domain.device.enums.DeviceOnline;
-import com.vex.iot.domain.device.enums.GatewayType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -38,9 +37,8 @@ public class DeviceEntity extends TenantBaseEntity {
     private String gatewayId;
 
     /// 网关类型
-    @Enumerated(EnumType.STRING)
     @Column(length = 32)
-    private GatewayType gatewayType;
+    private String gatewayType;
 
     /// 关联的模版ID（用于模版同步追踪）
     @Size(max = 64)

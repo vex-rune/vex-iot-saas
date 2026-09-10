@@ -421,7 +421,7 @@ public class DataSeedService {
                     .tenantId(tenantId)
                     .deviceName(deviceName)
                     .gatewayId("GW_" + String.format("%03d", (i - 1) / 5 + 1))
-                    .gatewayType(gwType)
+                    .gatewayType(gwType.name())
                     .enabled(true)
                     .online(online)
                     .level1Tag(spec[2])
@@ -1121,11 +1121,11 @@ public class DataSeedService {
     private List<DeviceTemplateEntity> seedDeviceTemplates(List<DeviceEntity> devices) {
         List<DeviceTemplateEntity> result = new ArrayList<>();
         String[][] templates = {
-                {"通用设备模版", "通用监控：温度、湿度、运行状态", "MODBUS_TCP", "demo"},
-                {"电机设备模版", "电机监控：温度、转速、振动、电流", "USR_G771", "demo"},
-                {"泵站设备模版", "泵站监控：流量、压力、温度、功率", "USR_G771", "prod"},
-                {"电力监测模版", "配电间监测：电压、电流、功率、频率", "MODBUS_TCP", "prod"},
-                {"环境监测模版", "环境监测：温度、湿度、PM2.5、噪声", "MQTT_DIRECT", "prod"}
+                {"通用设备模版", "通用监控：温度、湿度、运行状态", "USR_G771_EDGE", "demo"},
+                {"电机设备模版", "电机监控：温度、转速、振动、电流", "USR_G771_EDGE", "demo"},
+                {"泵站设备模版", "泵站监控：流量、压力、温度、功率", "USR_G771_EDGE", "prod"},
+                {"电力监测模版", "配电间监测：电压、电流、功率、频率", "USR_G771_EDGE", "prod"},
+                {"环境监测模版", "环境监测：温度、湿度、PM2.5、噪声", "USR_G771_EDGE", "prod"}
         };
         for (int i = 0; i < templates.length; i++) {
             String[] spec = templates[i];
