@@ -41,6 +41,18 @@ spring:
           model: ${AI_LLM_MODEL:MiniMax-Text-01}
           temperature: 0.1
           max-tokens: 2048
+    mcp:
+      server:
+        # Streamable-HTTP 传输 (MCP 2025+ 现代协议),Claude Desktop / Cursor / 自研客户端通用
+        name: iot-saas-mcp-server
+        version: 1.0.0
+        # 注解扫描: 自动把 @Tool 注解方法暴露为 MCP tools
+        annotation-scanner:
+          enabled: true
+        # 同步模式 (与项目 WebMVC 同步模型契合)
+        type: SYNC
+        # tool-change 通知默认开启
+        tool-change-notification: true
 
 
 # 阿里云短信(可选,未配置时通知降级为日志通道)
@@ -89,6 +101,14 @@ vex:
     model: ${AI_LLM_MODEL:mimo-v2.5}
     temperature: 0.1
     max-tokens: 2048
+
+  # MCP Server 鉴权配置(关键安全开关)
+  # enabled=false 时 MCP endpoint 任何人都可访问(仅用于本地调试)
+  # 生产部署务必设为 true,并通过 MCP_API_KEYS 注入合法 Key
+  mcp:
+    enabled: ${MCP_AUTH_ENABLED:false}
+    api-keys: ${MCP_API_KEYS:}
+    key-header: X-MCP-Key
 
 
 # 日志

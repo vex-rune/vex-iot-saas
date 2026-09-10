@@ -60,7 +60,10 @@ public class SecurityConfig {
                                 // 验证码接口
                                 "/api/auth/key-info",
                                 // 健康监测
-                                "/actuator/health"
+                                "/actuator/health",
+                                // MCP Server Streamable-HTTP endpoint (Claude Desktop / Cursor / 自研客户端)
+                                // 鉴权由 X-Tenant-Id header + 业务层处理,本处先放行
+                                "/mcp/**"
                         )
                         .permitAll()
                         .anyRequest()

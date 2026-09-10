@@ -27,6 +27,7 @@
         <aliyunSms.version>2.0.24</aliyunSms.version>
         <langchain4j.version>1.16.1</langchain4j.version>
         <langchain4j-agentic.version>1.16.1-beta26</langchain4j-agentic.version>
+        <spring-ai.version>1.0.0-M6</spring-ai.version>
     </properties>
 
     <dependencyManagement>
@@ -35,6 +36,13 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>1.18.42</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -129,9 +137,14 @@
             <artifactId>spring-integration-mqtt</artifactId>
         </dependency>
 
-        <!-- Spring AI 暂不引入 (后续升级 Boot 版本时再切换) -->
-        <!-- LangChain4j -->
+        <!-- MCP Server: 把 @Tool 注解方法暴露为 Model Context Protocol 服务端,
+             可被 Claude Desktop / Cursor / 自研 Agent 等 MCP 客户端发现并调用 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-mcp-server-webmvc-spring-boot-starter</artifactId>
+        </dependency>
 
+        <!-- LangChain4j (原有 AI Chat 能力保留) -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>

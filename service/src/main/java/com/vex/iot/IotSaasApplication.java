@@ -1,5 +1,6 @@
 package com.vex.iot;
 
+import com.vex.iot.app.ai.McpProperties;
 import com.vex.iot.app.mqtt.MqttConnectProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,7 +20,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.vex.iot.domain.**"
 })
 @SpringBootApplication(scanBasePackages = "com.vex.iot")
-@EnableConfigurationProperties(MqttConnectProperties.class)
+@EnableConfigurationProperties({MqttConnectProperties.class, McpProperties.class})
 public class IotSaasApplication {
 
     public static void main(String[] args) {
