@@ -58,8 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/alarms/events', label: '警告信息', icon: BellIcon },
   { to: '/notify-users', label: '通知', icon: UsersIcon },
     {to: '/reports', label: '报表查看', icon: BarsArrowDownIcon},
-    {to: '/report-admin', label: '报表管理', icon: BarsArrowDownIcon, adminOnly: true},
-  // 仅 SUPER_ADMIN 可见的菜单 — 后端 @PreAuthorize 二次把关
+    {to: '/report-admin', label: '报表管理', icon: BarsArrowDownIcon, adminOnly: 'super'},
   { to: '/admin/accounts', label: '账户管理', icon: UsersIcon, adminOnly: 'super' },
   { to: '/admin/tenants', label: '租户管理', icon: BuildingOfficeIcon, adminOnly: 'super' },
 ];
