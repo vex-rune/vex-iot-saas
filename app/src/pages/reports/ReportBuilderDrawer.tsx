@@ -156,8 +156,8 @@ function ColRow({col, i, cols, setCols}: {
         onSelectionChange={(k) => {
             const v = [...k][0];
             if (v) u({op: v === 'NONE' ? null : String(v)});
-        }}><SelectItem key="NONE" textValue="无">无</SelectItem>{REPORT_OPERATORS.map(o => <SelectItem key={o}
-                                                                                                       textValue={o}>{o}</SelectItem>)}
+        }}>{<><SelectItem key="NONE" textValue="无">无</SelectItem>{REPORT_OPERATORS.map(o => <SelectItem key={o}
+                                                                                                          textValue={o}>{o}</SelectItem>)}</>}
     </Select>{col.op && (<><Select label="右来源" size="sm" className="w-36" variant="bordered"
                                    selectedKeys={[col.operandSource]} onSelectionChange={(k) => {
         const v = [...k][0];

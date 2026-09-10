@@ -45,6 +45,7 @@ const TR: Record<string, number> = {'7d': 7, '30d': 30, '90d': 90};
 interface PCfg {
     visible?: boolean;
     defaultTimeRange?: string;
+    searchableColumns?: string[];
 }
 
 function ReportTabContent({def}: { def: ReportDefinition }) {

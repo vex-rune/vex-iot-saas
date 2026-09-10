@@ -65,7 +65,7 @@ export default function TemplateListPage() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-medium text-foreground">{tpl.templateName}</span>
                                         <Chip size="sm"
-                                              variant="flat">{GATEWAY_TYPE_LABELS[tpl.gatewayType ?? 'OTHER'] ?? tpl.gatewayType}</Chip>
+                                              variant="flat">{tpl.gatewayType ? (GATEWAY_TYPE_LABELS[tpl.gatewayType] ?? tpl.gatewayType) : '-'}</Chip>
                                     </div>
                                     <span className="text-xs text-foreground-400">{formatDateTime(tpl.createdAt)}</span>
                                 </div>
@@ -91,7 +91,7 @@ export default function TemplateListPage() {
                                     </TableCell>
                                     <TableCell>
                                         <Chip size="sm" variant="flat">
-                                            {GATEWAY_TYPE_LABELS[tpl.gatewayType ?? 'OTHER'] ?? tpl.gatewayType ?? '-'}
+                                            {tpl.gatewayType ? (GATEWAY_TYPE_LABELS[tpl.gatewayType] ?? tpl.gatewayType ?? '-') : '-'}
                                         </Chip>
                                     </TableCell>
                                     <TableCell>

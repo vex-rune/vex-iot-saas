@@ -166,7 +166,7 @@ export default function TemplateDetailPage() {
                             <div className="flex flex-col gap-3 text-sm">
                                 <Row label="模版名称" value={template.templateName}/>
                                 <Row label="网关类型"
-                                     value={GATEWAY_TYPE_LABELS[template.gatewayType ?? 'OTHER'] ?? '-'}/>
+                                     value={template.gatewayType ? (GATEWAY_TYPE_LABELS[template.gatewayType] ?? '-') : '-'}/>
                                 <Row label="描述" value={template.description || '-'}/>
                                 <Row label="点位数量"
                                      value={Array.isArray(pointList) ? String(pointList.length) : '0'}/>

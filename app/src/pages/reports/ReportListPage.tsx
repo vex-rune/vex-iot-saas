@@ -51,7 +51,7 @@ export default function ReportListPage() {
         queryKey: 'report.definitions',
         queryFn: (body) => queryReportDefinitions(body),
         countFn: (body) => countReportDefinitions(body),
-        defaultSize: '15',
+        defaultSize: 15,
     });
 
     const deleteMutation = useApiMutation({
