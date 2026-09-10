@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://127.0.0.1:15432/iot_saas_test
+    url: jdbc:postgresql://127.0.0.1:15432/iot_saas
     username: vex_postgres
     password: ${PG_PASSWORD}
   jpa:
