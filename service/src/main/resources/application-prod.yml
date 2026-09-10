@@ -12,6 +12,8 @@ vex:
   # 生产环境严禁自动播种演示数据
   data-seed:
     enabled: true
+    # 库中已有设备时是否仍继续播种(会产生重复的告警规则/历史数据)
+    force: true
 
   mqtt:
     connection:
