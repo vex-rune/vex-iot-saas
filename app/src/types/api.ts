@@ -187,7 +187,7 @@ export type AccessType = 'RO' | 'RW';
 export type RegisterType = 'STATIC' | 'DYNAMIC';
 
 /** 网关类型枚举 — 对齐后端 GatewayType */
-export type GatewayType = 'USR_G771' | 'USR_G771_EDGE' | 'MODBUS_TCP' | 'MQTT_DIRECT' | 'OTHER';
+export type GatewayType = 'USR_G771_EDGE';
 
 /** 网关类型显示名映射 */
 export const GATEWAY_TYPE_LABELS: Record<GatewayType, string> = {
