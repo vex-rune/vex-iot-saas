@@ -1138,7 +1138,7 @@ public class DataSeedService {
             DeviceTemplateEntity t = DeviceTemplateEntity.builder().id(tid)
                     .tenantId("demo".equals(spec[3]) ? "demo-tenant" : "prod-tenant")
                     .templateName(spec[0]).description(spec[1])
-                    .gatewayType(GatewayType.valueOf(spec[2]))
+                    .gatewayType(GatewayType.USR_G771_EDGE.name())
                     .pointConfig("{\"points\":[]}").scheduleConfig("{\"schedules\":[]}")
                     .panelConfig("{\"widgets\":[]}").enabled(true).build();
             t.stampCreated(TenantBaseEntity.SYSTEM_USER_ID, Instant.now());
